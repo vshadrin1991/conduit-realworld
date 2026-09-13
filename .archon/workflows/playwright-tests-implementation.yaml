@@ -1,0 +1,156 @@
+name: playwright-tests-implementation
+description: >-
+  Implement Playwright UI/API tests in the Conduit framework from a prepared task file (tasks/<KEY>/<KEY>.md from
+  the playwright-ts-test-aqa-task skill) or a description: page descriptions from saved pages, plan, implementation,
+  typecheck and lint until clean, one verification run of the new tests, review and an implementation report.
+  Stops after planning when open questions block the work. Input: task file path or a description of what to automate.
+
+nodes:
+  # Deterministic: pages saved with Ctrl/Cmd+S become page descriptions (only new or re-saved pages).
+  - id: page_descriptions
+    bash: |
+      found=0
+      for dir in tasks/*/pages; do
+        [ -d "$dir" ] || continue
+        for html in "$dir"/*.html; do
+          [ -f "$html" ] || continue
+          md="${html%.html}.md"
+          if [ ! -f "$md" ] || [ "$html" -nt "$md" ]; then
+            npm run --silent page:md -- "$html"
+            found=1
+          fi
+        done
+      done
+      [ "$found" = 1 ] || echo "No new or re-saved pages to describe."
+
+  - id: plan
+    model: '@planner'
+    command: playwright-plan-tests
+    depends_on: [page_descriptions]
+    context: fresh
+    skills: [playwright-ts-test-implementation, playwright-ts-test-aqa-task]
+    output_format:
+      type: object
+      properties:
+        status: { type: string, enum: [READY, BLOCKED] }
+        summary: { type: string }
+        specs: { type: array, items: { type: string } }
+        open_questions: { type: array, items: { type: string } }
+      required: [status, summary, specs, open_questions]
+
+  - id: implement
+    model: '@implementer'
+    command: playwright-implement-tests
+    depends_on: [plan]
+    when: "$plan.output.status == 'READY'"
+    skills: [playwright-ts-test-implementation]
+    output_format:
+      type: object
+      properties:
+        summary: { type: string }
+        files: { type: array, items: { type: string } }
+        specs: { type: array, items: { type: string } }
+      required: [summary, files, specs]
+
+  # Fix until the compiler and linter are clean (checked by the shell, not by the model's claim).
+  - id: static_checks
+    model: '@implementer'
+    depends_on: [implement]
+    loop:
+      prompt: |
+        Run `npm run typecheck` and `npm run lint` and fix every error, following the
+        playwright-ts-test-implementation conventions. Changed files are listed in $ARTIFACTS_DIR/changed-files.txt.
+        Never disable lint rules, add `any` or `@ts-ignore`, or delete tests to get a clean run.
+        When both commands pass, output: <promise>CHECKS_PASS</promise>
+      until: CHECKS_PASS
+      until_bash: npm run --silent typecheck && npm run --silent lint
+      max_iterations: 3
+
+  - id: verify
+    model: '@implementer'
+    command: playwright-verify-tests
+    depends_on: [static_checks]
+    skills: [playwright-ts-test-implementation, playwright-ts-test-results, playwright-ts-test-self-healing]
+    output_format:
+      type: object
+      properties:
+        status: { type: string, enum: [PASSED, FAILED, ENV_BLOCKED] }
+        summary: { type: string }
+        failures:
+          type: array
+          items:
+            type: object
+            properties:
+              test: { type: string }
+              category: { type: string }
+              evidence: { type: string }
+              action: { type: string }
+            required: [test, category, evidence, action]
+      required: [status, summary, failures]
+
+  # Review what was implemented, even when verification failed or was blocked by the environment.
+  - id: scope
+    depends_on: [verify]
+    trigger_rule: all_done
+    when: "$plan.output.status == 'READY'"
+    bash: |
+      echo "Files created or changed by the implementation:"
+      cat $ARTIFACTS_DIR/changed-files.txt 2>/dev/null || echo "(changed-files.txt was not written)"
+
+  - id: review_conventions
+    model: '@reviewer'
+    command: playwright-review-conventions
+    depends_on: [scope]
+    context: fresh
+    skills: [playwright-ts-test-implementation]
+    allowed_tools: [Read, Glob, Grep]
+    output_format:
+      type: object
+      properties:
+        verdict: { type: string, enum: [APPROVE, CHANGES_REQUESTED] }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string, enum: [blocker, major, minor] }
+              file: { type: string }
+              line: { type: integer }
+              rule: { type: string }
+              problem: { type: string }
+              fix: { type: string }
+            required: [severity, file, rule, problem, fix]
+      required: [verdict, findings]
+
+  - id: review_design
+    model: '@reviewer'
+    command: playwright-review-test-design
+    depends_on: [scope]
+    context: fresh
+    skills: [playwright-ts-test-implementation, playwright-ts-test-results]
+    allowed_tools: [Read, Glob, Grep]
+    output_format:
+      type: object
+      properties:
+        verdict: { type: string, enum: [APPROVE, CHANGES_REQUESTED] }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string, enum: [blocker, major, minor] }
+              file: { type: string }
+              line: { type: integer }
+              rule: { type: string }
+              problem: { type: string }
+              fix: { type: string }
+            required: [severity, file, rule, problem, fix]
+      required: [verdict, findings]
+
+  # Always runs: reports the result, or the open questions when the plan was blocked.
+  - id: report
+    model: '@general'
+    command: playwright-implementation-report
+    depends_on: [plan, review_conventions, review_design]
+    trigger_rule: all_done
+    skills: [playwright-ts-test-implementation]

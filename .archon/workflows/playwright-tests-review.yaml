@@ -1,0 +1,85 @@
+name: playwright-tests-review
+description: >-
+  Review Playwright UI/API test code of the Conduit framework: typecheck and lint, framework conventions,
+  test design, reliability and rate-limit cost. Read-only; writes review.md with a verdict to the run artifacts.
+  Input: files or folders to review (empty = changed files from git and framework files changed in the last 2 days).
+
+nodes:
+  # Deterministic: what to review.
+  - id: scope
+    bash: |
+      echo "Requested scope: $ARGUMENTS"
+      if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        echo "Changed files (git status):"
+        git status --porcelain --untracked-files=all -- tests src .claude/skills playwright.config.ts
+      fi
+      echo "Framework files changed in the last 2 days:"
+      find tests src -type f -name '*.ts' -mtime -2 | sort
+
+  # Deterministic: compiler and linter results are evidence for the report, so failures do not stop the run.
+  - id: static_checks
+    bash: |
+      out=$(npm run --silent typecheck 2>&1); code=$?
+      echo "typecheck exit code: $code"
+      echo "$out" | tail -40
+      out=$(npm run --silent lint 2>&1); code=$?
+      echo "lint exit code: $code"
+      echo "$out" | tail -40
+      exit 0
+
+  - id: review_conventions
+    model: '@reviewer'
+    command: playwright-review-conventions
+    depends_on: [scope]
+    context: fresh
+    skills: [playwright-ts-test-implementation]
+    allowed_tools: [Read, Glob, Grep]
+    output_format:
+      type: object
+      properties:
+        verdict: { type: string, enum: [APPROVE, CHANGES_REQUESTED] }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string, enum: [blocker, major, minor] }
+              file: { type: string }
+              line: { type: integer }
+              rule: { type: string }
+              problem: { type: string }
+              fix: { type: string }
+            required: [severity, file, rule, problem, fix]
+      required: [verdict, findings]
+
+  - id: review_design
+    model: '@reviewer'
+    command: playwright-review-test-design
+    depends_on: [scope]
+    context: fresh
+    skills: [playwright-ts-test-implementation, playwright-ts-test-results]
+    allowed_tools: [Read, Glob, Grep]
+    output_format:
+      type: object
+      properties:
+        verdict: { type: string, enum: [APPROVE, CHANGES_REQUESTED] }
+        findings:
+          type: array
+          items:
+            type: object
+            properties:
+              severity: { type: string, enum: [blocker, major, minor] }
+              file: { type: string }
+              line: { type: integer }
+              rule: { type: string }
+              problem: { type: string }
+              fix: { type: string }
+            required: [severity, file, rule, problem, fix]
+      required: [verdict, findings]
+
+  - id: report
+    model: '@general'
+    command: playwright-review-report
+    depends_on: [static_checks, review_conventions, review_design]
+    trigger_rule: all_done
+    allowed_tools: [Read, Write]

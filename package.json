@@ -1,0 +1,40 @@
+{
+  "name": "conduit-realworld-playwright",
+  "version": "1.0.0",
+  "description": "Playwright UI + API tests for Conduit Realworld",
+  "private": true,
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "pretest": "rm -rf reports/allure-results",
+    "test": "playwright test",
+    "test:api": "playwright test --project=api",
+    "test:ui": "playwright test --project=ui",
+    "test:quick": "playwright test --grep-invert @auth-quota",
+    "test:headed": "playwright test --project=ui --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui-mode": "playwright test --ui",
+    "report": "playwright show-report reports/html",
+    "allure:generate": "allure generate reports/allure-results",
+    "allure:open": "allure open reports/allure-report",
+    "results": "node .claude/skills/playwright-ts-test-results/scripts/summarize-results.mjs",
+    "page:md": "node .claude/skills/playwright-ts-test-implementation/scripts/parse-page-to-md.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^9.9.0",
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "allure": "^3.17.0",
+    "allure-playwright": "^3.12.1",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,0 +1,26 @@
+# Archon config for the Conduit Playwright + TypeScript project.
+# The project is not a git remote checkout: run workflows with --no-worktree (see .archon/README.md).
+
+assistant: claude
+
+assistants:
+  claude:
+    # Default for AI nodes that do not reference a model level.
+    model: sonnet
+
+# Role-based model levels. Referenced as model: '@implementer' on workflow AI nodes.
+# Change a level here and every node at that level follows — no workflow edits.
+#
+#   @planner      → opus   / high    (plan: cases, layers, files, READY/BLOCKED)
+#   @implementer  → opus   / high    (implement, typecheck/lint fix loop, verification run, locator healing)
+#   @reviewer     → opus   / medium  (conventions review, test design review)
+#   @general      → haiku  / low     (result triage, reports)
+aliases:
+  '@planner': { provider: claude, model: opus, effort: high }
+  '@implementer': { provider: claude, model: opus, effort: high }
+  '@reviewer': { provider: claude, model: opus, effort: medium }
+  '@general': { provider: claude, model: haiku, effort: low }
+
+defaults:
+  loadDefaultCommands: true
+  loadDefaultWorkflows: true

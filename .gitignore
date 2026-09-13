@@ -1,0 +1,21 @@
+node_modules/
+dist/
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+reports/
+
+# Cached test user + browser storage state (contains a live token)
+.auth/
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/workspace.xml
+.DS_Store

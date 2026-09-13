@@ -1,0 +1,198 @@
+{
+  "main": {
+    "id": "e4bcebe44da097dd",
+    "type": "split",
+    "children": [
+      {
+        "id": "605e56fe2211c27d",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "b818a58f5c6affbc",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Граф"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "ccf01c366c0b93bc",
+    "type": "split",
+    "children": [
+      {
+        "id": "f35d8df29e47254e",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "3239363894ddaa13",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Файловый менеджер"
+            }
+          },
+          {
+            "id": "5168f6af679c9b83",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Поиск"
+            }
+          },
+          {
+            "id": "058ef0908f5baae5",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-bookmark",
+              "title": "Закладки"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "96b4b0aa2a30849c",
+    "type": "split",
+    "children": [
+      {
+        "id": "052762b32dd1d047",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "ecf7575eee4b29cd",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Обратные ссылки"
+            }
+          },
+          {
+            "id": "aea4101ba957ef4f",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Исходящие ссылки"
+            }
+          },
+          {
+            "id": "17d8438695e12c54",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Теги"
+            }
+          },
+          {
+            "id": "a815893041a6bce1",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Все свойства"
+            }
+          },
+          {
+            "id": "74b0d409068cc064",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Структура"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Меню быстрого перехода": false,
+      "graph:Граф": false,
+      "canvas:Создать новый холст": false,
+      "daily-notes:Сегодняшняя заметка": false,
+      "templates:Вставить шаблон": false,
+      "command-palette:Открыть палитру команд": false,
+      "bases:Создать новую базу": false
+    }
+  },
+  "active": "b818a58f5c6affbc",
+  "lastOpenFiles": [
+    "skills/playwright-ts-test-implementation/references/templates.md",
+    "skills/playwright-ts-test-implementation/references/code-conventions.md",
+    "skills/playwright-ts-test-implementation/references/app-behaviour.md",
+    "skills/playwright-ts-test-implementation/references/execution-and-config.md",
+    "skills/playwright-ts-test-implementation/references/test-data-and-auth.md",
+    "skills/playwright-ts-test-implementation/references/api-client.md",
+    "skills/playwright-ts-test-implementation/references/components.md",
+    "skills/playwright-ts-test-implementation/references/page-objects.md",
+    "skills/playwright-ts-test-results/SKILL.md",
+    "pages/<name>.md",
+    "pages"
+  ]
+}

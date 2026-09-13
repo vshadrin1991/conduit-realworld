@@ -1,0 +1,92 @@
+---
+name: playwright-ts-test-results
+description: Parse, summarize and triage Playwright test results in this Conduit Playwright + TypeScript project (reports/results.json, Allure results, traces, per-test logs). Use this skill whenever the user asks what failed, why tests are red, to analyze or summarize a test run, check flaky tests, read a report or trace, compare runs, decide whether a failure is a product bug, a test bug or an environment problem (rate limit 429, network) — even if they just say "check the results", "tests failed", "what happened in the run" or paste Playwright output.
+---
+
+# Playwright test results triage
+
+Turn a finished test run into a short, trustworthy verdict: what failed, which category each failure belongs to, the evidence, and the next action. The goal is to separate **environment noise** from **test defects** from **real product defects**, because each needs a different owner and fix.
+
+## Where results live
+
+| Artifact | Path | Produced by |
+|---|---|---|
+| Playwright JSON report (primary source) | `reports/results.json` | `json` reporter in `playwright.config.ts` |
+| Allure raw results | `reports/allure-results/` | `allure-playwright` reporter |
+| Allure HTML report | `reports/allure-report/` | `npm run allure:generate` |
+| Playwright HTML report | `reports/html/` | `html` reporter, open with `npm run report` |
+| Per-test artifacts (trace, screenshot, video, `error-context.md`) | `test-results/<test-dir>/` | only for failed tests |
+| Per-test log lines | `logs` attachment of every test | `logs` auto fixture in `src/base/BaseTest.ts` |
+
+`test-results/` is wiped at the start of every run, so analyze artifacts before re-running.
+
+## Workflow
+
+1. **Summarize with the bundled script** (no dependencies):
+
+   ```bash
+   node .claude/skills/playwright-ts-test-results/scripts/summarize-results.mjs
+   ```
+
+   Options: a path argument (`reports/results.json` by default, or an Allure results directory such as `reports/allure-results`), `--json` for structured output, `--failures-only`, `--fail-on-failures` (exit code 1, useful in CI). `npm run results` is a shortcut.
+
+   If there is no `reports/results.json`, the tests have not run with the current config — say so instead of guessing.
+
+2. **Check blockers first.**
+   - Global errors (config/compile errors) → nothing ran; fix those first.
+   - Many tests failing inside `getTestUser()` → the shared user could not be resolved (usually a 429 on login/registration); everything that needs authentication fails for the same reason.
+
+3. **Triage each failure by category** (the script pre-classifies; confirm with evidence):
+
+   | Category | Meaning | Typical evidence | Next action |
+   |---|---|---|---|
+   | `environment:rate-limit` | Demo server returned 429 (≈100 requests / 15 min per IP; auth ≈5 / hour) | `429`, `retry-after` in the error message, or `-> 429` in the `logs` attachment | Not a product bug. Wait for `retry-after`, re-run only the failed tests, reduce requests (see [execution-and-config](../playwright-ts-test-implementation/references/execution-and-config.md) of the implementation skill). |
+   | `environment:network` | DNS/connection problems | `ECONNRESET`, `net::ERR_*` | Re-run; check the site is up. |
+   | `product:server-error` | API answered 5xx | `-> 500` in logs, `got 500` | Likely product defect — capture request + response body from logs. |
+   | `test-code` | Bug in the test/framework code | `TypeError`, `is not a function` | Fix the code at the reported location. |
+   | `locator-or-timing` | Element not found, strict mode violation, timeout | `waiting for getByRole(...)`, `element(s) not found` | Open `error-context.md` (page snapshot) or the trace. Decide: UI changed (heal the page object with the [playwright-ts-test-self-healing](../playwright-ts-test-self-healing/SKILL.md) skill) vs page did not load (often a hidden 429 on page assets) vs real regression. |
+   | `assertion` | Expectation mismatch while the app responded normally | `expect(received).toBe(expected)` with values | Compare expected vs received: product regression or outdated expectation? Verify through the API or manually before calling it a product bug. |
+   | `unknown` | None of the above | — | Read the full message, logs and trace. |
+
+   Rate-limit problems often show up as other categories: a UI page that got 429 on its HTML renders blank, so the error looks like "locator not found". Always check the `logs` attachment for `-> 429` before blaming a locator.
+
+4. **Dig into evidence only where needed** (cheapest first):
+   - The `logs` attachment (every API call with status and timing, navigations, page actions) — in `reports/results.json` under the result's attachments, or in the HTML/Allure report.
+   - `test-results/<dir>/error-context.md` — an accessibility snapshot of the page at failure time; best for locator failures.
+   - Trace: `npx playwright show-trace test-results/<dir>/trace.zip` (interactive; tell the user the command rather than trying to read the zip).
+   - Allure report: `npm run allure:generate && npm run allure:open` — categories, history, retries.
+
+5. **Re-run surgically**, and only when the rate-limit budget allows it:
+   - `npx playwright test --last-failed`
+   - `npx playwright test tests/ui/articles.ui.spec.ts:12 --project=ui`
+   - Avoid re-running the whole suite right after a 429: it will fail again and extend nothing but the noise.
+
+## Report format
+
+Reply to the user with this structure (keep it short, lead with the verdict):
+
+```markdown
+## Test run: <PASSED | FAILED | PASSED WITH FLAKY TESTS>
+<passed> passed · <failed> failed · <flaky> flaky · <skipped> skipped · <duration>
+
+### Failures
+| Test | Category | Root cause (1 line) | Action |
+|---|---|---|---|
+| [ui] articles.ui.spec.ts:12 › user publishes an article | environment:rate-limit | 429 on /api/articles, retry-after 540s | Re-run after 9 min |
+
+### Details
+<only for failures that need explanation: key error lines, evidence file paths>
+
+### Recommendations
+<fixes for test code, product bugs to report, flaky tests to stabilise>
+```
+
+State the confidence of a classification when the evidence is indirect (e.g. "likely rate limit: blank page and 429 in logs"). Never label a failure a product defect without evidence that the application misbehaved.
+
+## Known product behaviour (not regressions)
+
+These are properties of the demo app that tests already account for — do not report them as new bugs:
+- Unknown email on login returns **404** "Email not found sign in first".
+- Duplicate usernames are accepted on registration.
+- Updating an article title regenerates the slug; omitting `tagList` on update clears tags.
+- `PUT /api/user` with only `bio` returns **500** "data and salt arguments required" (known backend bug).

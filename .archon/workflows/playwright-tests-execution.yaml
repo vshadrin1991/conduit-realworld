@@ -1,0 +1,62 @@
+name: playwright-tests-execution
+description: >-
+  Run Playwright tests of the Conduit project and make sense of the result: preflight (dependencies, typecheck),
+  the run, triage of failures by category, healing of locators broken by UI changes (page objects only) and an
+  execution report. Input: Playwright CLI arguments — spec files, file:line, --project=ui|api, --grep
+  (empty = the quick suite without @auth-quota tests). The demo server is rate limited: run the smallest scope.
+
+nodes:
+  - id: preflight
+    bash: |
+      set -e
+      [ -d node_modules ] || npm ci
+      echo "Playwright $(npx playwright --version)"
+      npm run --silent typecheck
+      echo "Preflight OK"
+
+  # Test failures do not fail this node: the triage step needs the report either way.
+  - id: run
+    depends_on: [preflight]
+    timeout: 1800000
+    bash: |
+      eval "set -- $ARGUMENTS"
+      if [ "$#" -eq 0 ]; then set -- --grep-invert @auth-quota; fi
+      : "${HEADLESS:=true}"
+      export HEADLESS
+      echo "Command: HEADLESS=$HEADLESS npx playwright test $*"
+      rm -rf reports/allure-results
+      npx playwright test "$@" > $ARTIFACTS_DIR/playwright-output.txt 2>&1
+      code=$?
+      tail -60 $ARTIFACTS_DIR/playwright-output.txt
+      echo "Playwright exit code: $code"
+      exit 0
+
+  - id: triage
+    model: '@general'
+    command: playwright-triage-results
+    depends_on: [run]
+    context: fresh
+    skills: [playwright-ts-test-results, playwright-ts-test-self-healing]
+    allowed_tools: [Read, Glob, Grep, Bash]
+    output_format:
+      type: object
+      properties:
+        verdict: { type: string, enum: [PASSED, FAILED, ENV_BLOCKED, NO_RESULTS] }
+        locator_failures: { type: string, enum: ['YES', 'NO'] }
+        summary: { type: string }
+      required: [verdict, locator_failures, summary]
+
+  # Only for failures caused by locators that no longer match the UI; edits page objects, re-runs healed tests once.
+  - id: heal
+    model: '@implementer'
+    command: playwright-heal-locators
+    depends_on: [triage]
+    when: "$triage.output.locator_failures == 'YES'"
+    skills: [playwright-ts-test-self-healing, playwright-ts-test-implementation, playwright-ts-test-results]
+
+  - id: report
+    model: '@general'
+    command: playwright-execution-report
+    depends_on: [preflight, run, triage, heal]
+    trigger_rule: all_done
+    allowed_tools: [Read, Write, Bash]
