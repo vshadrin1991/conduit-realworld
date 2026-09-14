@@ -19,3 +19,6 @@ reports/
 # IDE
 .idea/workspace.xml
 .DS_Store
+
+# tests description
+new_tests/

@@ -30,7 +30,9 @@ Produce an implementation plan that follows the `playwright-ts-test-implementati
 4. Collect open questions: open questions of the task, open decisions of page descriptions that affect the cases, missing steps, expected results or exact messages. Never invent expected texts.
 5. Write the plan to `$ARTIFACTS_DIR/plan.md`: cases → layer → files table, traceability (requirement / test case ID → spec and test title), file-by-file changes, open questions.
 
-Status is **READY** when every case in scope has steps and expected results and no open question blocks it; otherwise **BLOCKED**.
+When an open question blocks only some cases, drop those cases from scope, list them as `[blocking]` open questions for a follow-up run, and plan the rest. Say in the plan and the summary which cases were dropped and why.
+
+Status is **READY** when every case left in scope has steps and expected results and no open question blocks it. Status is **BLOCKED** only when nothing can be planned — the sources are missing or unreadable, or every case waits on an answer.
 
 ## Output
 

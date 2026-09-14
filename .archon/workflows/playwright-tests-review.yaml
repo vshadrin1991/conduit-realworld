@@ -1,4 +1,6 @@
 name: playwright-tests-review
+worktree:
+  enabled: false
 description: >-
   Review Playwright UI/API test code of the Conduit framework: typecheck and lint, framework conventions,
   test design, reliability and rate-limit cost. Read-only; writes review.md with a verdict to the run artifacts.

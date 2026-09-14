@@ -1,4 +1,6 @@
 name: playwright-tests-execution
+worktree:
+  enabled: false
 description: >-
   Run Playwright tests of the Conduit project and make sense of the result: preflight (dependencies, typecheck),
   the run, triage of failures by category, healing of locators broken by UI changes (page objects only) and an

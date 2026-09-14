@@ -1,4 +1,6 @@
 name: playwright-tests-implementation
+worktree:
+  enabled: false
 description: >-
   Implement Playwright UI/API tests in the Conduit framework from a prepared task file (tasks/<KEY>/<KEY>.md from
   the playwright-ts-test-aqa-task skill) or a description: page descriptions from saved pages, plan, implementation,
