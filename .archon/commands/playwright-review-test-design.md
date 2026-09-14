@@ -13,7 +13,7 @@ argument-hint: <files or folders to review; empty = changed files>
 
 ## Your task
 
-Review the tests in scope — read each spec and the page objects and helpers it uses. This is read-only: do not edit files. If a task file (`tasks/<KEY>/<KEY>.md`) is named in the input, also compare the tests with its cases.
+Review the tests in scope — read each spec and the page objects and helpers it uses. This is read-only: do not edit files. If a task file (`tasks/<KEY>/<KEY>.md`) is named in the input, also compare the tests with its cases. When `$ARTIFACTS_DIR/inputs.json` exists (implementation workflow), also compare them with the requirements and test cases it lists.
 
 Check:
 
@@ -23,7 +23,7 @@ Check:
 4. **Flakiness** — reads that do not retry right after an action (`getTexts`, `allInnerTexts`, `isVisible`, `count` without `expect` / `expect.poll`); exact counts on a shared server; races with native dialogs (answer before the click).
 5. **Rate-limit cost** — data arranged through the UI instead of the API, extra navigations, retries or conditions that repeat requests, auth calls without `AUTH_QUOTA`.
 6. **Mocks** — only the boundary under test.
-7. **Coverage** — cases of the task that are missing or only partially asserted.
+7. **Coverage** — cases of the task, test cases or requirements that are missing or only partially asserted.
 
 Report every problem with `file:line`, the risk (how it fails or what it misses) and a concrete fix.
 

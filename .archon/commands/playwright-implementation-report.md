@@ -7,6 +7,8 @@ argument-hint: <tasks/KEY/KEY.md | description of what was automated>
 
 **Input**: $ARGUMENTS
 
+**Inputs**: $inputs.output
+
 **Plan**: $plan.output
 
 **Implementation**: $implement.output
@@ -27,8 +29,9 @@ Write `$ARTIFACTS_DIR/implementation-report.md`. Steps that did not run have emp
 2. **Open questions** — from the plan; blocking ones first.
 3. **Changes** — files from `$ARTIFACTS_DIR/changed-files.txt`, grouped: specs, page objects, API, data, docs.
 4. **Tests** — each new or changed test with its verification status; remaining failures with category and next action.
-5. **Review findings** — blocker and major findings still open.
-6. **Next steps** — at most 5 bullets.
+5. **Coverage** — when requirements or test cases were given: each requirement / test case ID → test, or the reason it is not automated.
+6. **Review findings** — blocker and major findings still open.
+7. **Next steps** — at most 5 bullets.
 
 If a task file is the input and everything passed, also tick the finished subtasks and Definition of done items in that task file.
 

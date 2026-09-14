@@ -3,11 +3,21 @@ description: >-
   Implement Playwright UI/API tests in the Conduit framework from a prepared task file (tasks/<KEY>/<KEY>.md from
   the playwright-ts-test-aqa-task skill) or a description: page descriptions from saved pages, plan, implementation,
   typecheck and lint until clean, one verification run of the new tests, review and an implementation report.
-  Stops after planning when open questions block the work. Input: task file path or a description of what to automate.
+  Stops after planning when open questions block the work. Input: task file path or a description of what to automate,
+  plus optional --requirements|--r <file|folder|text>, --test-cases|--tc <file|folder|text> and
+  --artifacts|--a <folder|page.html> with pages saved from the browser.
 
 nodes:
+  # Deterministic: named inputs → inputs.json, text values saved to files, --artifacts pages → page descriptions.
+  - id: inputs
+    bash: |
+      mkdir -p "$ARTIFACTS_DIR"
+      printf '%s' "$ARGUMENTS" > "$ARTIFACTS_DIR/arguments.txt"
+      node .archon/scripts/implementation-inputs.mjs "$ARTIFACTS_DIR/arguments.txt" "$ARTIFACTS_DIR"
+
   # Deterministic: pages saved with Ctrl/Cmd+S become page descriptions (only new or re-saved pages).
   - id: page_descriptions
+    depends_on: [inputs]
     bash: |
       found=0
       for dir in tasks/*/pages; do
@@ -28,7 +38,7 @@ nodes:
     command: playwright-plan-tests
     depends_on: [page_descriptions]
     context: fresh
-    skills: [playwright-ts-test-implementation, playwright-ts-test-aqa-task]
+    skills: [playwright-ts-test-implementation, playwright-ts-test-aqa-task, playwright-ts-test-requirements]
     output_format:
       type: object
       properties:
