@@ -21,7 +21,6 @@ export class ConduitRestClient extends RestClient {
   readonly post: RestApiPostHelper;
   readonly put: RestApiPutHelper;
   readonly delete: RestApiDeleteHelper;
-  /** Multi-call flows (create test data, register it for cleanup). */
   readonly api: ConduitAPI;
 
   constructor(request: APIRequestContext, token?: Token) {

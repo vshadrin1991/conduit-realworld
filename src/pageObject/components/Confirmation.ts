@@ -4,14 +4,19 @@ type ConfirmationButton = 'accept' | 'dismiss';
 
 /**
  * Native browser dialogs (`confirm`, `alert`, `prompt`) — Conduit asks "Want to delete the article?" via `confirm`.
- * Playwright auto-dismisses dialogs without a handler, so the answer must be registered before the action:
+ * Exposed on every page as `page.confirmation`. Playwright auto-dismisses dialogs without a handler, so the answer
+ * must be registered before the action:
  *
- * const dialog = get(Confirmation).answerNext('accept');
+ * const dialog = articlePage.confirmation.answerNext('accept');
  * await articlePage.clickActionButton('deleteArticle');
  * expect(await dialog).toBe('Want to delete the article?');
  */
 export class Confirmation extends BaseComponent {
-  /** Waits for the next dialog, clicks `button` on it and resolves with the dialog message. */
+  /**
+   * Registers the answer to the next native dialog of the page; call it before the action that opens the dialog.
+   * @param button - `accept` to confirm the dialog, `dismiss` to cancel it
+   * @return promise of the dialog message, resolved once the dialog is answered
+   */
   answerNext(button: ConfirmationButton): Promise<string> {
     return this.page.waitForEvent('dialog').then(async (dialog) => {
       const message = dialog.message();

@@ -22,7 +22,7 @@ Check:
 3. **Isolation** — no dependency on test order, other tests' data or existing server data; tests of one UI file run one by one in separate browsers; feeds are searched with `findArticleInFeed`.
 4. **Flakiness** — reads that do not retry right after an action (`getTexts`, `allInnerTexts`, `isVisible`, `count` without `expect` / `expect.poll`); exact counts on a shared server; races with native dialogs (answer before the click).
 5. **Rate-limit cost** — data arranged through the UI instead of the API, extra navigations, retries or conditions that repeat requests, auth calls without `AUTH_QUOTA`.
-6. **Mocks** — only the boundary under test, with a comment explaining why.
+6. **Mocks** — only the boundary under test.
 7. **Coverage** — cases of the task that are missing or only partially asserted.
 
 Report every problem with `file:line`, the risk (how it fails or what it misses) and a concrete fix.

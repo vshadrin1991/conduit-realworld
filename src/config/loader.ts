@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parseEnv } from 'node:util';
 
-/** Project root (the directory of playwright.config.ts). */
 export const ROOT_DIR = path.resolve(__dirname, '../..');
 
 function readEnvFile(fileName: string): NodeJS.Dict<string> {

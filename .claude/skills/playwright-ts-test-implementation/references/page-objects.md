@@ -11,7 +11,7 @@ Read when adding or changing a page object, choosing a locator, or turning a pag
 - Pages contain **locators only**: element maps, public `readonly` locators for read-only content and locator-returning methods for parametrised elements (`articlePreview(title)`, `articleLink(title)`). No methods that bundle steps (`login`, `publish`, `expectArticle`). The only accepted exception is a search helper with real logic (`HomePage.findArticleInFeed`); document why and start it with `await this.settled()` so it never races queued actions.
 - A new generic page action belongs in `BasePage`/`FunctionalPage` and must stay chainable: `return this.enqueue('name(args)', async () => { ... })`.
 - Page objects never make API calls or create test data.
-- Add new routes to `pageObject/routes.ts` instead of hard-coding URLs.
+- Add new routes to `pageObject/pagePath/routes.ts` instead of hard-coding URLs.
 - Example: `assets/src/pageObject/pages/SettingsPage.ts`.
 
 ## Locators (in priority order)
@@ -19,7 +19,7 @@ Read when adding or changing a page object, choosing a locator, or turning a pag
 1. `getByRole` with an accessible name — `getByRole('button', { name: 'Publish Article' })`
 2. `getByLabel` / `getByPlaceholder` / `getByText` — most inputs have no labels, so placeholders are the stable choice for forms
 3. Scoped CSS on semantic classes the app renders (`.article-preview`, `.error-messages`) and `filter({ hasText })` to narrow lists
-4. Never XPath, generated class names, or `nth()` without a stable reason (document it, like the duplicated author actions in `ArticlePage`)
+4. Never XPath, generated class names, or `nth()` / `.first()` without a stable reason (such as the duplicated author actions in [app-behaviour](app-behaviour.md)); the reason goes into the task or pull request, not a code comment
 
 A locator broke after a UI change? Use the [playwright-ts-test-self-healing](../../playwright-ts-test-self-healing/SKILL.md) skill.
 

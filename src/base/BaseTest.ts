@@ -1,10 +1,19 @@
 import fs from 'node:fs';
-import { test as base, expect, type APIRequestContext, type Browser, type Page, type Video } from '@playwright/test';
+import {
+  test as base,
+  expect,
+  type APIRequestContext,
+  type Browser,
+  type Page,
+  type TestInfo,
+  type Video,
+} from '@playwright/test';
 import { ConduitRestClient } from '@/api/client/ConduitRestClient';
 import type { RestClient, Token } from '@/api/client/RestClient';
 import { getTestUser } from '@/api/client/session/auth/testUser';
 import { envConfig } from '@/config/env.config';
 import { createLogger, drainTestLogs } from '@/utilities/logger/logger';
+import { Interceptor } from '@/utilities/interceptor/Interceptor';
 import { clearDataStorage } from '@/utilities/tests/TestDataStorage';
 import { BaseComponent } from './BaseComponent';
 import { BasePage } from './BasePage';
@@ -33,8 +42,9 @@ export interface Get {
    */
   <T extends BasePage>(pageClass: PageClass<T>, route?: string): T;
   /**
-   * Component bound to the current page (cached per test): `get(Session).login()`, `get(Confirmation).answerNext(...)`.
-   * Element components (Input, Button, Checkbox, RadioButton, Text) are called from the page instead: `page.button.click(locator)`.
+   * Component bound to the current page (cached per test): `get(Session).login()`, `get(Interceptor).mock(...)`.
+   * Element components (Input, Button, Checkbox, RadioButton, Text) and Confirmation are called from the page instead:
+   * `page.button.click(locator)`, `page.confirmation.answerNext('accept')`.
    * @param componentClass - component class, e.g. `Session`
    * @return component instance
    */
@@ -51,17 +61,13 @@ export interface Get {
 }
 
 interface BaseFixtures {
-  /** Auto: logs test start/end and attaches the test's log lines to the report as `logs`. */
   logs: void;
-  /** Auto: after each test deletes the data registered by API flows and clears TestDataStorage. */
   dataCleaner: void;
-  /** The only fixture tests use: `test('...', async ({ get }) => { ... })`. */
+  interceptor: Interceptor;
   get: Get;
 }
 
-/** Options set per project in playwright.config.ts (`use: { ... }`). */
 export interface BaseOptions {
-  /** Launch a new browser for every test (closed after the test) instead of sharing the worker's browser. */
   newBrowserPerTest: boolean;
 }
 
@@ -80,8 +86,24 @@ interface CachedAsset {
   body: Buffer;
 }
 
-/** Static files of the SPA, cached per worker to save rate-limit budget. */
 const assetCache = new Map<string, CachedAsset>();
+
+/**
+ * Saves the DOM of the page after a failed test to `dom.html` and attaches it as `dom`.
+ * Skipped for passed tests, closed pages and pages that never navigated (API tests).
+ * @param page - page of the test
+ * @param testInfo - info of the finished test (status, output path, attachments)
+ */
+async function attachDom(page: Page, testInfo: TestInfo): Promise<void> {
+  if (testInfo.status === testInfo.expectedStatus || page.isClosed() || page.url() === 'about:blank') return;
+  try {
+    const domPath = testInfo.outputPath('dom.html');
+    fs.writeFileSync(domPath, await page.content());
+    testInfo.attachments.push({ name: 'dom', path: domPath, contentType: 'text/html' });
+  } catch (error) {
+    log.warn(`DOM snapshot skipped: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
 
 /**
  * Base test for every spec: `import { test, expect } from '@/base/BaseTest'`.
@@ -136,7 +158,6 @@ export const test = base.extend<BaseFixtures & BaseOptions, WorkerFixtures>({
 
     await context.close();
     if (recordVideo) {
-      // retain-on-* modes keep the video only for a failed test.
       const keep = !videoMode.startsWith('retain-on') || testInfo.status !== testInfo.expectedStatus;
       const videos = pages.map((page) => page.video()).filter((item): item is Video => !!item);
       for (const [index, item] of videos.entries()) {
@@ -189,11 +210,13 @@ export const test = base.extend<BaseFixtures & BaseOptions, WorkerFixtures>({
   ],
 
   /**
-   * Extends the built-in page: static asset cache + logging of rate-limited browser requests.
+   * Extends the built-in page: static asset cache + logging of rate-limited browser requests + DOM snapshot
+   * (`dom.html`) of a failed test.
    * @param page - built-in Playwright page
    * @param use - runs the test with the extended page
+   * @param testInfo - info of the running test (status, output path, attachments)
    */
-  page: async ({ page }, use) => {
+  page: async ({ page }, use, testInfo) => {
     const origin = new URL(envConfig.baseUrl).origin;
     await page.context().route(
       (url) => url.origin === origin && !url.pathname.startsWith('/api/'),
@@ -219,17 +242,35 @@ export const test = base.extend<BaseFixtures & BaseOptions, WorkerFixtures>({
       }
     });
     await use(page);
+    await attachDom(page, testInfo);
+  },
+
+  /**
+   * Captures the API calls and console output of the test's browser context from the start of the test and attaches
+   * the capture to a failed test as `interceptor` (read by `ArtifactsReporter`).
+   * @param page - page whose browser context is listened to
+   * @param use - runs the test with the listening interceptor
+   * @param testInfo - info of the running test (status, attachments)
+   */
+  interceptor: async ({ page }, use, testInfo) => {
+    const interceptor = new Interceptor(page);
+    interceptor.attach();
+    await use(interceptor);
+    if (testInfo.status === testInfo.expectedStatus) return;
+    const capture = { network: await interceptor.network(), console: await interceptor.console() };
+    await testInfo.attach('interceptor', { body: JSON.stringify(capture, null, 2), contentType: 'application/json' });
   },
 
   /**
    * Provides `get(...)`, which creates and caches pages, components and REST clients for the test.
    * @param request - API request context shared by the REST clients
    * @param page - page shared by the page objects and components
+   * @param interceptor - capture started for the test, returned by `get(Interceptor)`
    * @param use - runs the test with `get`
    */
-  get: async ({ request, page }, use) => {
+  get: async ({ request, page, interceptor }, use) => {
     const clients = { user: new Map<Function, RestClient>(), guest: new Map<Function, RestClient>() };
-    const ui = new Map<Function, BasePage | BaseComponent>();
+    const ui = new Map<Function, BasePage | BaseComponent>([[Interceptor, interceptor]]);
 
     const get = (
       target: PageClass<BasePage> | ComponentClass<BaseComponent> | ApiClass<RestClient>,
@@ -251,7 +292,6 @@ export const test = base.extend<BaseFixtures & BaseOptions, WorkerFixtures>({
   },
 });
 
-/** Tag for tests that call the auth endpoints, which allow only ~5 requests/hour per IP. */
 export const AUTH_QUOTA = '@auth-quota';
 
 export { expect };

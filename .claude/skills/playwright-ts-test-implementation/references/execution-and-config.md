@@ -27,11 +27,12 @@ The server allows about **100 requests per 15 minutes per IP for everything** (H
 ## Configuration
 
 - All settings live in `src/config/*.config.ts` and are read once through `loader.ts`. Precedence: real environment variables → `.env.<TEST_ENV>` → `.env` → code defaults. Invalid values (non-boolean `HEADLESS`, unknown `BROWSER`, ...) fail at startup with a clear message.
-- `envConfig` (TEST_ENV, BASE_URL, CI, AUTOMATION_KEY), `authConfig` (TEST_USER_EMAIL/PASSWORD, AUTH_DIR, lock, session key, token scheme), `frameworkConfig` (BROWSER, HEADLESS, SLOW_MO, VIEWPORT_*, LOCALE, TIMEZONE, WORKERS, RETRIES, FULLY_PARALLEL, UI_FULLY_PARALLEL, UI_NEW_BROWSER_PER_TEST, *_TIMEOUT, TRACE, VIDEO, SCREENSHOT, LOG_LEVEL), `reportConfig` (REPORTS_DIR, HTML_REPORT_OPEN, ALLURE, JUNIT). `.env.example` lists every variable.
-- Never read `process.env` directly in framework code or tests — add a typed field to the matching config (with a default and a doc comment) and to `.env.example`.
+- `envConfig` (TEST_ENV, BASE_URL, CI, AUTOMATION_KEY), `authConfig` (TEST_USER_EMAIL/PASSWORD, AUTH_DIR, lock, session key, token scheme), `frameworkConfig` (BROWSER, HEADLESS, SLOW_MO, VIEWPORT_*, LOCALE, TIMEZONE, WORKERS, RETRIES, FULLY_PARALLEL, UI_FULLY_PARALLEL, UI_NEW_BROWSER_PER_TEST, *_TIMEOUT, TRACE, VIDEO, SCREENSHOT, LOG_LEVEL, INTERCEPTOR_NETWORK, INTERCEPTOR_CONSOLE, INTERCEPTOR_BODY_MAX), `reportConfig` (REPORTS_DIR, HTML_REPORT_OPEN, ALLURE, JUNIT, ARTIFACTS). `.env.example` lists every variable.
+- Never read `process.env` directly in framework code or tests — add a typed field to the matching config (with a default) and to `.env.example`.
 - One-off overrides: `HEADLESS=false SLOW_MO=300 npx playwright test tests/ui/auth.ui.spec.ts`.
 
 ## Reports and logs
 
 - Every test gets a `logs` attachment (API calls with status/timing, navigation, page actions); API calls are also report steps. Console verbosity: `LOG_LEVEL=debug|info|warn|error`.
 - Reports: `npm run report` (Playwright HTML), `npm run allure:generate && npm run allure:open` (Allure), `npm run results` (text summary for triage).
+- Artifacts: a failed test gets a `dom` attachment (`dom.html`, the page DOM at failure time) from the `page` fixture in `BaseTest`; `ArtifactsReporter` (`src/utilities/reporter`) writes `reports/artifacts.json` after every run — one entry per failed or flaky test with `fileName`, `testName`, `project`, `line`, `status`, `error` and the `image`, `video` and `html` paths (`null` when not produced), plus the `network` and `console` entries captured by `Interceptor` (also the `interceptor` attachment of the failed test). Disable with `ARTIFACTS=false`.

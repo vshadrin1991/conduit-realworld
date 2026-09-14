@@ -11,8 +11,6 @@ export class ArticlePage extends BasePage<FieldName, ButtonName> {
     comment: this.root.getByPlaceholder('Write a comment...'),
   };
 
-  // Author actions are rendered twice (banner + below the body); the banner copy is used.
-  // Deleting opens a native confirm dialog — accept it with the Confirmation component before clicking.
   protected readonly buttons: Record<ButtonName, Locator> = {
     deleteArticle: this.root.getByRole('button', { name: 'Delete Article' }).first(),
     editArticle: this.root.getByRole('link', { name: 'Edit Article' }).first(),
@@ -24,11 +22,19 @@ export class ArticlePage extends BasePage<FieldName, ButtonName> {
   readonly tags: Locator = this.root.locator('.tag-list li');
   readonly comments: Locator = this.root.locator('.card:not(.comment-form)');
 
-  /** Slug of the article currently open, taken from the URL. */
+  /**
+   * Reads the slug of the opened article from the URL.
+   * @return article slug, or an empty string when no article is open
+   */
   get slug(): string {
     return decodeURIComponent(this.page.url().split('#/article/')[1] ?? '');
   }
 
+  /**
+   * Returns the comment card that contains the text.
+   * @param text - text of the comment
+   * @return locator of the comment card
+   */
   comment(text: string): Locator {
     return this.comments.filter({ has: this.page.locator('.card-text', { hasText: text }) });
   }

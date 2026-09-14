@@ -12,11 +12,6 @@ export class LoginPage extends BasePage<FieldName, ButtonName> {
     password: this.page.getByPlaceholder('Password'),
   };
 
-  // Conduit shows server errors in one block above the form; it reports unknown/invalid emails.
-  protected readonly errors: Partial<Record<FieldName, Locator>> = {
-    email: this.page.locator('.error-messages'),
-  };
-
   protected readonly buttons: Record<ButtonName, Locator> = {
     login: this.page.getByRole('button', { name: 'Login' }),
   };

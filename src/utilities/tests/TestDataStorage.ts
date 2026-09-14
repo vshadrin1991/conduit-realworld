@@ -8,22 +8,37 @@ const log = createLogger('TestDataStorage');
  */
 const data = new Map<string, unknown>();
 
-/** Stores `value` under `key` for the current test. */
+/**
+ * Stores a value for the current test.
+ * @param key - storage key
+ * @param value - value to store
+ */
 export function setData<T>(key: string, value: T): void {
   data.set(key, value);
 }
 
-/** @returns the stored value; throws when the key is absent */
+/**
+ * Reads a value stored for the current test; throws when the key was not stored.
+ * @param key - storage key
+ * @return stored value
+ */
 export function getData<T>(key: string): T {
   if (!data.has(key)) throw new Error(`The key '${key}' was not found in the data store.`);
   return data.get(key) as T;
 }
 
+/**
+ * Checks whether a value is stored for the current test.
+ * @param key - storage key
+ * @return `true` when the key is stored
+ */
 export function hasData(key: string): boolean {
   return data.has(key);
 }
 
-/** Removes everything stored for the current test. */
+/**
+ * Removes every stored value; BaseTest calls it after each test.
+ */
 export function clearDataStorage(): void {
   if (!data.size) return;
   log.info('Clear data storage.');

@@ -1,10 +1,6 @@
-// GOOD EXAMPLE — element helper. Location in the project: src/pageObject/components/Selector.ts
-// When every page needs it, add `readonly selector: Selector;` to BasePage (created in its constructor),
-// and tests use it from the page: `await somePage.selector.select(somePage.countrySelect, 'Poland')`.
 import { expect, type Locator } from '@playwright/test';
 import { BaseComponent } from '@/base/BaseComponent';
 
-/** Native `<select>` element helper; the locator is passed to every call. */
 export class Selector extends BaseComponent {
   /**
    * Selects an option by its visible label.

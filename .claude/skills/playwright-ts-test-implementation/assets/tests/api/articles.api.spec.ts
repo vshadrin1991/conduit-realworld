@@ -1,4 +1,3 @@
-// GOOD EXAMPLE — API spec. Location in the project: tests/api/<resource>.api.spec.ts
 import { ConduitRestClient } from '@/api/client/ConduitRestClient';
 import { ConduitBasePath } from '@/api/client/path/ConduitBasePath';
 import { getTestUser } from '@/api/client/session/auth/testUser';
@@ -8,13 +7,10 @@ import { generateArticle } from '@/utilities/tests/TestDataGenerator';
 
 test.describe('Articles API', () => {
   test('user favorites an article', async ({ get }) => {
-    // Arrange through a flow: the article is generated, created and deleted after the test automatically.
     const [created] = await get(ConduitRestClient).api.articles.create();
 
-    // Act through the endpoint helper: it checks the success status and returns the typed model.
     const article = await get(ConduitRestClient).post.articles.favorite(created.slug);
 
-    // Assert only what this behaviour is about.
     expect(article).toMatchObject({ slug: created.slug, favorited: true, favoritesCount: 1 });
   });
 
@@ -35,7 +31,6 @@ test.describe('Articles API', () => {
       limit: 10,
     });
 
-    // The server is shared and other tests publish in parallel: assert "contains", never exact lists.
     expect(articles.map((a) => a.slug)).toContain(created.slug);
     expect(articles.every((a) => a.author.username === testUser.username)).toBe(true);
   });
@@ -45,14 +40,12 @@ test.describe('Articles API', () => {
     const changes = { title: `${created.title} updated` };
 
     const article = await get(ConduitRestClient).put.articles.with(created.slug, changes);
-    // A new title produces a new slug: register it, otherwise the renamed article is never cleaned up.
     get(ConduitRestClient).api.articles.track(article.slug);
 
     expect(article).toMatchObject(changes);
   });
 
   test('guest cannot create an article', async ({ get }) => {
-    // Negative case: `response` returns the raw response once the expected status code is confirmed.
     const response = await get(ConduitRestClient, { guest: true }).response({
       name: 'create article without token',
       path: ConduitBasePath.ARTICLES,

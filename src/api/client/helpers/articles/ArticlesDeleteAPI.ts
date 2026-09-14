@@ -19,7 +19,6 @@ export class ArticlesDeleteAPI extends RestClient {
     await this.response({ ...request, method: 'DELETE', statusCode });
   }
 
-  /** DELETE /articles/:slug/favorite */
   async favorite(slug: string): Promise<Article> {
     const request = { name: `unfavorite article :: ${slug}`, path: ConduitBasePath.ARTICLE_FAVORITE, pathData: [slug] };
     return (await this.json<ArticleResponse>({ ...request, method: 'DELETE' })).article;

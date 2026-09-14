@@ -5,11 +5,13 @@
  * Usage:
  *   node summarize-results.mjs [path] [--json] [--failures-only] [--fail-on-failures]
  *
- * `path` is either a Playwright JSON report (default: reports/results.json)
+ * `path` is a Playwright JSON report (default: reports/results.json), a folder that contains one (a copied
+ * reports/ folder, a CI artifact), a .zip archive of such a folder (unpacked to reports/unpacked/<name>/),
  * or an Allure results directory (e.g. reports/allure-results) as a fallback source.
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { rebaseArtifactPath, resolveResultsInput } from './resolve-input.mjs';
 
 const args = process.argv.slice(2);
 const flags = new Set(args.filter((a) => a.startsWith('--')));
@@ -66,7 +68,7 @@ function* walkSuites(suites, titles = []) {
   }
 }
 
-function fromPlaywrightJson(report) {
+function fromPlaywrightJson(report, root = '.') {
   const tests = [];
   for (const { spec, test, titles } of walkSuites(report.suites)) {
     const results = test.results ?? [];
@@ -74,7 +76,7 @@ function fromPlaywrightJson(report) {
     const errors = [last.error, ...(last.errors ?? [])].filter(Boolean);
     const msg = stripAnsi([...new Set(errors.map((e) => e.message ?? ''))].join('\n'));
     const annotations = [...(test.annotations ?? []), ...results.flatMap((r) => r.annotations ?? [])];
-    const attachments = (last.attachments ?? []).filter((a) => a.path).map((a) => ({ name: a.name, path: rel(a.path) }));
+    const attachments = (last.attachments ?? []).filter((a) => a.path).map((a) => ({ name: a.name, path: rel(rebaseArtifactPath(a.path, root)) }));
     const logs = (last.attachments ?? [])
       .filter((a) => a.name === 'logs' && a.body)
       .map((a) => Buffer.from(a.body, 'base64').toString())
@@ -138,12 +140,16 @@ function fromAllureResults(dir) {
 // ---------- Summary ----------
 
 function load(p) {
-  if (!fs.existsSync(p)) {
-    console.error(`No results found at ${p}. Run the tests first (npm test) or pass a path.`);
+  let resolved;
+  try {
+    resolved = resolveResultsInput(p, { allowAllure: true });
+  } catch (error) {
+    console.error(`${error.message}. Run the tests first (npm test) or pass a report file, a folder or a .zip archive.`);
     process.exit(2);
   }
-  if (fs.statSync(p).isDirectory()) return fromAllureResults(p);
-  return fromPlaywrightJson(JSON.parse(fs.readFileSync(p, 'utf-8')));
+  if (resolved.unpackedFrom) console.error(`Unpacked ${resolved.unpackedFrom} → ${resolved.root}`);
+  if (resolved.kind === 'allure-results') return fromAllureResults(resolved.path);
+  return fromPlaywrightJson(JSON.parse(fs.readFileSync(resolved.path, 'utf-8')), resolved.root);
 }
 
 function summarize(data) {

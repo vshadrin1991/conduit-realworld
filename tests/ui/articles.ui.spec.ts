@@ -1,16 +1,14 @@
 import { ConduitRestClient } from '@/api/client/ConduitRestClient';
 import { ConduitBasePath } from '@/api/client/path/ConduitBasePath';
 import { expect, test } from '@/base/BaseTest';
-import { Confirmation } from '@/pageObject/components/Confirmation';
 import { Session } from '@/pageObject/components/Session';
 import { ArticlePage } from '@/pageObject/pages/ArticlePage';
 import { EditorPage } from '@/pageObject/pages/EditorPage';
 import { HomePage } from '@/pageObject/pages/HomePage';
-import { Route } from '@/pageObject/routes';
+import { Route } from '@/pageObject/pagePath/routes';
 import { generateArticle, generateComment } from '@/utilities/tests/TestDataGenerator';
 
 test.describe('Articles UI', () => {
-  // beforeEach, not beforeAll: every test runs in its own new browser, so each one needs its own session.
   test.beforeEach(async ({ get }) => {
     await get(Session).login();
   });
@@ -33,7 +31,6 @@ test.describe('Articles UI', () => {
     await expect(articlePage.title).toHaveText(data.title);
     await expect(articlePage.body).toContainText(data.body);
     expect((await articlePage.text.getTexts(articlePage.tags)).toSorted()).toEqual(data.tagList!.toSorted());
-    // Verify persistence through the API, not only what the UI rendered.
     const article = await get(ConduitRestClient).get.articles.bySlug(articlePage.slug);
     expect(article).toMatchObject({ title: data.title, description: data.description, body: data.body });
   });
@@ -58,7 +55,7 @@ test.describe('Articles UI', () => {
   test('author deletes an article', async ({ get }) => {
     const [article] = await get(ConduitRestClient).api.articles.create();
 
-    const dialog = get(Confirmation).answerNext('accept');
+    const dialog = get(ArticlePage).confirmation.answerNext('accept');
     await get(ArticlePage, Route.article(article.slug)).clickActionButton('deleteArticle');
 
     expect(await dialog).toBe('Want to delete the article?');

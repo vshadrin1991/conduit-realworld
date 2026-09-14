@@ -19,8 +19,8 @@ Requires Node.js ≥ 20.12.
 src/
   base/                   BaseTest (get + automatic logs/dataCleaner), FunctionalPage, BasePage, BaseComponent
   pageObject/pages/       page objects — locators only (extend BasePage)
-  pageObject/components/  element components (Input, Button, Checkbox, RadioButton, Text, Confirmation), LocalStorage, Interceptor, Session, Header
-  pageObject/routes.ts    hash routes
+  pageObject/components/  element components (Input, Button, Checkbox, RadioButton, Text, Confirmation), LocalStorage, Session, Header
+  pageObject/pagePath/    routes.ts — hash routes
   api/client/             RestClient (core request/response), ConduitRestClient (get/post/put/delete helpers)
   api/client/helpers/     RestApi{Verb}Helper + <domain>/<Domain><Verb>API endpoint classes
   api/client/api/         ConduitAPI (the `api` group of ConduitRestClient) + <domain>/<Domain>API multi-call flows
@@ -29,6 +29,8 @@ src/
   api/request/            request models by domain
   api/responses/          response models by domain
   utilities/logger/       logger
+  utilities/interceptor/  Interceptor — network mocks + API and console error capture for every test
+  utilities/reporter/     ArtifactsReporter — reports/artifacts.json for failed tests
   utilities/tests/        TestDataGenerator (faker-based test data), TestDataStorage (per-test storage)
   config/                 env, auth, framework (browser, headless, timeouts, ...) and report configs
 tests/
@@ -48,7 +50,7 @@ test('author deletes an article', async ({ get }) => {
   const [article] = await get(ConduitRestClient).api.articles.create();               // arrange via API
   await get(Session).login();                                              // logged-in browser
 
-  const dialog = get(Confirmation).answerNext('accept');
+  const dialog = get(ArticlePage).confirmation.answerNext('accept');
   await get(ArticlePage, Route.article(article.slug))                      // navigate + wait,
     .clickActionButton('deleteArticle');                                   // chained page steps
 
@@ -59,10 +61,10 @@ test('author deletes an article', async ({ get }) => {
 });
 ```
 
-- Every spec imports `test` from `@/base/BaseTest`; test functions receive only `{ get }` (test user: `await getTestUser()`, localStorage: `get(LocalStorage)`, network mocks: `get(Interceptor)`).
+- Every spec imports `test` from `@/base/BaseTest`; test functions receive only `{ get }` (test user: `await getTestUser()`, localStorage: `get(LocalStorage)`, network mocks and captured API/console errors: `get(Interceptor)`).
 - `get(ConduitRestClient)` is authenticated as the test user (`{ guest: true }` for no token): `client.post.articles.with(article)`, `client.get.comments.list(slug)`. Negative cases: `client.response({ path, method, body, statusCode: 401 })`. Multi-call flows: `get(ConduitRestClient).api.articles.create({ count: 2 })`. Every API call in a test starts with `get(ConduitRestClient)`.
 - `get(PageClass)` returns the page object; `get(PageClass, route)` also queues navigation. Page calls chain and run when awaited: `await get(LoginPage, Route.login).fillData('email', email).clickActionButton('login')` (the await resolves to `void`; use `get(PageClass)` again to read locators). Pages hold locators only.
-- Element helpers are used from the page: `homePage.button.click(homePage.header.userMenu)` (`page.input`, `page.button`, `page.checkbox`, `page.radioButton`, `page.text`). Browser-level components come from `get(Confirmation | LocalStorage | Interceptor | Session)`.
+- Element helpers are used from the page: `homePage.button.click(homePage.header.userMenu)` (`page.input`, `page.button`, `page.checkbox`, `page.radioButton`, `page.text`), and so are native dialogs: `articlePage.confirmation.answerNext('accept')`. Browser-level components come from `get(LocalStorage | Interceptor | Session)`.
 - Test data comes from `TestDataGenerator` (`generateArticle()`, `generateUser()`, `generateTestsName('Article')`); every name contains `AUTOMATION_KEY`. Articles created by API flows are deleted after each test; register others with `get(ConduitRestClient).api.articles.track(slug)`.
 - Nothing is set up globally: tests decide whether they need a user. Authenticated clients resolve the shared user lazily; UI tests start as guests and call `await get(Session).login()` when they need a logged-in browser.
 

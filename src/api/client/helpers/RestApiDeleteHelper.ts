@@ -3,7 +3,6 @@ import type { Token } from '../RestClient';
 import { ArticlesDeleteAPI } from './articles/ArticlesDeleteAPI';
 import { CommentsDeleteAPI } from './comments/CommentsDeleteAPI';
 
-/** DELETE endpoints grouped by domain: `client.delete.articles.by(slug)`. */
 export class RestApiDeleteHelper {
   readonly articles: ArticlesDeleteAPI;
   readonly comments: CommentsDeleteAPI;

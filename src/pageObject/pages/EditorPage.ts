@@ -11,7 +11,6 @@ export class EditorPage extends BasePage<FieldName, ButtonName> {
     title: this.page.getByPlaceholder('Article Title'),
     description: this.page.getByPlaceholder("What's this article about?"),
     body: this.page.getByPlaceholder('Write your article (in markdown)'),
-    // Tags are entered comma-separated: pressing Enter in this field submits the form.
     tags: this.page.getByPlaceholder('Enter tags'),
   };
 

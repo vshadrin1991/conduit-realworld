@@ -6,7 +6,6 @@ import { ProfilesGetAPI } from './profiles/ProfilesGetAPI';
 import { TagsGetAPI } from './tags/TagsGetAPI';
 import { UsersGetAPI } from './users/UsersGetAPI';
 
-/** GET endpoints grouped by domain: `client.get.articles.bySlug(slug)`. */
 export class RestApiGetHelper {
   readonly articles: ArticlesGetAPI;
   readonly comments: CommentsGetAPI;

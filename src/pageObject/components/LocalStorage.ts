@@ -1,8 +1,6 @@
 import { BaseComponent } from '@/base/BaseComponent';
 
-/** localStorage of the current page (the SPA keeps the session in `loggedUser`). */
 export class LocalStorage extends BaseComponent {
-  /** @returns the JSON-parsed value (raw string when it is not JSON), or null when the key is absent */
   async getItem<T = unknown>(key: string): Promise<T | null> {
     const raw = await this.page.evaluate((k) => localStorage.getItem(k), key);
     if (raw === null) return null;

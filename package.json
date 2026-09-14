@@ -19,6 +19,7 @@
     "allure:generate": "allure generate reports/allure-results",
     "allure:open": "allure open reports/allure-report",
     "results": "node .claude/skills/playwright-ts-test-results/scripts/summarize-results.mjs",
+    "results:triage": "node .claude/skills/playwright-ts-test-results/scripts/triage-report.mjs",
     "page:md": "node .claude/skills/playwright-ts-test-implementation/scripts/parse-page-to-md.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",

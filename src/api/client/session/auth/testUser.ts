@@ -33,7 +33,7 @@ export function getTestUser(): Promise<TestUser> {
       await context.dispose();
     }
   }).catch((error: unknown) => {
-    testUser = undefined; // let the next test retry instead of failing on a cached rejection
+    testUser = undefined;
     throw error;
   });
   return testUser;
@@ -75,7 +75,6 @@ async function resolveTestUser(context: APIRequestContext): Promise<TestUser> {
   return { ...newUser, token: user.token };
 }
 
-/** Cross-worker lock based on an exclusively created directory; stale locks (crashed runs) are removed. */
 async function withAuthLock<T>(action: () => Promise<T>): Promise<T> {
   fs.mkdirSync(authConfig.dir, { recursive: true });
   for (;;) {

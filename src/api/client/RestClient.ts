@@ -5,30 +5,23 @@ import { RestClientFactory } from './session/RestClientFactory';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-/** A JWT, or a provider resolved on the first authenticated request (e.g. `async () => (await getTestUser()).token`). */
 export type Token = string | (() => Promise<string>);
 export type Operator = 'SIZE_MORE' | 'SIZE_LESS' | 'EQUALS' | 'STATUS_CODE' | 'NONE';
 
-/** Response condition to wait for (the request is repeated while it is not met). */
 export interface Condition {
-  /** Dot path in the JSON body, e.g. `articles` or `article.slug`; empty for the whole body. */
   path?: string;
   operator: Operator;
   value?: unknown;
-  /** Extra attempts, 1s apart. Every attempt spends rate-limit budget, so keep it small. */
   retries?: number;
 }
 
 export interface Request {
   path: ConduitBasePath;
-  /** Readable name for logs and report steps; defaults to the resolved URL. */
   name?: string;
-  /** Values for the `{dataN}` placeholders of `path`. */
   pathData?: (string | number)[];
   params?: Record<string, string | number | boolean>;
   body?: unknown;
   method?: HttpMethod;
-  /** Expected status code(s); default 200. `0` disables the check. Ignored with a `STATUS_CODE` condition. */
   statusCode?: number | number[];
   condition?: Condition;
 }
@@ -46,7 +39,6 @@ export class RestClient {
     protected readonly token?: Token,
   ) {}
 
-  /** Sends the request and returns the raw response once the status code check has passed. */
   async response(req: Request): Promise<APIResponse> {
     const method = req.method ?? 'GET';
     const url = `/api${buildPath(req.path, ...(req.pathData ?? []))}`;
@@ -81,7 +73,6 @@ export class RestClient {
     });
   }
 
-  /** Sends the request and returns the parsed JSON body. */
   protected async json<T>(req: Request): Promise<T> {
     return (await (await this.response(req)).json()) as T;
   }
@@ -91,7 +82,7 @@ async function inStep<T>(title: string, body: () => Promise<T>): Promise<T> {
   try {
     test.info();
   } catch {
-    return body(); // outside of a running test (e.g. worker fixtures)
+    return body();
   }
   return test.step(title, body, { box: true });
 }

@@ -13,16 +13,15 @@ const TRACE_MODES = [
 const VIDEO_MODES = ['off', 'on', 'retain-on-failure', 'on-first-retry'] as const;
 const SCREENSHOT_MODES = ['off', 'on', 'only-on-failure', 'on-first-failure'] as const;
 const LOG_LEVELS = ['debug', 'info', 'warn', 'error'] as const;
+const INTERCEPTOR_NETWORK_MODES = ['off', 'failed', 'all'] as const;
+const INTERCEPTOR_CONSOLE_MODES = ['off', 'errors', 'all'] as const;
 
 export type Browser = (typeof BROWSERS)[number];
 export type LogLevel = (typeof LOG_LEVELS)[number];
 
-/** Test runner and browser settings consumed by playwright.config.ts and the framework. */
 export const frameworkConfig = {
-  /** Browser of the `ui` project. Install others with `npx playwright install <browser>`. */
   browser: readEnum('BROWSER', BROWSERS, 'chromium'),
   headless: readBoolean('HEADLESS', false),
-  /** Delay in ms added to every browser operation (debugging). */
   slowMo: readNumber('SLOW_MO', 0),
   viewport: {
     width: readNumber('VIEWPORT_WIDTH', 1280),
@@ -31,11 +30,8 @@ export const frameworkConfig = {
   locale: readString('LOCALE', 'en-US'),
   timezoneId: readString('TIMEZONE', 'UTC'),
 
-  /** Parallel workers; undefined uses the Playwright default (half of the CPU cores). */
   workers: readOptionalNumber('WORKERS') ?? (envConfig.isCI ? 2 : undefined),
-  /** Keep retries low: the environment is rate limited, so retries mostly burn request budget. */
   retries: readNumber('RETRIES', envConfig.isCI ? 1 : 0),
-  /** Parallel mode of the `api` project: every test may run in its own worker. */
   fullyParallel: readBoolean('FULLY_PARALLEL', true),
   /**
    * Parallel mode of the `ui` project. `false` (default): one worker per spec file; the file's tests run one after
@@ -59,6 +55,11 @@ export const frameworkConfig = {
   video: readEnum('VIDEO', VIDEO_MODES, 'retain-on-failure'),
   screenshot: readEnum('SCREENSHOT', SCREENSHOT_MODES, 'only-on-failure'),
 
-  /** Console log level; report `logs` attachments always contain every level. */
   logLevel: readEnum('LOG_LEVEL', LOG_LEVELS, 'info'),
+
+  interceptor: {
+    network: readEnum('INTERCEPTOR_NETWORK', INTERCEPTOR_NETWORK_MODES, 'failed'),
+    console: readEnum('INTERCEPTOR_CONSOLE', INTERCEPTOR_CONSOLE_MODES, 'errors'),
+    bodyMax: readNumber('INTERCEPTOR_BODY_MAX', 2000),
+  },
 } as const;

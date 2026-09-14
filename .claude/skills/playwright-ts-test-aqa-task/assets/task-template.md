@@ -85,7 +85,7 @@ Page description: `pages/<name>.md` · Root: `<locator>`
 |---|---|---|---|
 | UI spec | `tests/ui/<feature>.ui.spec.ts` | <New> | <cases TC-1, TC-2> |
 | Page object | `src/pageObject/pages/<Name>Page.ts` | <New> | <fields, buttons from extraction> |
-| Route | `src/pageObject/routes.ts` | <Extend> | `<Route.name>` |
+| Route | `src/pageObject/pagePath/routes.ts` | <Extend> | `<Route.name>` |
 | Endpoint helper | `src/api/client/helpers/<domain>/<Domain><Verb>API.ts` | <New> | <path + models> |
 | API flow | `src/api/client/api/<domain>/<Domain>API.ts` | <New> | <arrange + cleanup> |
 

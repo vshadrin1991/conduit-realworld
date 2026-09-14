@@ -1,4 +1,3 @@
-/** Hash routes of the SPA (`BasePage.navigate` prepends `#`). */
 export const Route = {
   home: '/',
   login: '/login',

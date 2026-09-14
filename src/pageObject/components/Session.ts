@@ -10,7 +10,6 @@ const SESSION_KEY = authConfig.sessionStorageKey;
  * rate-limit quota) is spent.
  */
 export class Session extends BaseComponent {
-  /** Logs the browser in as `user` (the shared test user by default) for every page loaded afterwards. */
   async login(user?: TestUser): Promise<TestUser> {
     const account = user ?? (await getTestUser());
     const loggedUser = {
@@ -25,7 +24,6 @@ export class Session extends BaseComponent {
       isAuth: true,
       loggedUser,
     });
-    // Only when absent, so a logout inside the test is not undone by a later page load.
     await this.page.context().addInitScript(
       ([key, session]) => {
         if (!window.localStorage.getItem(key)) window.localStorage.setItem(key, session);

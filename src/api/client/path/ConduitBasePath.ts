@@ -1,4 +1,3 @@
-/** API paths relative to `/api`. Placeholders `{data1}`, `{data2}`, ... are filled from `Request.pathData` in order. */
 export enum ConduitBasePath {
   USERS = '/users',
   USERS_LOGIN = '/users/login',
@@ -13,7 +12,6 @@ export enum ConduitBasePath {
   TAGS = '/tags',
 }
 
-/** Returns the path with its `{dataN}` placeholders replaced by the given values. */
 export function buildPath(path: ConduitBasePath, ...data: (string | number)[]): string {
   return data.reduce<string>(
     (value, item, index) => value.replace(`{data${index + 1}}`, encodeURIComponent(String(item))),

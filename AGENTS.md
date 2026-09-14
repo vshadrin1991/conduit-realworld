@@ -11,6 +11,7 @@ Playwright + TypeScript UI and API tests for [Conduit RealWorld](https://conduit
 - Writing or changing tests, pages, components, API endpoints/flows, test data: `.claude/skills/playwright-ts-test-implementation/SKILL.md` (+ `references/templates.md`).
 - Analyzing a run, failures, flaky tests, reports: `.claude/skills/playwright-ts-test-results/SKILL.md`.
 - Fixing broken locators after a UI change: `.claude/skills/playwright-ts-test-self-healing/SKILL.md`.
+- Reviewing requirements and writing test case documentation from them: `.claude/skills/playwright-ts-test-requirements/SKILL.md`.
 - Preparing an automation task (test cases, pages saved with Ctrl/Cmd+S, requirements → Jira-style task in `tasks/<KEY>/`): `.claude/skills/playwright-ts-test-aqa-task/SKILL.md`.
 - Running implementation, review or execution as Archon workflows: `.archon/README.md` (`.archon/workflows/playwright-tests-*.yaml`).
 
@@ -24,6 +25,8 @@ npm run typecheck && npm run lint                 # always run after changes
 npx playwright test tests/ui/articles.ui.spec.ts:15   # run one test while iterating
 npm run test:quick                                # full suite without @auth-quota tests
 npm run results                                   # summarize reports/results.json with failure categories
+npm run results:triage                            # triage export: reports/triage/triage-report.json + .xlsx
+                                                  # every run writes reports/artifacts.json (error, screenshot, video, dom.html per failed test)
 npm run page:md -- tasks/<KEY>/pages              # pages saved with Ctrl/Cmd+S → markdown page descriptions
 npm run allure:generate && npm run allure:open    # Allure report
 ```
@@ -32,10 +35,10 @@ npm run allure:generate && npm run allure:open    # Allure report
 
 ```
 src/base/              BaseTest (get + automatic logs/dataCleaner), BasePage + FunctionalPage, BaseComponent
-src/pageObject/        pages (locators only), components (Input, Button, Checkbox, RadioButton, Text, Confirmation, LocalStorage, Interceptor, Session, Header), routes
+src/pageObject/        pages (locators only), components (Input, Button, Checkbox, RadioButton, Text, Confirmation, LocalStorage, Session, Header), pagePath/routes
 src/api/client/        RestClient, ConduitRestClient (get/post/put/delete helpers), api/ flows, path/, session/
 src/api/request|responses/   models by domain
-src/utilities/         logger/logger, tests/TestDataGenerator, tests/TestDataStorage
+src/utilities/         logger/logger, interceptor/Interceptor (mocks + API/console error capture), reporter/ArtifactsReporter, tests/TestDataGenerator, tests/TestDataStorage
 src/config/            loader + env, auth, framework (browser/headless/timeouts/...), report configs
 tests/                 api/*.api.spec.ts, ui/*.ui.spec.ts
 ```
@@ -48,8 +51,9 @@ tests/                 api/*.api.spec.ts, ui/*.ui.spec.ts
 4. **Generated data only.** Use `TestDataGenerator`; every name contains `AUTOMATION_KEY`. Register data created outside API flows with `get(ConduitRestClient).api.articles.track(slug)` so `dataCleaner` deletes it. Never delete or modify data that is not automation data.
 5. **Respect the rate limits.** ~100 requests / 15 min per IP for the whole site and ~5 auth calls / hour. Do not loop test runs; run the smallest scope that proves the change; tag tests hitting `/api/users*` with `AUTH_QUOTA`. A `429` is an environment problem, not a product bug — wait for `retry-after`.
 6. **No sleeps or `waitForTimeout`.** Use web-first assertions. Locator priority: role → placeholder/label/text → semantic CSS; no XPath.
-7. **Configuration through `src/config` only.** Never read `process.env` in framework code or tests; add a typed field (default + doc comment) to the matching `*.config.ts` and document the variable in `.env.example`.
+7. **Configuration through `src/config` only.** Never read `process.env` in framework code or tests; add a typed field (with a default) to the matching `*.config.ts` and document the variable in `.env.example`.
 8. **Never commit secrets.** `.auth/` (cached token), `.env` and `reports/` are git-ignored; never print or log tokens and passwords.
+9. **No comments in code.** No `//` or one-line `/** */` comments; only multi-line JSDoc (public methods, classes) and tool directives such as `// eslint-disable-next-line`.
 
 ## Definition of done
 

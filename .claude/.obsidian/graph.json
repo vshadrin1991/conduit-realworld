@@ -34,6 +34,13 @@
         "a": 1,
         "rgb": 16750592
       }
+    },
+    {
+      "query": "path:playwright-ts-test-requirements",
+      "color": {
+        "a": 1,
+        "rgb": 38536
+      }
     }
   ],
   "collapse-display": false,

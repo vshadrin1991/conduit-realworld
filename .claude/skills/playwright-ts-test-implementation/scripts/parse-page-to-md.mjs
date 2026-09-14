@@ -373,7 +373,7 @@ function openDecisions(model) {
   for (const row of model.rows) {
     if (!row.locator) decisions.push(`\`${row.name}\` (${row.group}): no stable locator for <${row.tag}>${row.text ? ` "${row.text}"` : ''} — needs a decision.`);
     else if (row.matches > 1) {
-      decisions.push(`\`${row.name}\` (${row.group}): \`${row.locator}\` matches ${row.matches} elements — scope it to a container or filter it; \`.first()\` only with a comment explaining why.`);
+      decisions.push(`\`${row.name}\` (${row.group}): \`${row.locator}\` matches ${row.matches} elements — scope it to a container or filter it; \`.first()\` only with a stable reason stated in the task or pull request (no code comment).`);
     }
   }
   const headerRows = model.rows.filter((r) => r.header);
@@ -403,7 +403,6 @@ function renderDraft(model) {
   for (const g of groups) if (g.rows.length) lines.push(`type ${g.typeName} = ${g.rows.map((r) => `'${r.name}'`).join(' | ')};`);
   lines.push(
     '',
-    `/** ${model.title || model.className} page${model.route ? ` (\`#${model.route}\`)` : ''}. Draft generated from a saved page — resolve the open decisions. */`,
     `export class ${model.className} extends BasePage${typeArgs.length ? `<${typeArgs.join(', ')}>` : ''} {`,
   );
   if (root) lines.push(`  protected readonly root = this.page.${root.locator};`);

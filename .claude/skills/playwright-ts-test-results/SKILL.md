@@ -15,8 +15,10 @@ Turn a finished test run into a short, trustworthy verdict: what failed, which c
 | Allure raw results | `reports/allure-results/` | `allure-playwright` reporter |
 | Allure HTML report | `reports/allure-report/` | `npm run allure:generate` |
 | Playwright HTML report | `reports/html/` | `html` reporter, open with `npm run report` |
-| Per-test artifacts (trace, screenshot, video, `error-context.md`) | `test-results/<test-dir>/` | only for failed tests |
+| Failed-test artifact index (error, screenshot/video/DOM paths, captured API and console errors) | `reports/artifacts.json` | `ArtifactsReporter` in `src/utilities/reporter/`, every run |
+| Per-test artifacts (trace, screenshot, video, `dom.html`, `error-context.md`) | `test-results/<test-dir>/` | only for failed tests |
 | Per-test log lines | `logs` attachment of every test | `logs` auto fixture in `src/base/BaseTest.ts` |
+| Downloaded or CI results | any folder or `.zip` archive containing a `results.json` | unpacked to `reports/unpacked/<archive name>/` by the scripts |
 
 `test-results/` is wiped at the start of every run, so analyze artifacts before re-running.
 
@@ -28,9 +30,11 @@ Turn a finished test run into a short, trustworthy verdict: what failed, which c
    node .claude/skills/playwright-ts-test-results/scripts/summarize-results.mjs
    ```
 
-   Options: a path argument (`reports/results.json` by default, or an Allure results directory such as `reports/allure-results`), `--json` for structured output, `--failures-only`, `--fail-on-failures` (exit code 1, useful in CI). `npm run results` is a shortcut.
+   Options: a path argument — `reports/results.json` (default), a folder that contains a report (a copied `reports/` folder, a CI artifact), a `.zip` archive of such a folder (unpacked to `reports/unpacked/<archive name>/`, where its traces and screenshots stay available; artifact paths recorded on CI are mapped to the unpacked copy) or an Allure results directory such as `reports/allure-results` — `--json` for structured output, `--failures-only`, `--fail-on-failures` (exit code 1, useful in CI). `npm run results` is a shortcut.
 
    If there is no `reports/results.json`, the tests have not run with the current config — say so instead of guessing.
+
+   Then write the export files: `npm run results:triage` (see **Triage export** below).
 
 2. **Check blockers first.**
    - Global errors (config/compile errors) → nothing ran; fix those first.
@@ -53,6 +57,8 @@ Turn a finished test run into a short, trustworthy verdict: what failed, which c
 4. **Dig into evidence only where needed** (cheapest first):
    - The `logs` attachment (every API call with status and timing, navigations, page actions) — in `reports/results.json` under the result's attachments, or in the HTML/Allure report.
    - `test-results/<dir>/error-context.md` — an accessibility snapshot of the page at failure time; best for locator failures.
+   - `test-results/<dir>/dom.html` — the full page DOM at failure time (UI tests); check the real markup, classes and attributes when healing a locator. `reports/artifacts.json` lists it with the error, screenshot and video of every failed test.
+   - The `interceptor` attachment (the same data is in `network` / `console` of `reports/artifacts.json`) — browser API calls that answered 4xx/5xx or failed, and console errors / uncaught page errors captured during the test. A `429` there confirms a rate-limited page; a console error next to a blank page points to a front-end crash rather than a locator problem.
    - Trace: `npx playwright show-trace test-results/<dir>/trace.zip` (interactive; tell the user the command rather than trying to read the zip).
    - Allure report: `npm run allure:generate && npm run allure:open` — categories, history, retries.
 
@@ -61,6 +67,30 @@ Turn a finished test run into a short, trustworthy verdict: what failed, which c
    - `npx playwright test tests/ui/articles.ui.spec.ts:12 --project=ui`
    - Avoid re-running the whole suite right after a 429: it will fail again and extend nothing but the noise.
 
+## Triage export (JSON + XLSX)
+
+Every triage ends with two files that can be filtered, shared and tracked:
+
+```bash
+npm run results:triage   # reports/results.json → reports/triage/triage-report.json + triage-report.xlsx
+node .claude/skills/playwright-ts-test-results/scripts/triage-report.mjs <report.json | folder | archive.zip> --out-dir <dir> --name <file-name>
+```
+
+One row per failed or flaky test (passed tests are left out):
+
+| JSON key | XLSX column | Content |
+|---|---|---|
+| `status` | Status | `automation bug`, `defect` or `flaky` — the category whose likelihood reaches 60%; otherwise `need to review` |
+| `testName` | Test name | `[project] Suite › title (spec file:line)` |
+| `testMethod` | Test method | The step that failed (`ArticlePage.clickActionButton(postComment)`, `API :: PUT :: update current user`) with the error location; only the location when the failure happened outside a step |
+| `defectPercent` | Defect % | Likelihood that the application misbehaves (5xx, wrong values, missing elements) |
+| `automationBugPercent` | Automation bug % | Likelihood that the test, page object or framework is wrong (script errors, ambiguous or outdated locators) |
+| `flakyPercent` | Flaky % | Likelihood of environment or timing noise (429, network, passed on retry, blank page) |
+| `stepsToReproduce` | Steps to reproduce | Numbered plain-language steps without code, ending with the expected and actual result |
+| `reason` | Reason | The evidence behind the percentages |
+
+The three percentages always add up to 100. The XLSX has a **Triage** sheet (filters, frozen header, colored status) and a **Summary** sheet; the JSON adds a `run` object with totals and counts by status. The script scores the error message, logs and page snapshot only — check every `need to review` row with the evidence below and state corrected statuses in the reply.
+
 ## Report format
 
 Reply to the user with this structure (keep it short, lead with the verdict):
@@ -68,11 +98,12 @@ Reply to the user with this structure (keep it short, lead with the verdict):
 ```markdown
 ## Test run: <PASSED | FAILED | PASSED WITH FLAKY TESTS>
 <passed> passed · <failed> failed · <flaky> flaky · <skipped> skipped · <duration>
+Export: reports/triage/triage-report.xlsx · reports/triage/triage-report.json
 
 ### Failures
-| Test | Category | Root cause (1 line) | Action |
-|---|---|---|---|
-| [ui] articles.ui.spec.ts:12 › user publishes an article | environment:rate-limit | 429 on /api/articles, retry-after 540s | Re-run after 9 min |
+| Test | Status | Defect / Automation / Flaky % | Root cause (1 line) | Action |
+|---|---|---|---|---|
+| [ui] articles.ui.spec.ts:12 › user publishes an article | flaky | 0 / 0 / 100 | 429 on /api/articles, retry-after 540s | Re-run after 9 min |
 
 ### Details
 <only for failures that need explanation: key error lines, evidence file paths>

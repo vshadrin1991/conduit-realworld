@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { Button } from '@/pageObject/components/Button';
 import { Checkbox } from '@/pageObject/components/Checkbox';
+import { Confirmation } from '@/pageObject/components/Confirmation';
 import { Header } from '@/pageObject/components/Header';
 import { Input } from '@/pageObject/components/Input';
 import { RadioButton } from '@/pageObject/components/RadioButton';
@@ -41,8 +42,6 @@ async function runStep(title: string, action: () => Promise<void>, location?: St
     try {
       await action();
     } catch (error) {
-      // Queued actions run after the spec line has returned, so its frame is not in the stack:
-      // point the error at the line that queued the step, which reporters show as the code frame.
       if (location && error instanceof Error) {
         error.stack = `${error.message}\n    at ${location.file}:${location.line}:${location.column}`;
       }
@@ -52,7 +51,7 @@ async function runStep(title: string, action: () => Promise<void>, location?: St
   try {
     test.info();
   } catch {
-    return run(); // outside of a running test
+    return run();
   }
   await test.step(title, run, { location });
 }
@@ -67,6 +66,7 @@ async function runStep(title: string, action: () => Promise<void>, location?: St
  * - Element components (`input`, `button`, `checkbox`, `radioButton`, `text`) are exposed on the page; tests call
  *   them from the page for locators outside the named maps: `await homePage.button.click(homePage.header.userMenu)`,
  *   `await articlePage.text.getTexts(articlePage.tags)`.
+ * - Native dialogs are answered through the page as well: `articlePage.confirmation.answerNext('accept')`.
  */
 export abstract class BasePage<
   FieldName extends string = never,
@@ -75,31 +75,24 @@ export abstract class BasePage<
   RadioButtonName extends string = never,
 > implements FunctionalPage<FieldName, ButtonName, CheckboxName, RadioButtonName>
 {
-  /** Top navigation bar shared by all pages. */
   readonly header: Header;
 
   readonly log = createLogger(this.constructor.name);
-  /** Input helper for any locator: `page.input.enter(locator, text)`. */
   readonly input: Input;
-  /** Button helper for any locator: `page.button.click(locator)`. */
   readonly button: Button;
-  /** Checkbox helper for any locator: `page.checkbox.check(locator)`. */
   readonly checkbox: Checkbox;
-  /** Radio button helper for any locator: `page.radioButton.click(locator)`. */
   readonly radioButton: RadioButton;
-  /** Text helper for any locator: `page.text.getTexts(page.tags)`. */
   readonly text: Text;
+  readonly confirmation: Confirmation;
 
   protected abstract readonly root: Locator;
 
   protected readonly fields = {} as Record<FieldName, Locator>;
-  /** Validation error locators by field name (only fields that show errors). */
   protected readonly errors = {} as Partial<Record<FieldName, Locator>>;
   protected readonly buttons = {} as Record<ButtonName, Locator>;
   protected readonly checkboxes = {} as Record<CheckboxName, Locator>;
   protected readonly radioButtons = {} as Record<RadioButtonName, Locator>;
 
-  /** Actions queued by chained calls and not awaited yet. */
   private queue: Promise<void> = Promise.resolve();
 
   /**
@@ -112,9 +105,8 @@ export abstract class BasePage<
     this.checkbox = new Checkbox(page);
     this.radioButton = new RadioButton(page);
     this.text = new Text(page);
+    this.confirmation = new Confirmation(page);
   }
-
-  /* ---------- Chaining ---------- */
 
   /**
    * Runs the queued actions. Resolves with `void` — never with the page itself, because resolving a promise
@@ -153,8 +145,6 @@ export abstract class BasePage<
     await this;
   }
 
-  /* ---------- Navigation ---------- */
-
   /**
    * Opens a hash route unless already there, then waits for the page to render.
    * @param route - hash route to navigate to, e.g. `Route.article(slug)`
@@ -180,8 +170,6 @@ export abstract class BasePage<
       await expect(this.root).toBeVisible();
     });
   }
-
-  /* ---------- FunctionalPage ---------- */
 
   /**
    * Types data into a named field, replacing its current value (password values are masked in logs).

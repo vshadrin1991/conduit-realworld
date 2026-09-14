@@ -19,14 +19,14 @@ Review the files in scope — read each one completely. This is read-only: do no
 |---|---|
 | Specs | `test` / `expect` imported from `@/base/BaseTest`; test functions take only `{ get }` — no `page` / `request` fixtures |
 | API calls | Every call starts with `get(ConduitRestClient)` (`.get` / `.post` / `.put` / `.delete` / `.api` / `.response`); no `ConduitAPI` import, no client variables, no hard-coded URLs |
-| Components | `input`, `button`, `checkbox`, `radioButton`, `text` are called from the page; `get()` only for `Session`, `Confirmation`, `LocalStorage`, `Interceptor` |
+| Components | `input`, `button`, `checkbox`, `radioButton`, `text`, `confirmation` are called from the page; `get()` only for `Session`, `LocalStorage`, `Interceptor` |
 | Page chains | Chains are awaited; locators are read from `get(Page)` taken again; `waitUntilPageLoaded()` after an action that navigates |
 | Hooks | Login and arrange in `beforeEach` or in the test — never `beforeAll` with `get` |
-| Page objects | Locators only: `root` + named maps, no multi-step methods, no API calls; priority role → placeholder/label/text → semantic CSS; no XPath; `.first()` / `nth()` only with a reason comment |
+| Page objects | Locators only: `root` + named maps, no multi-step methods, no API calls; priority role → placeholder/label/text → semantic CSS; no XPath; `.first()` / `nth()` only with a stable reason (no code comment) |
 | Test data | `TestDataGenerator`; data created outside flows is tracked; no module-level state; the shared user is not mutated; `AUTH_QUOTA` on auth calls |
 | Waiting | No `waitForTimeout` or sleeps; web-first assertions |
 | Config | No `process.env` outside `src/config` |
-| Docs | JSDoc with `@param` / `@return` on new base, helper, flow and component methods; skills and README updated when a convention changed |
+| Docs | No `//` or one-line `/** */` comments (tool directives allowed); multi-line JSDoc with `@param` / `@return` on new base, helper, flow and component methods; skills and README updated when a convention changed |
 
 Report every violation with `file:line`, the rule, why it matters and a concrete fix. Skip formatting that Prettier and ESLint already enforce.
 

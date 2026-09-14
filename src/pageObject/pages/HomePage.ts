@@ -13,21 +13,39 @@ export class HomePage extends BasePage<never, ButtonName> {
 
   readonly articlePreviews: Locator = this.page.locator('.article-preview');
 
+  /**
+   * Returns the article preview card with the title.
+   * @param title - article title
+   * @return locator of the preview card
+   */
   articlePreview(title: string): Locator {
     return this.articlePreviews.filter({ hasText: title });
   }
 
+  /**
+   * Returns the link that opens the article from its preview card.
+   * @param title - article title
+   * @return locator of the title link
+   */
   articleLink(title: string): Locator {
     return this.articlePreview(title).getByRole('link', { name: title });
   }
 
+  /**
+   * Returns the feed pagination button of the page number, whether it is the current page or not.
+   * @param pageNumber - feed page number, starting from 1
+   * @return locator of the pagination button
+   */
   feedPageButton(pageNumber: number): Locator {
     return this.page.getByRole('button', { name: new RegExp(`^Page ${pageNumber}( is your current page)?$`) });
   }
 
   /**
-   * Search helper (the one exception to "no multi-step methods"): the feed shows only 3 articles per page and
-   * parallel tests keep publishing, so a fresh article may be on page 2+. Returns the preview of the article.
+   * Finds the article preview in the feed, opening the next feed page while it is missing, and throws when the
+   * article is not on the first `maxPages` pages.
+   * @param title - article title
+   * @param options - `maxPages` to check (3 by default) and `timeout` in ms to wait on each page (5000 by default)
+   * @return locator of the visible article preview
    */
   async findArticleInFeed(title: string, { maxPages = 3, timeout = 5_000 } = {}): Promise<Locator> {
     await this.settled();
@@ -38,7 +56,6 @@ export class HomePage extends BasePage<never, ButtonName> {
         await this.button.click(this.feedPageButton(pageNumber));
         await expect(this.feedPageButton(pageNumber)).toHaveAccessibleName(`Page ${pageNumber} is your current page`);
       }
-      // The list re-renders asynchronously after a tab or page switch, so each page gets time before moving on.
       const found = await preview.waitFor({ state: 'visible', timeout }).then(
         () => true,
         () => false,

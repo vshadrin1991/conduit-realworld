@@ -36,6 +36,8 @@ Ask **one block at a time** and wait for the answer. Use the AskUserQuestion too
 
 ### Block 2 — Test cases
 
+No cases yet, only requirements? Review the requirements and write the cases first with the [playwright-ts-test-requirements](../playwright-ts-test-requirements/SKILL.md) skill, then continue here with its `test-cases.md`.
+
 Ask for the cases to implement in any form: Qase suite/IDs (read them with the `qase-api` skill when available), a file (csv, xlsx, md), pasted text or a list of titles. Capture per case: ID, title, preconditions, steps, expected result, priority, layer, test data, tags.
 
 - Only titles given → draft steps and expected results from the requirements and saved pages, mark each **Draft — confirm**, and get confirmation before writing the task.

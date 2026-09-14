@@ -40,8 +40,10 @@ if (reportConfig.allure) {
   ]);
 }
 if (reportConfig.junit) reporters.push(['junit', { outputFile: reportConfig.junitFile }]);
+if (reportConfig.artifacts) {
+  reporters.push(['./src/utilities/reporter/ArtifactsReporter.ts', { outputFile: reportConfig.artifactsFile }]);
+}
 
-/** All values come from src/config (override with environment variables or .env files). */
 export default defineConfig<BaseOptions>({
   testDir: './tests',
   fullyParallel: frameworkConfig.fullyParallel,
@@ -73,12 +75,10 @@ export default defineConfig<BaseOptions>({
     {
       name: 'ui',
       testDir: './tests/ui',
-      // Spec files run in parallel workers; the tests of one file run one by one in their worker.
       fullyParallel: frameworkConfig.uiFullyParallel,
       use: {
         ...devices[DEVICE_BY_BROWSER[frameworkConfig.browser]],
         viewport: frameworkConfig.viewport,
-        // Every test launches its own new browser (BaseTest `context` fixture).
         newBrowserPerTest: frameworkConfig.uiNewBrowserPerTest,
       },
     },

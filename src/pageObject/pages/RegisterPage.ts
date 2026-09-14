@@ -17,5 +17,5 @@ export class RegisterPage extends BasePage<FieldName, ButtonName> {
     signUp: this.page.getByRole('button', { name: 'Sign up' }),
   };
 
-  readonly errorMessages: Locator = this.page.locator('.error-messages');
+  protected readonly errorMessages: Locator = this.page.locator('.error-messages');
 }

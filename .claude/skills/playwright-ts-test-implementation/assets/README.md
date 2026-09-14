@@ -1,6 +1,6 @@
 # Good examples
 
-Complete files that show the framework conventions at full size. Paths mirror where the file would live in the project; every file compiles against the current framework (new models/helpers only need the registration described in [references/templates.md](../references/templates.md)).
+Complete files that show the framework conventions at full size. Paths mirror where the file would live in the project; every file compiles against the current framework (new models/helpers only need the registration described in [references/templates.md](../references/templates.md)). Like the project code, the examples carry no comments — this table says what each one shows.
 
 | File | Shows |
 |---|---|
@@ -10,7 +10,7 @@ Complete files that show the framework conventions at full size. Paths mirror wh
 | `src/pageObject/pages/SettingsPage.ts` | Page object: `root`, named `fields`/`errors`/`buttons`, public read-only locator, locator-returning method |
 | `src/pageObject/components/Selector.ts` | Element helper component with JSDoc (`@param` / `@return`) |
 | `src/api/request/users/UpdateUser.ts` | Request model |
-| `src/api/client/helpers/users/UsersPutAPI.ts` | Endpoint helper for a new domain + verb |
+| `src/api/client/helpers/users/UsersPutAPI.ts` | Endpoint helper for a new domain + verb (register it in `RestApiPutHelper`; use it only for a user created by the test, tagged `AUTH_QUOTA`) |
 | `src/api/client/api/comments/CommentsAPI.ts` | Multi-call flow that uses the client's helpers and other flows |
 
 ## Bad → good
@@ -30,3 +30,4 @@ Complete files that show the framework conventions at full size. Paths mirror wh
 | `request.fetch('/api/articles/' + slug)` | `response({ path: ConduitBasePath.ARTICLE, pathData: [slug] })` |
 | Test 2 of a file uses the article created by test 1 | Each test arranges its own data (every test runs in its own new browser) |
 | `this.page.locator('div > div:nth-child(3) button')` | `this.page.getByRole('button', { name: 'Post Comment' })` |
+| `// Tags are entered comma-separated: pressing Enter submits the form` above a locator | No comment: the behaviour is in `references/app-behaviour.md`, the element name says what it is |

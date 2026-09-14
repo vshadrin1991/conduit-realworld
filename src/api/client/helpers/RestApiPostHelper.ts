@@ -4,7 +4,6 @@ import { ArticlesPostAPI } from './articles/ArticlesPostAPI';
 import { CommentsPostAPI } from './comments/CommentsPostAPI';
 import { UsersPostAPI } from './users/UsersPostAPI';
 
-/** POST endpoints grouped by domain: `client.post.articles.with(article)`. */
 export class RestApiPostHelper {
   readonly articles: ArticlesPostAPI;
   readonly comments: CommentsPostAPI;

@@ -20,8 +20,6 @@ export interface FunctionalPage<
   CheckboxName extends string = never,
   RadioButtonName extends string = never,
 > extends PromiseLike<void> {
-  /* ---------- Input / form data ---------- */
-
   /**
    * Types data into the field (replaces the current value).
    * @param field - name of the field
@@ -30,16 +28,12 @@ export interface FunctionalPage<
    */
   fillData(field: FieldName, data: string | number): this;
 
-  /* ---------- Buttons ---------- */
-
   /**
    * Clicks the action element.
    * @param button - name of the action element
    * @return current page instance
    */
   clickActionButton(button: ButtonName): this;
-
-  /* ---------- Checkboxes ---------- */
 
   /**
    * Checks one or more checkboxes (idempotent: no-op when already checked).
@@ -63,8 +57,6 @@ export interface FunctionalPage<
    */
   verifyCheckboxStatus(checkbox: CheckboxName, checked: boolean): this;
 
-  /* ---------- Radio buttons ---------- */
-
   /**
    * Selects the radio button.
    * @param radioButton - name of the radio button
@@ -79,8 +71,6 @@ export interface FunctionalPage<
    * @return current page instance
    */
   verifyRadioButtonStatus(radioButton: RadioButtonName, checked: boolean): this;
-
-  /* ---------- Verifications ---------- */
 
   /**
    * Asserts the current value of the field.

@@ -2,7 +2,6 @@ import { expect, type Locator } from '@playwright/test';
 import { BaseComponent } from '@/base/BaseComponent';
 
 export class Checkbox extends BaseComponent {
-  /** Checks the checkbox; no-op when it is already checked. */
   async check(locator: Locator): Promise<void> {
     if (await locator.isChecked()) {
       this.log.debug(`${locator} is already checked`);
@@ -12,7 +11,6 @@ export class Checkbox extends BaseComponent {
     await locator.check();
   }
 
-  /** Unchecks the checkbox; no-op when it is already unchecked. */
   async uncheck(locator: Locator): Promise<void> {
     if (!(await locator.isChecked())) {
       this.log.debug(`${locator} is already unchecked`);

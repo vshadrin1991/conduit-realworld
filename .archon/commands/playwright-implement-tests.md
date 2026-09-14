@@ -25,7 +25,7 @@ Implement exactly the plan, following the `playwright-ts-test-implementation` sk
    - log in and arrange in `test.beforeEach` or in the test, never in `beforeAll`;
    - Arrange / Act / Assert, one behaviour per test, data from `TestDataGenerator`, UI-created data tracked, `AUTH_QUOTA` tags.
 3. Page objects: locators only, `root` + named maps, locator priority role → placeholder/label/text → semantic CSS. Take locators from the page descriptions and resolve their open decisions — no `// TODO` from drafts may remain.
-4. New public methods of helpers, flows and components get JSDoc with `@param` and `@return`.
+4. New public methods of helpers, flows and components get JSDoc with `@param` and `@return`. No `//` or one-line `/** */` comments anywhere.
 5. Do not run tests here: the server is rate limited, and static checks plus one verification run follow this step.
 6. Write every created or changed file path, one per line, to `$ARTIFACTS_DIR/changed-files.txt`.
 

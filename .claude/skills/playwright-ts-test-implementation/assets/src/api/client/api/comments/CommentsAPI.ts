@@ -1,12 +1,8 @@
-// GOOD EXAMPLE — API flow. Location in the project: src/api/client/api/comments/CommentsAPI.ts
-// Register in ConduitAPI (`readonly comments: CommentsAPI;` + `this.comments = new CommentsAPI(client);`),
-// then use it in tests: `await get(ConduitRestClient).api.comments.create(article.slug, 3)`.
 import type { ConduitRestClient } from '@/api/client/ConduitRestClient';
 import type { NewComment } from '@/api/request/comments/NewComment';
 import type { Comment } from '@/api/responses/comments/Comment';
 import { generateComment } from '@/utilities/tests/TestDataGenerator';
 
-/** Comment flows composed from several endpoint calls. */
 export class CommentsAPI {
   /**
    * @param client - REST client whose endpoint helpers (and token) the flows use

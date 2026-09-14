@@ -50,7 +50,6 @@ test.describe('Articles API', () => {
     const changes = { title: `${created.title} updated`, body: 'Updated body' };
 
     const article = await get(ConduitRestClient).put.articles.with(created.slug, changes);
-    // A new title produces a new slug, so the new one must be cleaned up too.
     get(ConduitRestClient).api.articles.track(article.slug);
 
     expect(article).toMatchObject(changes);

@@ -27,7 +27,7 @@ Examples: `assets/tests/ui/articles.ui.spec.ts` (hybrid), `assets/tests/ui/auth.
 - Logged-in browser: `await get(Session).login()` (in `test.beforeEach` for the whole describe). Guest scenarios skip it.
 - Steps: `await get(Page, Route.x).fillData(...).clickActionButton(...)`; after navigation `await get(NextPage).waitUntilPageLoaded()`.
 - Locators outside the named maps: call element components from the page — `page.button.click(locator)`, `page.input.enter(locator, text)`, `page.text.getTexts(locator)`.
-- Mock only what the backend cannot produce on demand: `await get(Interceptor).mock(url, { status, json })` before the action, with a comment explaining why.
+- Mock only what the backend cannot produce on demand: `await get(Interceptor).mock(url, { status, json })` before the action; state the reason in the task or pull request (no code comment).
 - Tests of a file run one by one, each in its own new browser: log in and arrange in `beforeEach` (never `beforeAll`), with no dependency between tests.
 
 ## Page object — `src/pageObject/pages/<Name>Page.ts`
@@ -37,7 +37,8 @@ Example: `assets/src/pageObject/pages/SettingsPage.ts`.
 1. Type unions for the groups the page has (`never` for the rest: `BasePage<never, ButtonName>`; checkboxes and radio buttons are the 3rd and 4th type parameters).
 2. `root` — a locator present only when the page is rendered.
 3. Named maps (`fields`, `errors`, `buttons`, `checkboxes`, `radioButtons`), public read-only locators, locator-returning methods for parametrised elements.
-4. Route in `src/pageObject/routes.ts`.
+4. Route in `src/pageObject/pagePath/routes.ts`.
+5. JSDoc with `@param` / `@return` on every getter and method; no class-level comment — see [code-conventions](code-conventions.md#page-objects).
 
 ## Component — `src/pageObject/components/<Name>.ts`
 
