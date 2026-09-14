@@ -23,6 +23,7 @@ The server allows about 100 requests per 15 minutes and 5 auth requests per hour
    - **product defect or different expected text** → do not change expectations, report it;
    - **rate limit (429) or network** → stop and report `ENV_BLOCKED` with the retry-after time.
 4. Never raise retries or timeouts, add sleeps, or weaken assertions to make a test pass.
+5. Never run `allure serve`, `allure open` or `playwright show-report` — they need a TTY and either hang the run or exit without serving. The workflow builds the Allure report after this node; the user opens it themselves.
 
 ## Output
 

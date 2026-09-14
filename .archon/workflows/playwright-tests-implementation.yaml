@@ -100,6 +100,19 @@ nodes:
             required: [test, category, evidence, action]
       required: [status, summary, failures]
 
+  # Deterministic: build the Allure report of the verification run ('allure serve' needs a TTY, so it cannot run here).
+  - id: allure
+    depends_on: [verify]
+    trigger_rule: all_done
+    bash: |
+      if [ -z "$(ls -A reports/allure-results 2>/dev/null)" ]; then
+        echo "No Allure results — nothing to report."
+        exit 0
+      fi
+      npm run --silent allure:generate
+      echo "Allure report built: reports/allure-report"
+      echo "Open it with: npm run allure:serve"
+
   # Review what was implemented, even when verification failed or was blocked by the environment.
   - id: scope
     depends_on: [verify]

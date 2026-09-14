@@ -24,7 +24,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "browsers": "playwright install chromium"
+    "browsers": "playwright install chromium",
+    "allure:serve": "allure serve reports/allure-results"
   },
   "devDependencies": {
     "@faker-js/faker": "^9.9.0",
