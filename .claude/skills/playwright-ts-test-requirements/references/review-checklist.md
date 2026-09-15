@@ -36,5 +36,5 @@ Ask for the concrete meaning: a number, a list, a rule or an observable result.
 ## Conduit context
 
 - The app is a public demo (articles, comments, profiles, favorites, follow, tags, auth) used by other people at the same time: requirements that assume an empty or exclusive environment need a finding.
-- Compare with [app-behaviour](../../playwright-ts-test-implementation/references/app-behaviour.md) before reporting a contradiction with the current application — known behaviour is documented there.
+- Compare with [app-behaviour](../../playwright-ts-conduit-realworld/references/app-behaviour.md) before reporting a contradiction with the current application — known behaviour is documented there.
 - Rate limits of the demo server are an environment constraint, not a requirement to test.

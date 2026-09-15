@@ -81,6 +81,15 @@ export interface FunctionalPage<
   verifyFieldData(field: FieldName, value: string | number): this;
 
   /**
+   * Asserts the value of an attribute of the field.
+   * @param field - name of the field
+   * @param attribute - attribute name, e.g. `type`
+   * @param value - expected attribute value
+   * @return current page instance
+   */
+  verifyFieldAttribute(field: FieldName, attribute: string, value: string | RegExp): this;
+
+  /**
    * Asserts presence or absence of the validation error for the field.
    * @param field - name of the field
    * @param exist - `true` the error must be visible, `false` hidden or absent

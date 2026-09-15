@@ -1,35 +1,28 @@
 import { test, type APIRequestContext, type APIResponse } from '@playwright/test';
-import { createLogger } from '@/utilities/logger/logger';
-import { buildPath, type ConduitBasePath } from './path/ConduitBasePath';
+import { createLogger } from '@/utilities/logger/Logger';
+import { buildPath, type BasePath } from './path/BasePath';
 import { RestClientFactory } from './session/RestClientFactory';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export type Token = string | (() => Promise<string>);
-export type Operator = 'SIZE_MORE' | 'SIZE_LESS' | 'EQUALS' | 'STATUS_CODE' | 'NONE';
-
-export interface Condition {
-  path?: string;
-  operator: Operator;
-  value?: unknown;
-  retries?: number;
-}
 
 export interface Request {
-  path: ConduitBasePath;
+  path: BasePath;
   name?: string;
   pathData?: (string | number)[];
   params?: Record<string, string | number | boolean>;
   body?: unknown;
   method?: HttpMethod;
   statusCode?: number | number[];
-  condition?: Condition;
+  headers?: Record<string, string>;
 }
 
 /**
- * Core REST client: sends a `Request`, retries it while its `condition` is not met, verifies the status code
- * and logs every call. Each call is also a step in the Playwright/Allure report.
- * Constructed by `get(ClientClass)` with the shared test user's token, or without one for `{ guest: true }`.
+ * Core REST client: sends a `Request`, verifies the status code and logs every call. Each call is also a step in the
+ * Playwright/Allure report. `Request.headers` overrides the headers of `RestClientFactory` for a single call, e.g. to
+ * send another `Authorization` scheme. Constructed by `get(ClientClass)` with the shared test user's token, or
+ * without one for `{ guest: true }`.
  */
 export class RestClient {
   protected readonly log = createLogger(this.constructor.name);
@@ -45,28 +38,17 @@ export class RestClient {
     const title = `API :: ${method} :: ${req.name ?? url}`;
 
     return inStep(title, async () => {
-      const retries = req.condition?.retries ?? 0;
       const token = typeof this.token === 'function' ? await this.token() : this.token;
-      let response!: APIResponse;
-      for (let attempt = 0; attempt <= retries; attempt++) {
-        const startedAt = Date.now();
-        response = await this.request.fetch(url, {
-          method,
-          params: req.params,
-          data: req.body,
-          headers: RestClientFactory.headers(token),
-        });
-        this.log.info(`${title} -> ${response.status()} (${Date.now() - startedAt}ms)${token ? '' : ' [guest]'}`);
-
-        if (response.status() === 429) {
-          this.log.warn(`${title} :: rate limited, retry-after ${response.headers()['retry-after']}s`);
-          break;
-        }
-        if (!req.condition || (await conditionMet(response, req.condition))) break;
-        if (attempt < retries) {
-          this.log.debug(`${title} :: condition not met, retries left: ${retries - attempt}`);
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
+      const startedAt = Date.now();
+      const response = await this.request.fetch(url, {
+        method,
+        params: req.params,
+        data: req.body,
+        headers: { ...RestClientFactory.headers(token), ...req.headers },
+      });
+      this.log.info(`${title} -> ${response.status()} (${Date.now() - startedAt}ms)${token ? '' : ' [guest]'}`);
+      if (response.status() === 429) {
+        this.log.warn(`${title} :: rate limited, retry-after ${response.headers()['retry-after']}s`);
       }
       await verifyStatus(response, req, title);
       return response;
@@ -87,29 +69,8 @@ async function inStep<T>(title: string, body: () => Promise<T>): Promise<T> {
   return test.step(title, body, { box: true });
 }
 
-function readPath(body: unknown, path?: string): unknown {
-  if (!path) return body;
-  return path.split('.').reduce<unknown>((value, key) => (value as Record<string, unknown> | undefined)?.[key], body);
-}
-
-async function conditionMet(response: APIResponse, { path, operator, value }: Condition): Promise<boolean> {
-  if (operator === 'NONE') return true;
-  if (operator === 'STATUS_CODE') return response.status() === value;
-  if (!response.ok()) return false;
-  const actual = readPath(await response.json(), path);
-  switch (operator) {
-    case 'SIZE_MORE':
-      return Array.isArray(actual) && actual.length > Number(value);
-    case 'SIZE_LESS':
-      return Array.isArray(actual) && actual.length < Number(value);
-    case 'EQUALS':
-      return actual === value;
-  }
-}
-
 async function verifyStatus(response: APIResponse, req: Request, title: string): Promise<void> {
-  const expected =
-    req.condition?.operator === 'STATUS_CODE' ? [Number(req.condition.value)] : [req.statusCode ?? 200].flat();
+  const expected = [req.statusCode ?? 200].flat();
   if (expected.includes(0) || expected.includes(response.status())) return;
 
   const retryAfter = response.headers()['retry-after'];

@@ -1,9 +1,10 @@
 import type { Page } from '@playwright/test';
-import { createLogger } from '@/utilities/logger/logger';
+import { createLogger } from '@/utilities/logger/Logger';
 
 /**
- * Base for reusable UI components: element helpers (Input, Button, Checkbox, ...) that act on a locator
- * passed to each call, and page fragments (Header). Obtain them in tests through `get(ComponentClass)`.
+ * Base for page components only: element helpers (Input, Button, Checkbox, ...) that act on a locator passed to each
+ * call, page fragments (Header), native dialogs (Confirmation) and the page's LocalStorage. Classes that are not about
+ * the page do not extend it — `Interceptor`, for example, belongs to utilities.
  */
 export abstract class BaseComponent {
   protected readonly log = createLogger(this.constructor.name);

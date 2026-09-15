@@ -1,9 +1,9 @@
 import type { NewArticle } from '@/api/request/articles/NewArticle';
 import type { Article } from '@/api/responses/articles/Article';
-import { createLogger } from '@/utilities/logger/logger';
-import { generateArticle, generateComment } from '@/utilities/tests/TestDataGenerator';
+import { createLogger } from '@/utilities/logger/Logger';
+import { generateArticle } from '@/utilities/tests/TestDataGenerator';
 import { getData, hasData, setData } from '@/utilities/tests/TestDataStorage';
-import type { ConduitRestClient } from '../../ConduitRestClient';
+import type { APIClient } from '../../APIClient';
 
 const log = createLogger('ArticlesAPI');
 
@@ -14,7 +14,7 @@ export interface ArticlesData extends Partial<NewArticle> {
 export class ArticlesAPI {
   static readonly CREATED_ARTICLES = 'createdArticles';
 
-  constructor(private readonly client: ConduitRestClient) {}
+  constructor(private readonly client: APIClient) {}
 
   async create({ count = 1, ...overrides }: ArticlesData = {}): Promise<Article[]> {
     const articles: Article[] = [];
@@ -24,14 +24,6 @@ export class ArticlesAPI {
       articles.push(article);
     }
     return articles;
-  }
-
-  async createWithComments(commentsCount: number, overrides: Partial<NewArticle> = {}): Promise<Article> {
-    const [article] = await this.create(overrides);
-    for (let index = 0; index < commentsCount; index++) {
-      await this.client.post.comments.with(article.slug, generateComment());
-    }
-    return article;
   }
 
   track(slug: string): void {

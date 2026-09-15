@@ -17,12 +17,12 @@ Full plan: `$ARTIFACTS_DIR/plan.md`
 
 ## Your task
 
-Implement exactly the plan, following the `playwright-ts-test-implementation` skill. Before writing each kind of file, open the matching example in `.claude/skills/playwright-ts-test-implementation/assets/`.
+Implement exactly the plan, following the `playwright-ts-conduit-realworld` skill. Before writing each kind of file, open the matching example in `.claude/skills/playwright-ts-conduit-realworld/assets/`.
 
 1. Order: routes → paths and models → endpoint helpers and flows → page objects and components → specs.
 2. Specs:
    - import `test` / `expect` from `@/base/BaseTest`; test functions take only `{ get }`;
-   - every API call starts with `get(ConduitRestClient)`;
+   - every API call starts with `get(APIClient)`;
    - element components are called from the page (`page.button`, `page.input`, `page.text`, ...);
    - log in and arrange in `test.beforeEach` or in the test, never in `beforeAll`;
    - Arrange / Act / Assert, one behaviour per test, data from `TestDataGenerator`, UI-created data tracked, `AUTH_QUOTA` tags.

@@ -44,7 +44,7 @@ Turn a finished test run into a short, trustworthy verdict: what failed, which c
 
    | Category | Meaning | Typical evidence | Next action |
    |---|---|---|---|
-   | `environment:rate-limit` | Demo server returned 429 (≈100 requests / 15 min per IP; auth ≈5 / hour) | `429`, `retry-after` in the error message, or `-> 429` in the `logs` attachment | Not a product bug. Wait for `retry-after`, re-run only the failed tests, reduce requests (see [execution-and-config](../playwright-ts-test-implementation/references/execution-and-config.md) of the implementation skill). |
+   | `environment:rate-limit` | Demo server returned 429 (≈100 requests / 15 min per IP; auth ≈5 / hour) | `429`, `retry-after` in the error message, or `-> 429` in the `logs` attachment | Not a product bug. Wait for `retry-after`, re-run only the failed tests, reduce requests (see [execution-and-config](../playwright-ts-conduit-realworld/references/execution-and-config.md) of the conventions skill). |
    | `environment:network` | DNS/connection problems | `ECONNRESET`, `net::ERR_*` | Re-run; check the site is up. |
    | `product:server-error` | API answered 5xx | `-> 500` in logs, `got 500` | Likely product defect — capture request + response body from logs. |
    | `test-code` | Bug in the test/framework code | `TypeError`, `is not a function` | Fix the code at the reported location. |

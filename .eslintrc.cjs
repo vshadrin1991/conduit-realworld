@@ -11,7 +11,18 @@ module.exports = {
   plugins: ['@typescript-eslint'],
   extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended'],
   env: { node: true, es2023: true },
-  ignorePatterns: ['node_modules/', 'reports/', 'test-results/', 'playwright-report/', '.auth/', 'dist/', '*.mjs', '*.cjs'],
+  ignorePatterns: [
+    'node_modules/',
+    'reports/',
+    'test-results/',
+    'playwright-report/',
+    '.auth/',
+    'dist/',
+    // Pages saved from the browser ship minified vendor bundles that are not part of the framework.
+    'new_tests/',
+    '*.mjs',
+    '*.cjs',
+  ],
   rules: {
     // Page chains are thenable: a chain without `await` never runs.
     '@typescript-eslint/no-floating-promises': 'error',

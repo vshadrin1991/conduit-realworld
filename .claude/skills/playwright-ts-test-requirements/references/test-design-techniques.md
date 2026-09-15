@@ -38,5 +38,5 @@ Pick techniques per requirement, derive test conditions, then turn conditions in
 ## Priority and layer
 
 - **P1** — core flows and data integrity (publish, login, delete), security and permissions. **P2** — main alternative and negative flows. **P3** — cosmetic, rare edge cases.
-- Suggest the layer by the test pyramid, as in the [playwright-ts-test-implementation](../../playwright-ts-test-implementation/SKILL.md) skill: rules, validation, statuses and permissions → API; what needs a browser (rendering, navigation, dialogs) → UI; UI checks with data arranged through the API → hybrid.
+- Suggest the layer by the test pyramid, as in the [playwright-ts-conduit-realworld](../../playwright-ts-conduit-realworld/SKILL.md) skill: rules, validation, statuses and permissions → API; what needs a browser (rendering, navigation, dialogs) → UI; UI checks with data arranged through the API → hybrid.
 - Automation candidate: yes when the result is deterministic and observable; no (manual) for visual judgement, one-off checks or behaviour the shared demo server cannot produce on demand.

@@ -18,7 +18,7 @@ so they can be reviewed, confirmed and used as the baseline for test design and 
 |---|---|
 | `observed` | Seen on the live application as a guest on 2026-09-14 (pages, texts, redirects, public API responses) |
 | `code` | Read in the application source, [TonyMckes/conduit-realworld-example-app](https://github.com/TonyMckes/conduit-realworld-example-app) (`backend/controllers`, `backend/helper`, `backend/middleware`, default branch) |
-| `tests` | Verified by the passing automated tests of this repository (`tests/api`, `tests/ui`) or recorded in `.claude/skills/playwright-ts-test-implementation/references/app-behaviour.md` |
+| `tests` | Verified by the passing automated tests of this repository (`tests/api`, `tests/ui`) or recorded in `.claude/skills/playwright-ts-conduit-realworld/references/app-behaviour.md` |
 
 - No account was created and no sign-in was performed in the browser during the walkthrough (auth requests are rate limited to about 5 per hour per IP). Behaviour that needs a signed-in user is taken from `code` and `tests` evidence.
 - The deployed build may differ from the default branch of the source repository. Where the two disagree, the statement is listed under **Open questions** instead of being presented as a requirement.

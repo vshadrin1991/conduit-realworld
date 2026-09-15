@@ -1,0 +1,107 @@
+name: playwright-requirements-testing
+worktree:
+  enabled: false
+description: >-
+  Test the requirements of the Conduit application from one requirements file: review them with the
+  playwright-ts-test-requirements skill, verify the observable requirements on the running app in Chrome through the
+  Playwright MCP server and write the result. Passed: tasks/<KEY>/requirements/requirements-testing-result.md and
+  test-cases.md with ready test cases. Failed: tasks/<KEY>/requirements/requirements-testing-failed.md with the
+  reasons. Input: --requirements|--r <file>.
+
+nodes:
+  # Deterministic: --r <file> → inputs.json, a source copy in tasks/<KEY>/requirements/source/, extracted text.
+  - id: inputs
+    bash: |
+      cd "${PROJECT_PATH:-$PWD}"
+      echo "Project: $PWD"
+      mkdir -p "$ARTIFACTS_DIR"
+      printf '%s' "$ARGUMENTS" > "$ARTIFACTS_DIR/arguments.txt"
+      node .archon/scripts/requirements-inputs.mjs "$ARTIFACTS_DIR/arguments.txt" "$ARTIFACTS_DIR"
+
+  # Deterministic: is the application reachable (one request to the home page) and is Chrome installed?
+  - id: preflight
+    depends_on: [inputs]
+    bash: |
+      cd "${PROJECT_PATH:-$PWD}"
+      base="${BASE_URL:-$(grep -E '^BASE_URL=' .env 2>/dev/null | tail -1 | cut -d= -f2-)}"
+      base="${base:-https://conduit-realworld-example-app.fly.dev}"
+      code=$(curl -s -o /dev/null -m 20 -w '%{http_code}' "$base/" || true)
+      site=DOWN; [ "$code" = 200 ] && site=UP
+      chrome=no; { [ -d "/Applications/Google Chrome.app" ] || command -v google-chrome >/dev/null 2>&1; } && chrome=yes
+      printf '{"site":"%s","http_status":"%s","base_url":"%s","chrome":"%s"}\n' "$site" "${code:-000}" "$base" "$chrome"
+
+  # Static testing: normalize and review the requirements, plan what can be checked in the browser.
+  - id: review
+    model: '@reviewer'
+    command: playwright-requirements-review
+    depends_on: [inputs]
+    context: fresh
+    skills: [playwright-ts-test-requirements, playwright-ts-conduit-realworld]
+    allowed_tools: [Read, Write, Glob, Grep]
+    output_format:
+      type: object
+      properties:
+        status: { type: string, enum: [READY, BLOCKED] }
+        summary: { type: string }
+        requirements: { type: integer }
+        blockers: { type: integer }
+        majors: { type: integer }
+        minors: { type: integer }
+        live_checks: { type: integer }
+      required: [status, summary, requirements, blockers, majors, minors, live_checks]
+
+  # Dynamic testing: opens Chrome through the Playwright MCP server (.archon/mcp/playwright.json) and checks the plan.
+  - id: live_testing
+    model: '@reviewer'
+    command: playwright-requirements-live-check
+    depends_on: [review, preflight]
+    when: "$review.output.status == 'READY' && $preflight.output.site == 'UP' && $preflight.output.chrome == 'yes'"
+    context: fresh
+    mcp: .archon/mcp/playwright.json
+    skills: [playwright-ts-test-requirements, playwright-ts-conduit-realworld]
+    allowed_tools: [Read, Write, Glob, Grep, Bash]
+    output_format:
+      type: object
+      properties:
+        status: { type: string, enum: [PASSED, FAILED, ENV_BLOCKED] }
+        summary: { type: string }
+        passed: { type: integer }
+        failed: { type: integer }
+        not_verified: { type: integer }
+      required: [status, summary, passed, failed, not_verified]
+
+  # Deterministic: PASSED only when the app is reachable, the review is not blocked and nothing failed in Chrome.
+  - id: gate
+    depends_on: [preflight, review, live_testing]
+    trigger_rule: all_done
+    bash: |
+      cd "${PROJECT_PATH:-$PWD}"
+      node .archon/scripts/requirements-gate.mjs $preflight.output $review.output $live_testing.output
+
+  - id: passed_report
+    model: '@planner'
+    command: playwright-requirements-passed-report
+    depends_on: [gate]
+    when: "$gate.output.verdict == 'PASSED'"
+    context: fresh
+    skills: [playwright-ts-test-requirements, playwright-ts-conduit-realworld]
+    allowed_tools: [Read, Write, Glob, Grep, Bash]
+
+  - id: failed_report
+    model: '@general'
+    command: playwright-requirements-failed-report
+    depends_on: [gate]
+    when: "$gate.output.verdict == 'FAILED'"
+    context: fresh
+    skills: [playwright-ts-test-requirements]
+    allowed_tools: [Read, Write, Glob, Grep, Bash]
+
+  # Deterministic: list the result files the run produced.
+  - id: outputs
+    depends_on: [passed_report, failed_report]
+    trigger_rule: one_success
+    bash: |
+      cd "${PROJECT_PATH:-$PWD}"
+      dir=$(node -e 'console.log(require(process.argv[1]).outputDir)' "$ARTIFACTS_DIR/inputs.json")
+      echo "Result files in $dir (copies in $ARTIFACTS_DIR):"
+      ls -1 "$dir"/requirements-testing-*.md "$dir"/test-cases.md 2>/dev/null

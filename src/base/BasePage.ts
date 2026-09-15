@@ -6,7 +6,7 @@ import { Header } from '@/pageObject/components/Header';
 import { Input } from '@/pageObject/components/Input';
 import { RadioButton } from '@/pageObject/components/RadioButton';
 import { Text } from '@/pageObject/components/Text';
-import { createLogger } from '@/utilities/logger/logger';
+import { createLogger } from '@/utilities/logger/Logger';
 import type { FunctionalPage } from './FunctionalPage';
 
 interface StepLocation {
@@ -138,14 +138,6 @@ export abstract class BasePage<
   }
 
   /**
-   * Waits for queued actions; call it first in non-chainable async page helpers.
-   * @return promise resolved when all queued actions have finished
-   */
-  protected async settled(): Promise<void> {
-    await this;
-  }
-
-  /**
    * Opens a hash route unless already there, then waits for the page to render.
    * @param route - hash route to navigate to, e.g. `Route.article(slug)`
    * @return current page instance
@@ -273,6 +265,20 @@ export abstract class BasePage<
   }
 
   /**
+   * Asserts the value of an attribute of a named field, e.g. the input type behind the placeholder.
+   * @param field - name of the field declared in `fields`
+   * @param attribute - attribute name, e.g. `type`
+   * @param value - expected attribute value
+   * @return current page instance
+   */
+  verifyFieldAttribute(field: FieldName, attribute: string, value: string | RegExp): this {
+    return this.enqueue(`verifyFieldAttribute(${field}, ${attribute})`, async () => {
+      const input = await this.input.getInput(this.resolve(this.fields, field, 'field'));
+      await expect(input).toHaveAttribute(attribute, value);
+    });
+  }
+
+  /**
    * Asserts that the validation error of a named field is shown or hidden.
    * @param field - name of the field declared in `errors`
    * @param exist - `true` the error must be visible, `false` hidden or absent
@@ -312,6 +318,17 @@ export abstract class BasePage<
       const locator = this.resolve(all, element, 'element');
       if (exist) await expect(locator).toBeVisible();
       else await expect(locator).toBeHidden();
+    });
+  }
+
+  /**
+   * Asserts that every given element is visible, e.g. header links that are not in the page's named maps.
+   * @param elements - locators of the elements
+   * @return current page instance
+   */
+  verifyElementIsVisible(...elements: Locator[]): this {
+    return this.enqueue(`verifyElementIsVisible(${elements.join(', ')})`, async () => {
+      for (const element of elements) await expect(element).toBeVisible();
     });
   }
 

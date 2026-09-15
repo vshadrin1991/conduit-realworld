@@ -8,11 +8,11 @@ import {
   type TestInfo,
   type Video,
 } from '@playwright/test';
-import { ConduitRestClient } from '@/api/client/ConduitRestClient';
+import { APIClient } from '@/api/client/APIClient';
 import type { RestClient, Token } from '@/api/client/RestClient';
-import { getTestUser } from '@/api/client/session/auth/testUser';
+import { getTestUser } from '@/api/client/session/auth/User';
 import { envConfig } from '@/config/env.config';
-import { createLogger, drainTestLogs } from '@/utilities/logger/logger';
+import { createLogger, drainTestLogs } from '@/utilities/logger/Logger';
 import { Interceptor } from '@/utilities/interceptor/Interceptor';
 import { clearDataStorage } from '@/utilities/tests/TestDataStorage';
 import { BaseComponent } from './BaseComponent';
@@ -42,22 +42,29 @@ export interface Get {
    */
   <T extends BasePage>(pageClass: PageClass<T>, route?: string): T;
   /**
-   * Component bound to the current page (cached per test): `get(Session).login()`, `get(Interceptor).mock(...)`.
+   * Network mocks and the API/console capture started for the test: `await get(Interceptor).mock(url, response)`.
+   * @param interceptorClass - `Interceptor`
+   * @return interceptor of the test
+   */
+  (interceptorClass: typeof Interceptor): Interceptor;
+  /**
+   * Page component bound to the current page (cached per test): `await get(LocalStorage).getItem('loggedUser')`.
    * Element components (Input, Button, Checkbox, RadioButton, Text) and Confirmation are called from the page instead:
    * `page.button.click(locator)`, `page.confirmation.answerNext('accept')`.
-   * @param componentClass - component class, e.g. `Session`
+   * @param componentClass - page component class, e.g. `LocalStorage`
    * @return component instance
    */
   <T extends BaseComponent>(componentClass: ComponentClass<T>): T;
   /**
-   * REST client authenticated as the shared test user (resolved lazily on the first request),
-   * or anonymous with `{ guest: true }`; cached per test. Every API call in a test starts here:
-   * `get(ConduitRestClient).post.articles.with(article)`, `get(ConduitRestClient).api.articles.create({ count: 2 })`
-   * @param apiClass - REST client class, normally `ConduitRestClient`
-   * @param options - `{ guest: true }` for a client without a token
+   * REST client authenticated as the shared test user (resolved lazily on the first request), anonymous with
+   * `{ guest: true }` or authenticated as another account with `{ token }`; cached per test and per token.
+   * Every API call in a test starts here:
+   * `get(APIClient).post.articles.with(article)`, `get(APIClient).api.articles.create({ count: 2 })`
+   * @param apiClass - REST client class, normally `APIClient`
+   * @param options - `{ guest: true }` for a client without a token, `{ token }` for another account's token
    * @return REST client instance
    */
-  <T extends RestClient>(apiClass: ApiClass<T>, options?: { guest?: boolean }): T;
+  <T extends RestClient>(apiClass: ApiClass<T>, options?: { guest?: boolean; token?: string }): T;
 }
 
 interface BaseFixtures {
@@ -108,7 +115,7 @@ async function attachDom(page: Page, testInfo: TestInfo): Promise<void> {
 /**
  * Base test for every spec: `import { test, expect } from '@/base/BaseTest'`.
  * Test functions receive only `{ get }`; logging and data cleanup run automatically. Nothing is set up globally —
- * each test decides whether it needs a user (authenticated clients, `getTestUser()`, `get(Session).login()`).
+ * each test decides whether it needs a user (authenticated clients, `getTestUser()`, sign-in through the login form).
  */
 export const test = base.extend<BaseFixtures & BaseOptions, WorkerFixtures>({
   newBrowserPerTest: [false, { option: true }],
@@ -201,7 +208,7 @@ export const test = base.extend<BaseFixtures & BaseOptions, WorkerFixtures>({
     async ({ request }, use) => {
       await use();
       try {
-        await new ConduitRestClient(request, testUserToken).api.articles.deleteCreated();
+        await new APIClient(request, testUserToken).api.articles.deleteCreated();
       } finally {
         clearDataStorage();
       }
@@ -262,31 +269,34 @@ export const test = base.extend<BaseFixtures & BaseOptions, WorkerFixtures>({
   },
 
   /**
-   * Provides `get(...)`, which creates and caches pages, components and REST clients for the test.
+   * Provides `get(...)`, which creates and caches pages, page components and REST clients for the test.
    * @param request - API request context shared by the REST clients
-   * @param page - page shared by the page objects and components
+   * @param page - page shared by the page objects and page components
    * @param interceptor - capture started for the test, returned by `get(Interceptor)`
    * @param use - runs the test with `get`
    */
   get: async ({ request, page, interceptor }, use) => {
-    const clients = { user: new Map<Function, RestClient>(), guest: new Map<Function, RestClient>() };
-    const ui = new Map<Function, BasePage | BaseComponent>([[Interceptor, interceptor]]);
+    const clients = new Map<string, RestClient>();
+    const ui = new Map<Function, BasePage | BaseComponent | Interceptor>([[Interceptor, interceptor]]);
 
     const get = (
       target: PageClass<BasePage> | ComponentClass<BaseComponent> | ApiClass<RestClient>,
-      arg?: string | { guest?: boolean },
+      arg?: string | { guest?: boolean; token?: string },
     ) => {
-      if (target.prototype instanceof BasePage || target.prototype instanceof BaseComponent) {
+      if (ui.has(target) || target.prototype instanceof BasePage || target.prototype instanceof BaseComponent) {
         const uiClass = target as new (page: Page) => BasePage | BaseComponent;
         if (!ui.has(uiClass)) ui.set(uiClass, new uiClass(page));
         const instance = ui.get(uiClass)!;
         return typeof arg === 'string' && instance instanceof BasePage ? instance.navigate(arg) : instance;
       }
       const apiClass = target as ApiClass<RestClient>;
-      const guest = typeof arg === 'object' && !!arg.guest;
-      const cache = guest ? clients.guest : clients.user;
-      if (!cache.has(apiClass)) cache.set(apiClass, new apiClass(request, guest ? undefined : testUserToken));
-      return cache.get(apiClass)!;
+      const options = typeof arg === 'object' ? arg : {};
+      const key = `${apiClass.name}|${options.guest ? 'guest' : (options.token ?? 'user')}`;
+      if (!clients.has(key)) {
+        const token = options.guest ? undefined : (options.token ?? testUserToken);
+        clients.set(key, new apiClass(request, token));
+      }
+      return clients.get(key)!;
     };
     await use(get as Get);
   },

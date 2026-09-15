@@ -29,7 +29,7 @@ const OPTIONS = {
 };
 const LABELS = { requirements: '--requirements', testCases: '--test-cases', artifacts: '--artifacts' };
 const FILE_NAMES = { requirements: 'requirements', testCases: 'test-cases' };
-const PAGE_TO_MD = '.claude/skills/playwright-ts-test-implementation/scripts/parse-page-to-md.mjs';
+const PAGE_TO_MD = '.claude/skills/playwright-ts-conduit-realworld/scripts/parse-page-to-md.mjs';
 const EXTRACT = '.claude/skills/playwright-ts-test-requirements/scripts/extract-requirements.mjs';
 const PLAIN_TEXT = /\.(md|markdown|txt)$/i;
 const LOOKS_LIKE_PATH = /^[^\s]*(\/|\.(md|markdown|txt|html?|pdf|docx?|xlsx?|csv|json|png|jpe?g))$|^[^\s]+\/[^\s]*$/i;

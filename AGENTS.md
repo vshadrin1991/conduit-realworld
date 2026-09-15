@@ -8,7 +8,7 @@ Playwright + TypeScript UI and API tests for [Conduit RealWorld](https://conduit
 
 ## Detailed instructions
 
-- Writing or changing tests, pages, components, API endpoints/flows, test data: `.claude/skills/playwright-ts-test-implementation/SKILL.md` (+ `references/templates.md`).
+- Writing or changing tests, pages, components, API endpoints/flows, test data: `.claude/skills/playwright-ts-conduit-realworld/SKILL.md` (+ `references/templates.md`).
 - Analyzing a run, failures, flaky tests, reports: `.claude/skills/playwright-ts-test-results/SKILL.md`.
 - Fixing broken locators after a UI change: `.claude/skills/playwright-ts-test-self-healing/SKILL.md`.
 - Reviewing requirements and writing test case documentation from them: `.claude/skills/playwright-ts-test-requirements/SKILL.md`.
@@ -36,7 +36,7 @@ npm run allure:generate && npm run allure:open    # Allure report
 ```
 src/base/              BaseTest (get + automatic logs/dataCleaner), BasePage + FunctionalPage, BaseComponent
 src/pageObject/        pages (locators only), components (Input, Button, Checkbox, RadioButton, Text, Confirmation, LocalStorage, Session, Header), pagePath/routes
-src/api/client/        RestClient, ConduitRestClient (get/post/put/delete helpers), api/ flows, path/, session/
+src/api/client/        RestClient, APIClient (get/post/put/delete helpers), api/ flows, path/, session/
 src/api/request|responses/   models by domain
 src/utilities/         logger/logger, interceptor/Interceptor (mocks + API/console error capture), reporter/ArtifactsReporter, tests/TestDataGenerator, tests/TestDataStorage
 src/config/            loader + env, auth, framework (browser/headless/timeouts/...), report configs
@@ -45,10 +45,10 @@ tests/                 api/*.api.spec.ts, ui/*.ui.spec.ts
 
 ## Rules
 
-1. **Base test only.** Specs import `test`/`expect` from `@/base/BaseTest` and obtain everything through `get(...)`: pages, components and `ConduitRestClient` — every API call starts with `get(ConduitRestClient)` (flows: `get(ConduitRestClient).api.articles.create()`). Test functions take only `{ get }`. Nothing is set up globally — each test decides: `await getTestUser()` for the shared user, `await get(Session).login()` for a logged-in browser.
+1. **Base test only.** Specs import `test`/`expect` from `@/base/BaseTest` and obtain everything through `get(...)`: pages, components and `APIClient` — every API call starts with `get(APIClient)` (flows: `get(APIClient).api.articles.create()`). Test functions take only `{ get }`. Nothing is set up globally — each test decides: `await getTestUser()` for the shared user, `await get(Session).login()` for a logged-in browser.
 2. **Pages hold locators only.** Declare named `fields`/`buttons`/`checkboxes`/`radioButtons`/`errors`; no multi-step methods (`login()`, `publish()`). Tests chain page steps and await the chain once — `await get(Page, route).fillData(...).clickActionButton(...)` — and use the page element helpers for other locators (`page.button.click(locator)`).
-3. **Arrange and verify through the API**, act through the UI. Use `get(ConduitRestClient).api.articles.create()` for prerequisites; negative API cases use `client.response({ ..., statusCode })`.
-4. **Generated data only.** Use `TestDataGenerator`; every name contains `AUTOMATION_KEY`. Register data created outside API flows with `get(ConduitRestClient).api.articles.track(slug)` so `dataCleaner` deletes it. Never delete or modify data that is not automation data.
+3. **Arrange and verify through the API**, act through the UI. Use `get(APIClient).api.articles.create()` for prerequisites; negative API cases use `client.response({ ..., statusCode })`.
+4. **Generated data only.** Use `TestDataGenerator`; every name contains `AUTOMATION_KEY`. Register data created outside API flows with `get(APIClient).api.articles.track(slug)` so `dataCleaner` deletes it. Never delete or modify data that is not automation data.
 5. **Respect the rate limits.** ~100 requests / 15 min per IP for the whole site and ~5 auth calls / hour. Do not loop test runs; run the smallest scope that proves the change; tag tests hitting `/api/users*` with `AUTH_QUOTA`. A `429` is an environment problem, not a product bug — wait for `retry-after`.
 6. **No sleeps or `waitForTimeout`.** Use web-first assertions. Locator priority: role → placeholder/label/text → semantic CSS; no XPath.
 7. **Configuration through `src/config` only.** Never read `process.env` in framework code or tests; add a typed field (with a default) to the matching `*.config.ts` and document the variable in `.env.example`.

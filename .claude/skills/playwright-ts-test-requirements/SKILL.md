@@ -36,7 +36,7 @@ tasks/<KEY>/requirements/
 5. **Ask** — send the user the blocker and major questions as one numbered list and wait. Record answers in the review (Resolution), update the affected requirements, and close or keep each finding.
 6. **Design tests** — for each requirement choose techniques from [test-design-techniques](references/test-design-techniques.md) and derive test conditions: positive flow, negative cases, boundaries, combinations, states, roles, error handling and the non-functional checks the requirement asks for. Merge conditions that duplicate each other.
 7. **Write test cases** — fill `assets/test-cases-template.md`: every case has ID, title, requirement references, priority, type, preconditions, test data, steps, expected results, suggested layer (API / UI / hybrid by the test pyramid) and automation candidate. The traceability matrix maps every requirement to at least one case, or states why it cannot be tested.
-8. **Hand off** — summarize: requirements, findings by severity, open questions, cases by priority and layer. Offer the next step: an automation task with the [playwright-ts-test-aqa-task](../playwright-ts-test-aqa-task/SKILL.md) skill, or implementation with the [playwright-ts-test-implementation](../playwright-ts-test-implementation/SKILL.md) skill.
+8. **Hand off** — summarize: requirements, findings by severity, open questions, cases by priority and layer. Offer the next step: an automation task with the [playwright-ts-test-aqa-task](../playwright-ts-test-aqa-task/SKILL.md) skill, or implementation with the [playwright-ts-conduit-realworld](../playwright-ts-conduit-realworld/SKILL.md) skill.
 
 ## Rules
 
@@ -48,7 +48,7 @@ tasks/<KEY>/requirements/
 | Steps in plain language — no code, locators or selectors | Test cases are read by manual QA, developers and product owners |
 | Concrete test data (values, lengths, boundaries) | Anyone can reproduce the case |
 | Design for a blocked requirement stays **Draft — confirm** | Work on unclear requirements is not presented as final |
-| Check [app-behaviour](../playwright-ts-test-implementation/references/app-behaviour.md) before calling current behaviour a contradiction | Known demo-app behaviour is not a requirements defect |
+| Check [app-behaviour](../playwright-ts-conduit-realworld/references/app-behaviour.md) before calling current behaviour a contradiction | Known demo-app behaviour is not a requirements defect |
 
 ## References
 

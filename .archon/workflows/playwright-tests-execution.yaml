@@ -11,6 +11,8 @@ nodes:
   - id: preflight
     bash: |
       set -e
+      cd "${PROJECT_PATH:-$PWD}"
+      echo "Project: $PWD"
       [ -d node_modules ] || npm ci
       echo "Playwright $(npx playwright --version)"
       npm run --silent typecheck
@@ -21,6 +23,7 @@ nodes:
     depends_on: [preflight]
     timeout: 1800000
     bash: |
+      cd "${PROJECT_PATH:-$PWD}"
       eval "set -- $ARGUMENTS"
       if [ "$#" -eq 0 ]; then set -- --grep-invert @auth-quota; fi
       : "${HEADLESS:=true}"
@@ -54,11 +57,17 @@ nodes:
     command: playwright-heal-locators
     depends_on: [triage]
     when: "$triage.output.locator_failures == 'YES'"
-    skills: [playwright-ts-test-self-healing, playwright-ts-test-implementation, playwright-ts-test-results]
+    skills: [playwright-ts-test-self-healing, playwright-ts-conduit-realworld, playwright-ts-test-results]
+
+  # Deterministic: copy the Allure results (the run and healed re-runs) to the run artifacts and serve the report from there.
+  - id: allure
+    depends_on: [run, heal]
+    trigger_rule: all_done
+    bash: bash "${PROJECT_PATH:-$PWD}/.archon/scripts/allure-serve.sh"
 
   - id: report
     model: '@general'
     command: playwright-execution-report
-    depends_on: [preflight, run, triage, heal]
+    depends_on: [preflight, run, triage, heal, allure]
     trigger_rule: all_done
     allowed_tools: [Read, Write, Bash]

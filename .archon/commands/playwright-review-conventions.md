@@ -13,13 +13,13 @@ argument-hint: <files or folders to review; empty = changed files>
 
 ## Your task
 
-Review the files in scope — read each one completely. This is read-only: do not edit files. The rules come from the `playwright-ts-test-implementation` skill:
+Review the files in scope — read each one completely. This is read-only: do not edit files. The rules come from the `playwright-ts-conduit-realworld` skill:
 
 | Area | Rule |
 |---|---|
 | Specs | `test` / `expect` imported from `@/base/BaseTest`; test functions take only `{ get }` — no `page` / `request` fixtures |
-| API calls | Every call starts with `get(ConduitRestClient)` (`.get` / `.post` / `.put` / `.delete` / `.api` / `.response`); no `ConduitAPI` import, no client variables, no hard-coded URLs |
-| Components | `input`, `button`, `checkbox`, `radioButton`, `text`, `confirmation` are called from the page; `get()` only for `Session`, `LocalStorage`, `Interceptor` |
+| API calls | Every call starts with `get(APIClient)` (`.get` / `.post` / `.put` / `.delete` / `.api` / `.response`); no `ConduitAPI` import, no client variables, no hard-coded URLs |
+| Components | `input`, `button`, `checkbox`, `radioButton`, `text`, `confirmation` are called from the page; `get()` only for `LocalStorage`, `Interceptor`; signed-in UI tests sign in through `LoginPage` steps and are tagged `AUTH_QUOTA` |
 | Page chains | Chains are awaited; locators are read from `get(Page)` taken again; `waitUntilPageLoaded()` after an action that navigates |
 | Hooks | Login and arrange in `beforeEach` or in the test — never `beforeAll` with `get` |
 | Page objects | Locators only: `root` + named maps, no multi-step methods, no API calls; priority role → placeholder/label/text → semantic CSS; no XPath; `.first()` / `nth()` only with a stable reason (no code comment) |

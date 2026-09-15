@@ -13,7 +13,7 @@ argument-hint: <tasks/KEY/KEY.md | description of what to automate>
 
 ## Your task
 
-Produce an implementation plan that follows the `playwright-ts-test-implementation` skill. Do not change project files except the plan file below.
+Produce an implementation plan that follows the `playwright-ts-conduit-realworld` skill. Do not change project files except the plan file below.
 
 1. Read every source listed under **Workflow inputs** (read the extracted text when a source lists it; read PDFs and images directly):
    - **Test cases** (`--test-cases`) — the cases to automate. Keep their IDs, titles, steps and expected results; do not add cases beyond them, and list noticed gaps as non-blocking questions.

@@ -19,13 +19,13 @@ Requires Node.js ≥ 20.12.
 src/
   base/                   BaseTest (get + automatic logs/dataCleaner), FunctionalPage, BasePage, BaseComponent
   pageObject/pages/       page objects — locators only (extend BasePage)
-  pageObject/components/  element components (Input, Button, Checkbox, RadioButton, Text, Confirmation), LocalStorage, Session, Header
-  pageObject/pagePath/    routes.ts — hash routes
-  api/client/             RestClient (core request/response), ConduitRestClient (get/post/put/delete helpers)
+  pageObject/components/  page components (extend BaseComponent): Input, Button, Checkbox, RadioButton, Text, Confirmation, Header, LocalStorage
+  pageObject/pagePath/    Routes.ts — hash routes
+  api/client/             RestClient (core request/response), APIClient (get/post/put/delete helpers)
   api/client/helpers/     RestApi{Verb}Helper + <domain>/<Domain><Verb>API endpoint classes
-  api/client/api/         ConduitAPI (the `api` group of ConduitRestClient) + <domain>/<Domain>API multi-call flows
-  api/client/path/        ConduitBasePath (endpoint paths)
-  api/client/session/     headers factory + auth/testUser.ts (cached token → login → register)
+  api/client/api/         ConduitAPI (the `api` group of APIClient) + <domain>/<Domain>API multi-call flows
+  api/client/path/        BasePath (endpoint paths)
+  api/client/session/     headers factory, auth/User.ts (cached token → login → register)
   api/request/            request models by domain
   api/responses/          response models by domain
   utilities/logger/       logger
@@ -47,28 +47,33 @@ All specs extend one base test and get collaborators through `get` (like `BaseTe
 import { expect, test } from '@/base/BaseTest';
 
 test('author deletes an article', async ({ get }) => {
-  const [article] = await get(ConduitRestClient).api.articles.create();               // arrange via API
-  await get(Session).login();                                              // logged-in browser
+  const [article] = await get(APIClient).api.articles.create();               // arrange via API
+  const testUser = await getTestUser();                                    // shared user
+  await get(LoginPage, Route.login)                                        // sign in through the UI
+    .fillData('email', testUser.email)
+    .fillData('password', testUser.password)
+    .clickActionButton('login');
+  await get(HomePage).waitUntilPageLoaded();
 
   const dialog = get(ArticlePage).confirmation.answerNext('accept');
   await get(ArticlePage, Route.article(article.slug))                      // navigate + wait,
     .clickActionButton('deleteArticle');                                   // chained page steps
 
   expect(await dialog).toBe('Want to delete the article?');
-  await get(ConduitRestClient, { guest: true }).response({                 // verify via API
-    path: ConduitBasePath.ARTICLE, pathData: [article.slug], statusCode: 404,
+  await get(APIClient, { guest: true }).response({                 // verify via API
+    path: BasePath.ARTICLE, pathData: [article.slug], statusCode: 404,
   });
 });
 ```
 
-- Every spec imports `test` from `@/base/BaseTest`; test functions receive only `{ get }` (test user: `await getTestUser()`, localStorage: `get(LocalStorage)`, network mocks and captured API/console errors: `get(Interceptor)`).
-- `get(ConduitRestClient)` is authenticated as the test user (`{ guest: true }` for no token): `client.post.articles.with(article)`, `client.get.comments.list(slug)`. Negative cases: `client.response({ path, method, body, statusCode: 401 })`. Multi-call flows: `get(ConduitRestClient).api.articles.create({ count: 2 })`. Every API call in a test starts with `get(ConduitRestClient)`.
+- Every spec imports `test` from `@/base/BaseTest`; test functions receive only `{ get }` (test user: `await getTestUser()`, localStorage: `get(LocalStorage)`, network mocks: `get(Interceptor)`).
+- `get(APIClient)` is authenticated as the test user (`{ guest: true }` for no token): `client.post.articles.with(article)`, `client.get.comments.list(slug)`. Negative cases: `client.response({ path, method, body, statusCode: 401 })`. Multi-call flows: `get(APIClient).api.articles.create({ count: 2 })`. Every API call in a test starts with `get(APIClient)`.
 - `get(PageClass)` returns the page object; `get(PageClass, route)` also queues navigation. Page calls chain and run when awaited: `await get(LoginPage, Route.login).fillData('email', email).clickActionButton('login')` (the await resolves to `void`; use `get(PageClass)` again to read locators). Pages hold locators only.
-- Element helpers are used from the page: `homePage.button.click(homePage.header.userMenu)` (`page.input`, `page.button`, `page.checkbox`, `page.radioButton`, `page.text`), and so are native dialogs: `articlePage.confirmation.answerNext('accept')`. Browser-level components come from `get(LocalStorage | Interceptor | Session)`.
-- Test data comes from `TestDataGenerator` (`generateArticle()`, `generateUser()`, `generateTestsName('Article')`); every name contains `AUTOMATION_KEY`. Articles created by API flows are deleted after each test; register others with `get(ConduitRestClient).api.articles.track(slug)`.
-- Nothing is set up globally: tests decide whether they need a user. Authenticated clients resolve the shared user lazily; UI tests start as guests and call `await get(Session).login()` when they need a logged-in browser.
+- Element helpers are used from the page: `homePage.button.click(homePage.header.userMenu)` (`page.input`, `page.button`, `page.checkbox`, `page.radioButton`, `page.text`), and so are native dialogs: `articlePage.confirmation.answerNext('accept')`. `get(Interceptor)` (utility) and `get(LocalStorage)` (page component) come from `get`.
+- Test data comes from `TestDataGenerator` (`generateArticle()`, `generateUser()`, `generateTestsName('Article')`); every name contains `AUTOMATION_KEY`. Articles created by API flows are deleted after each test; register others with `get(APIClient).api.articles.track(slug)`.
+- Nothing is set up globally: tests decide whether they need a user. Authenticated clients resolve the shared user lazily; UI tests start as guests and sign in through the login form (`LoginPage` steps, tagged `@auth-quota`) when they need a signed-in browser.
 
-Full conventions: [.claude/skills/playwright-ts-test-implementation/SKILL.md](.claude/skills/playwright-ts-test-implementation/SKILL.md).
+Full conventions: [.claude/skills/playwright-ts-conduit-realworld/SKILL.md](.claude/skills/playwright-ts-conduit-realworld/SKILL.md).
 
 ## Running
 

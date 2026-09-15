@@ -2,7 +2,7 @@ import type { Locator } from '@playwright/test';
 import { BasePage } from '@/base/BasePage';
 
 type FieldName = 'username' | 'email' | 'password';
-type ButtonName = 'signUp';
+type ButtonName = 'signUp' | 'signIn';
 
 export class RegisterPage extends BasePage<FieldName, ButtonName> {
   protected readonly root = this.page.getByRole('heading', { name: 'Sign up' });
@@ -15,7 +15,8 @@ export class RegisterPage extends BasePage<FieldName, ButtonName> {
 
   protected readonly buttons: Record<ButtonName, Locator> = {
     signUp: this.page.getByRole('button', { name: 'Sign up' }),
+    signIn: this.page.getByRole('link', { name: 'Sign in to your account' }),
   };
 
-  protected readonly errorMessages: Locator = this.page.locator('.error-messages');
+  readonly errorMessages: Locator = this.page.locator('.error-messages');
 }

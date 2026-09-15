@@ -7,7 +7,7 @@
 | Priority | Medium |
 | Routes | `#/profile/<username>`, `#/profile/<username>/favorites`, `#/settings` |
 | API | `GET /api/profiles/:username`, `POST` / `DELETE /api/profiles/:username/follow`, `POST` / `DELETE /api/articles/:slug/favorite`, `PUT /api/user` |
-| Sources | Live app (guest walkthrough), `backend/controllers/profiles.js`, `backend/controllers/favorites.js`, `backend/controllers/user.js`, `backend/controllers/articles.js`, `backend/middleware/authentication.js`, `src/pageObject/components/Header.ts`, the example `SettingsPage` of the implementation skill, `app-behaviour.md` |
+| Sources | Live app (guest walkthrough), `backend/controllers/profiles.js`, `backend/controllers/favorites.js`, `backend/controllers/user.js`, `backend/controllers/articles.js`, `backend/middleware/authentication.js`, `src/pageObject/components/Header.ts`, the example `SettingsPage` of the conventions skill, `app-behaviour.md` |
 
 ## User story
 
@@ -48,7 +48,7 @@ As a member, I want to see other authors' profiles, follow them, favorite articl
 | ID | Requirement | Type | Evidence |
 |---|---|---|---|
 | REQ-05.14 | A guest who opens `#/settings` is redirected to the home page `#/`. | Permissions | observed |
-| REQ-05.15 | A signed-in user opens **Settings** from the user menu. The page shows the heading "Your Settings", the fields **URL of profile picture**, **Your Name**, **Short bio about you**, **Email** and **Password**, and the button **Update Settings**. | UI | tests (the implementation skill's example page object, not yet automated) — confirm |
+| REQ-05.15 | A signed-in user opens **Settings** from the user menu. The page shows the heading "Your Settings", the fields **URL of profile picture**, **Your Name**, **Short bio about you**, **Email** and **Password**, and the button **Update Settings**. | UI | tests (the conventions skill's example page object, not yet automated) — confirm |
 | REQ-05.16 | `PUT /api/user` updates each field that is sent (`username`, `email`, `bio`, `image`), stores a sent `password` as a hash, and responds `{ user }`. | Functional | code |
 | REQ-05.17 | Updating settings without a token responds **401** `You need to login first!`. | Permissions | code |
 

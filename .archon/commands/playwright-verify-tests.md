@@ -15,7 +15,7 @@ argument-hint: <tasks/KEY/KEY.md | description of what was automated>
 
 The server allows about 100 requests per 15 minutes and 5 auth requests per hour: run the smallest scope, once.
 
-1. Run only the tests listed above: `HEADLESS=true npx playwright test <spec:line> <spec:line>`.
+1. Run only the tests listed above, clearing the Allure results of earlier runs first: `rm -rf reports/allure-results && HEADLESS=true npx playwright test <spec:line> <spec:line>`. Re-runs in step 3 do not clear them.
 2. Summarize with `npm run results -- --failures-only` and triage every failure with the `playwright-ts-test-results` skill.
 3. Handle each failure by its category:
    - **locator broken by the UI** → heal the page object with the `playwright-ts-test-self-healing` skill, re-run that test once;
@@ -23,7 +23,7 @@ The server allows about 100 requests per 15 minutes and 5 auth requests per hour
    - **product defect or different expected text** → do not change expectations, report it;
    - **rate limit (429) or network** → stop and report `ENV_BLOCKED` with the retry-after time.
 4. Never raise retries or timeouts, add sleeps, or weaken assertions to make a test pass.
-5. Never run `allure serve`, `allure open` or `playwright show-report` — they need a TTY and either hang the run or exit without serving. The workflow builds the Allure report after this node; the user opens it themselves.
+5. Never run `allure serve`, `allure open` or `playwright show-report` yourself — they block the session. After this node the workflow copies the Allure results to the run artifacts and serves the report from there.
 
 ## Output
 

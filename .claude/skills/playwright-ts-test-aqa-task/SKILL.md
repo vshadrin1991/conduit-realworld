@@ -7,7 +7,7 @@ description: Use when the user wants to prepare, describe or plan a test automat
 
 ## Overview
 
-Turns scattered inputs — test cases, saved pages, requirements — into one self-contained Jira-style markdown task that a person or the [playwright-ts-test-implementation](../playwright-ts-test-implementation/SKILL.md) skill can implement without asking again.
+Turns scattered inputs — test cases, saved pages, requirements — into one self-contained Jira-style markdown task that a person or the [playwright-ts-conduit-realworld](../playwright-ts-conduit-realworld/SKILL.md) skill can implement without asking again.
 
 The skill interviews; it never invents cases, expected results, messages or locators. Anything the user did not provide is written as a draft to confirm or as an open question.
 
@@ -55,7 +55,7 @@ For every page the UI cases touch, ask the user to save it and give these instru
 
 Warn that saved pages can contain personal data: use test accounts and remove anything sensitive.
 
-Then parse the saved pages into page descriptions with the shared script of the `playwright-ts-test-implementation` skill:
+Then parse the saved pages into page descriptions with the shared script of the `playwright-ts-conduit-realworld` skill:
 
 ```bash
 npm run page:md -- "tasks/<KEY>/pages"
@@ -83,13 +83,13 @@ Show a compact summary: cases (ID, title, layer, priority, confirmed/draft), pag
 
 - Fill [assets/task-template.md](assets/task-template.md) section by section. Remove sections that do not apply; never leave `<placeholders>`.
 - Every expected result, message and rule names its source (case ID, file, or "user, block 4"). Drafts stay marked **Draft — confirm**.
-- The implementation plan follows the `playwright-ts-test-implementation` conventions:
+- The implementation plan follows the `playwright-ts-conduit-realworld` skill:
   - spec files `tests/api/*.api.spec.ts` / `tests/ui/*.ui.spec.ts`;
   - page objects to add or extend, with element names from the extraction;
   - routes, endpoints, models, helpers, flows, generators and tags;
   - reuse of existing classes, called out explicitly.
 - Keep the Definition of done from the template.
-- Finish by giving the task path and offering to implement it with the `playwright-ts-test-implementation` skill.
+- Finish by giving the task path and offering to implement it with the `playwright-ts-conduit-realworld` skill.
 
 ## Common mistakes
 

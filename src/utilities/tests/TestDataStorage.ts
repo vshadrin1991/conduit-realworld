@@ -1,4 +1,4 @@
-import { createLogger } from '@/utilities/logger/logger';
+import { createLogger } from '@/utilities/logger/Logger';
 
 const log = createLogger('TestDataStorage');
 

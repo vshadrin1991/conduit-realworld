@@ -1,6 +1,6 @@
-import { expect, type ConsoleMessage, type Request } from '@playwright/test';
-import { BaseComponent } from '@/base/BaseComponent';
+import type { ConsoleMessage, Page, Request } from '@playwright/test';
 import { frameworkConfig } from '@/config/framework.config';
+import { createLogger } from '@/utilities/logger/Logger';
 import type { ConsoleEntry, ConsoleLevel } from './entry/ConsoleEntry';
 import type { NetworkEntry } from './entry/NetworkEntry';
 
@@ -28,29 +28,17 @@ function redact(text: string | null | undefined, max: number): string | null {
   return masked.length > max ? `${masked.slice(0, max)}...` : masked;
 }
 
-/**
- * Formats an API call as one readable line.
- * @param entry - captured API call
- * @return line like `POST https://host/api/users/login -> 404 Not Found`
- */
-function describeNetwork(entry: NetworkEntry): string {
-  return `${entry.method} ${entry.url} -> ${entry.failure ?? `${entry.status} ${entry.statusText ?? ''}`.trim()}`;
-}
-
-/**
- * Formats a console entry as one readable line.
- * @param entry - captured console entry
- * @return line like `[error] Uncaught TypeError: ... (https://host/app.js:1:200)`
- */
-function describeConsole(entry: ConsoleEntry): string {
-  return `[${entry.level}] ${entry.text}${entry.location ? ` (${entry.location})` : ''}`;
-}
-
-export class Interceptor extends BaseComponent {
+export class Interceptor {
+  private readonly log = createLogger('Interceptor');
   private readonly networkEntries: NetworkEntry[] = [];
   private readonly consoleEntries: ConsoleEntry[] = [];
   private readonly pending = new Set<Promise<void>>();
   private attached = false;
+
+  /**
+   * @param page - page whose browser context is mocked and listened to
+   */
+  constructor(private readonly page: Page) {}
 
   /**
    * Replies to matching browser requests with the given response instead of sending them to the server.
@@ -60,15 +48,6 @@ export class Interceptor extends BaseComponent {
   async mock(url: string | RegExp, response: MockResponse): Promise<void> {
     this.log.info(`Mock ${url} -> ${response.status ?? 200}`);
     await this.page.route(url, (route) => route.fulfill(response));
-  }
-
-  /**
-   * Removes the mocks registered for the URL.
-   * @param url - URL glob or regular expression passed to `mock`
-   */
-  async unmock(url: string | RegExp): Promise<void> {
-    this.log.info(`Unmock ${url}`);
-    await this.page.unroute(url);
   }
 
   /**
@@ -99,52 +78,12 @@ export class Interceptor extends BaseComponent {
   }
 
   /**
-   * Returns the captured API calls that answered 4xx/5xx or failed without a response.
-   * @return failed API calls, oldest first
-   */
-  async failedNetwork(): Promise<NetworkEntry[]> {
-    return (await this.network()).filter((entry) => entry.failure !== null || (entry.status ?? 0) >= 400);
-  }
-
-  /**
    * Returns the captured console messages and uncaught page errors, oldest first.
    * @return captured console entries (errors and warnings in the default `errors` mode)
    */
   async console(): Promise<ConsoleEntry[]> {
     await Promise.allSettled([...this.pending]);
     return [...this.consoleEntries];
-  }
-
-  /**
-   * Returns the captured console errors and uncaught page errors.
-   * @return console entries with the `error` level, oldest first
-   */
-  async consoleErrors(): Promise<ConsoleEntry[]> {
-    return (await this.console()).filter((entry) => entry.level === 'error');
-  }
-
-  /**
-   * Asserts that no captured API call answered 4xx/5xx or failed.
-   */
-  async verifyNoApiErrors(): Promise<void> {
-    const failed = await this.failedNetwork();
-    expect(failed, `API errors:\n${failed.map(describeNetwork).join('\n')}`).toEqual([]);
-  }
-
-  /**
-   * Asserts that the page logged no console errors and threw no uncaught errors.
-   */
-  async verifyNoConsoleErrors(): Promise<void> {
-    const errors = await this.consoleErrors();
-    expect(errors, `Console errors:\n${errors.map(describeConsole).join('\n')}`).toEqual([]);
-  }
-
-  /**
-   * Drops every captured entry, e.g. after arranging steps whose errors are expected.
-   */
-  reset(): void {
-    this.networkEntries.length = 0;
-    this.consoleEntries.length = 0;
   }
 
   /**

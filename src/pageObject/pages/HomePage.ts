@@ -48,20 +48,21 @@ export class HomePage extends BasePage<never, ButtonName> {
    * @return locator of the visible article preview
    */
   async findArticleInFeed(title: string, { maxPages = 3, timeout = 5_000 } = {}): Promise<Locator> {
-    await this.settled();
+    await this;
     const preview = this.articlePreview(title);
-    for (let pageNumber = 1; pageNumber <= maxPages; pageNumber++) {
-      if (pageNumber > 1) {
-        this.log.info(`"${title}" is not on feed page ${pageNumber - 1}, opening page ${pageNumber}`);
-        await this.button.click(this.feedPageButton(pageNumber));
-        await expect(this.feedPageButton(pageNumber)).toHaveAccessibleName(`Page ${pageNumber} is your current page`);
-      }
+    for (let pageNumber = 1; ; pageNumber++) {
       const found = await preview.waitFor({ state: 'visible', timeout }).then(
         () => true,
         () => false,
       );
       if (found) return preview;
+      if (pageNumber === maxPages)
+        throw new Error(`Article "${title}" was not found on the first ${maxPages} feed pages`);
+      this.log.info(`"${title}" is not on feed page ${pageNumber}, opening page ${pageNumber + 1}`);
+      await this.button.click(this.feedPageButton(pageNumber + 1));
+      await expect(this.feedPageButton(pageNumber + 1)).toHaveAccessibleName(
+        `Page ${pageNumber + 1} is your current page`,
+      );
     }
-    throw new Error(`Article "${title}" was not found on the first ${maxPages} feed pages`);
   }
 }

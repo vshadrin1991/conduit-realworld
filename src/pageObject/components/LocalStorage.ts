@@ -1,6 +1,11 @@
 import { BaseComponent } from '@/base/BaseComponent';
 
 export class LocalStorage extends BaseComponent {
+  /**
+   * Reads a localStorage item of the current page, parsed as JSON when possible.
+   * @param key - item key, e.g. `loggedUser`
+   * @return parsed value, the raw string when it is not JSON, or `null` when the item is absent
+   */
   async getItem<T = unknown>(key: string): Promise<T | null> {
     const raw = await this.page.evaluate((k) => localStorage.getItem(k), key);
     if (raw === null) return null;
@@ -9,16 +14,5 @@ export class LocalStorage extends BaseComponent {
     } catch {
       return raw as T;
     }
-  }
-
-  async setItem(key: string, value: unknown): Promise<void> {
-    this.log.debug(`Set localStorage "${key}"`);
-    const serialized = typeof value === 'string' ? value : JSON.stringify(value);
-    await this.page.evaluate(([k, v]) => localStorage.setItem(k, v), [key, serialized]);
-  }
-
-  async removeItem(key: string): Promise<void> {
-    this.log.debug(`Remove localStorage "${key}"`);
-    await this.page.evaluate((k) => localStorage.removeItem(k), key);
   }
 }

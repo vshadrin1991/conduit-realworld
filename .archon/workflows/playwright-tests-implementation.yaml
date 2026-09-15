@@ -13,6 +13,8 @@ nodes:
   # Deterministic: named inputs → inputs.json, text values saved to files, --artifacts pages → page descriptions.
   - id: inputs
     bash: |
+      cd "${PROJECT_PATH:-$PWD}"
+      echo "Project: $PWD"
       mkdir -p "$ARTIFACTS_DIR"
       printf '%s' "$ARGUMENTS" > "$ARTIFACTS_DIR/arguments.txt"
       node .archon/scripts/implementation-inputs.mjs "$ARTIFACTS_DIR/arguments.txt" "$ARTIFACTS_DIR"
@@ -21,6 +23,7 @@ nodes:
   - id: page_descriptions
     depends_on: [inputs]
     bash: |
+      cd "${PROJECT_PATH:-$PWD}"
       found=0
       for dir in tasks/*/pages; do
         [ -d "$dir" ] || continue
@@ -40,7 +43,7 @@ nodes:
     command: playwright-plan-tests
     depends_on: [page_descriptions]
     context: fresh
-    skills: [playwright-ts-test-implementation, playwright-ts-test-aqa-task, playwright-ts-test-requirements]
+    skills: [playwright-ts-conduit-realworld, playwright-ts-test-aqa-task, playwright-ts-test-requirements]
     output_format:
       type: object
       properties:
@@ -55,7 +58,7 @@ nodes:
     command: playwright-implement-tests
     depends_on: [plan]
     when: "$plan.output.status == 'READY'"
-    skills: [playwright-ts-test-implementation]
+    skills: [playwright-ts-conduit-realworld]
     output_format:
       type: object
       properties:
@@ -71,18 +74,18 @@ nodes:
     loop:
       prompt: |
         Run `npm run typecheck` and `npm run lint` and fix every error, following the
-        playwright-ts-test-implementation conventions. Changed files are listed in $ARTIFACTS_DIR/changed-files.txt.
+        playwright-ts-conduit-realworld skill. Changed files are listed in $ARTIFACTS_DIR/changed-files.txt.
         Never disable lint rules, add `any` or `@ts-ignore`, or delete tests to get a clean run.
         When both commands pass, output: <promise>CHECKS_PASS</promise>
       until: CHECKS_PASS
-      until_bash: npm run --silent typecheck && npm run --silent lint
+      until_bash: cd "${PROJECT_PATH:-$PWD}" && npm run --silent typecheck && npm run --silent lint
       max_iterations: 3
 
   - id: verify
     model: '@implementer'
     command: playwright-verify-tests
     depends_on: [static_checks]
-    skills: [playwright-ts-test-implementation, playwright-ts-test-results, playwright-ts-test-self-healing]
+    skills: [playwright-ts-conduit-realworld, playwright-ts-test-results, playwright-ts-test-self-healing]
     output_format:
       type: object
       properties:
@@ -100,18 +103,12 @@ nodes:
             required: [test, category, evidence, action]
       required: [status, summary, failures]
 
-  # Deterministic: build the Allure report of the verification run ('allure serve' needs a TTY, so it cannot run here).
+  # Deterministic: copy the Allure results of the verification run to the run artifacts and serve the report from there.
   - id: allure
     depends_on: [verify]
     trigger_rule: all_done
-    bash: |
-      if [ -z "$(ls -A reports/allure-results 2>/dev/null)" ]; then
-        echo "No Allure results — nothing to report."
-        exit 0
-      fi
-      npm run --silent allure:generate
-      echo "Allure report built: reports/allure-report"
-      echo "Open it with: npm run allure:serve"
+    when: "$plan.output.status == 'READY'"
+    bash: bash "${PROJECT_PATH:-$PWD}/.archon/scripts/allure-serve.sh"
 
   # Review what was implemented, even when verification failed or was blocked by the environment.
   - id: scope
@@ -127,7 +124,7 @@ nodes:
     command: playwright-review-conventions
     depends_on: [scope]
     context: fresh
-    skills: [playwright-ts-test-implementation]
+    skills: [playwright-ts-conduit-realworld]
     allowed_tools: [Read, Glob, Grep]
     output_format:
       type: object
@@ -152,7 +149,7 @@ nodes:
     command: playwright-review-test-design
     depends_on: [scope]
     context: fresh
-    skills: [playwright-ts-test-implementation, playwright-ts-test-results]
+    skills: [playwright-ts-conduit-realworld, playwright-ts-test-results]
     allowed_tools: [Read, Glob, Grep]
     output_format:
       type: object
@@ -176,6 +173,6 @@ nodes:
   - id: report
     model: '@general'
     command: playwright-implementation-report
-    depends_on: [plan, review_conventions, review_design]
+    depends_on: [plan, allure, review_conventions, review_design]
     trigger_rule: all_done
-    skills: [playwright-ts-test-implementation]
+    skills: [playwright-ts-conduit-realworld]

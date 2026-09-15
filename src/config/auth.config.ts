@@ -15,6 +15,5 @@ export const authConfig = {
   userFile: path.join(dir, 'user.json'),
   lockDir: path.join(dir, '.lock'),
   lockStaleMs: readNumber('AUTH_LOCK_STALE_MS', 60_000),
-  sessionStorageKey: 'loggedUser',
   tokenScheme: 'Token',
 } as const;

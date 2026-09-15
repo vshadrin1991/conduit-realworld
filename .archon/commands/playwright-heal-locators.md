@@ -13,7 +13,7 @@ argument-hint: <Playwright arguments that were run>
 
 ## Your task
 
-Follow the `playwright-ts-test-self-healing` skill exactly.
+Follow the `playwright-ts-test-self-healing` skill exactly. Every edit also follows the project conventions of the `playwright-ts-conduit-realworld` skill (locator priority and page-object rules, no code comments, rate limits) — see the skill's **Base conventions** section.
 
 1. List candidates: `node .claude/skills/playwright-ts-test-self-healing/scripts/find-broken-locators.mjs`. Skip everything that is not `locator: candidate for healing`.
 2. Take the new locator from offline evidence first (`error-context.md` page snapshot, screenshot, trace). Probe the live page only when that is not enough — it costs rate-limit budget.

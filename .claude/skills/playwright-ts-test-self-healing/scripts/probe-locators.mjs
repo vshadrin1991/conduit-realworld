@@ -9,7 +9,7 @@
  *
  * Locators are written as in page objects without `this.page.`:
  *   --try "getByRole('button', { name: 'Post Comment' })" --try "locator('.article-page').getByPlaceholder('Write a comment...')"
- * --login injects the cached shared user (.auth/user.json) the way the Session component does.
+ * --login injects the cached shared user (.auth/user.json) into localStorage (a probe shortcut; tests sign in through the login form).
  */
 import fs from 'node:fs';
 import path from 'node:path';
