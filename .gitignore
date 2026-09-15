@@ -27,6 +27,6 @@ new_tests/
 .obsidian/
 
 # Workflow output: keep reviews and test cases, not copied sources and saved pages
-tasks/*/pages/
-tasks/**/source/
-tasks/**/extracted/
+tasks/*
+
+

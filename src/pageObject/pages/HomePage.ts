@@ -11,7 +11,26 @@ export class HomePage extends BasePage<never, ButtonName> {
     yourFeed: this.page.getByRole('button', { name: 'Your Feed' }),
   };
 
+  readonly banner: Locator = this.page.locator('.banner');
+  readonly bannerTitle: Locator = this.banner.locator('h1');
+  readonly bannerTagline: Locator = this.banner.locator('p');
+  readonly feedTabs: Locator = this.page.locator('.feed-toggle .nav-item button');
+  readonly selectedFeedTab: Locator = this.page.locator('.feed-toggle button.nav-link.active');
+  readonly popularTags: Locator = this.page.locator('.sidebar .tag-list button');
+  readonly pagination: Locator = this.page.getByRole('navigation', { name: 'Pagination' });
+  readonly lastFeedPage: Locator = this.pagination.getByRole('button', { name: /^Page \d+$/ }).last();
   readonly articlePreviews: Locator = this.page.locator('.article-preview');
+  readonly articleTitles: Locator = this.articlePreviews.locator('h1');
+  readonly articleTagLists: Locator = this.articlePreviews.locator('ul.tag-list');
+
+  /**
+   * Returns the feed tab with the name, such as `Global Feed`, `Your Feed` or a tag name.
+   * @param name - text of the tab
+   * @return locator of the tab button
+   */
+  feedTab(name: string): Locator {
+    return this.feedTabs.filter({ hasText: name });
+  }
 
   /**
    * Returns the article preview card with the title.
@@ -20,6 +39,33 @@ export class HomePage extends BasePage<never, ButtonName> {
    */
   articlePreview(title: string): Locator {
     return this.articlePreviews.filter({ hasText: title });
+  }
+
+  /**
+   * Returns the author link of the article preview card.
+   * @param title - article title
+   * @return locator of the author link
+   */
+  articleAuthorLink(title: string): Locator {
+    return this.articlePreview(title).locator('a.author');
+  }
+
+  /**
+   * Returns the tags listed on the article preview card.
+   * @param title - article title
+   * @return locator of the tag items
+   */
+  articleTags(title: string): Locator {
+    return this.articlePreview(title).locator('ul.tag-list li');
+  }
+
+  /**
+   * Returns the favorite counter of the article preview card.
+   * @param title - article title
+   * @return locator of the counter next to the favorite button
+   */
+  articleFavoriteCount(title: string): Locator {
+    return this.articlePreview(title).locator('span.counter');
   }
 
   /**

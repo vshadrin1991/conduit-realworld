@@ -4,6 +4,7 @@ import comment from './comments/comment.schema.json';
 import comments from './comments/comments.schema.json';
 import error from './errors/error.schema.json';
 import profile from './profiles/profile.schema.json';
+import tags from './tags/tags.schema.json';
 import user from './users/user.schema.json';
 
 /**
@@ -17,6 +18,7 @@ export const Schema = {
   COMMENT: comment,
   COMMENTS: comments,
   PROFILE: profile,
+  TAGS: tags,
   USER: user,
   ERROR: error,
 } as const;

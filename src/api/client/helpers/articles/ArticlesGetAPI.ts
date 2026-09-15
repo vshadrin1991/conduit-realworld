@@ -8,6 +8,14 @@ export class ArticlesGetAPI extends RestClient {
     return this.json<ArticlesResponse>({ name: 'list articles', path: BasePath.ARTICLES, params: { ...query } });
   }
 
+  feed(query: ArticleQuery = {}): Promise<ArticlesResponse> {
+    return this.json<ArticlesResponse>({
+      name: 'list feed articles',
+      path: BasePath.ARTICLES_FEED,
+      params: { ...query },
+    });
+  }
+
   async bySlug(slug: string): Promise<Article> {
     const request = { name: `get article :: ${slug}`, path: BasePath.ARTICLE, pathData: [slug] };
     return (await this.json<ArticleResponse>(request)).article;

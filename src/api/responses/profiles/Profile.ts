@@ -5,3 +5,7 @@ export interface Profile {
   following: boolean;
   followersCount?: number;
 }
+
+export interface ProfileResponse {
+  profile: Profile;
+}

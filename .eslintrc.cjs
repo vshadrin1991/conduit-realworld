@@ -20,6 +20,7 @@ module.exports = {
     'dist/',
     // Pages saved from the browser ship minified vendor bundles that are not part of the framework.
     'new_tests/',
+    'tasks/',
     '*.mjs',
     '*.cjs',
   ],
