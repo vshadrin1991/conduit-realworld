@@ -153,11 +153,9 @@ test.describe('Session UI', () => {
         await expect(homePage.header.loginLink).toBeVisible();
 
         await get(HomePage, Route.settings);
-
         await expect(homePage.page).toHaveURL(/#\/$/);
 
         await get(HomePage, Route.newArticle);
-
         await expect(homePage.page).toHaveURL(/#\/$/);
     });
 });

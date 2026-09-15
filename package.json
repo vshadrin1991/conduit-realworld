@@ -7,11 +7,16 @@
     "node": ">=20.12"
   },
   "scripts": {
-    "pretest": "rm -rf reports/allure-results",
+    "clean:results": "rm -rf reports/allure-results",
+    "pretest": "npm run --silent clean:results",
     "test": "playwright test",
+    "pretest:api": "npm run --silent clean:results",
     "test:api": "playwright test --project=api",
+    "pretest:ui": "npm run --silent clean:results",
     "test:ui": "playwright test --project=ui",
+    "pretest:quick": "npm run --silent clean:results",
     "test:quick": "playwright test --grep-invert @auth-quota",
+    "pretest:headed": "npm run --silent clean:results",
     "test:headed": "playwright test --project=ui --headed",
     "test:debug": "playwright test --debug",
     "test:ui-mode": "playwright test --ui",

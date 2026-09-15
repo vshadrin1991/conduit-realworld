@@ -58,6 +58,11 @@ async function resolveTestUser(context: APIRequestContext): Promise<TestUser> {
       log.info(`Reusing cached test user ${cached.username}`);
       return cached;
     }
+    if (response.status() === 429) {
+      throw new Error(
+        `Rate limited while checking the cached token of ${cached.email} (retry after ${response.headers()['retry-after']}s); no sign-in was attempted.`,
+      );
+    }
     log.warn(`Cached token for ${cached.email} is no longer valid (${response.status()})`);
   }
 

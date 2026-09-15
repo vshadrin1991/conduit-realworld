@@ -230,15 +230,23 @@ export const test = base.extend<BaseFixtures & BaseOptions, WorkerFixtures>({
       async (route) => {
         if (route.request().method() !== 'GET') return route.fallback();
         const key = route.request().url();
-        let asset = assetCache.get(key);
-        if (!asset) {
-          const response = await route.fetch();
-          if (response.status() !== 200) return route.fulfill({ response });
-          const { 'content-encoding': _encoding, 'content-length': _length, ...headers } = response.headers();
-          asset = { status: 200, headers, body: await response.body() };
-          assetCache.set(key, asset);
+        try {
+          let asset = assetCache.get(key);
+          if (!asset) {
+            const response = await route.fetch();
+            if (response.status() !== 200) {
+              await route.fulfill({ response });
+              return;
+            }
+            const { 'content-encoding': _encoding, 'content-length': _length, ...headers } = response.headers();
+            asset = { status: 200, headers, body: await response.body() };
+            assetCache.set(key, asset);
+          }
+          await route.fulfill(asset);
+        } catch (error) {
+          browserLog.debug(`Asset cache skipped for ${key}: ${error instanceof Error ? error.message : String(error)}`);
+          await route.continue().catch(() => undefined);
         }
-        await route.fulfill(asset);
       },
     );
     page.on('response', (response) => {
@@ -249,6 +257,7 @@ export const test = base.extend<BaseFixtures & BaseOptions, WorkerFixtures>({
       }
     });
     await use(page);
+    await page.context().unrouteAll({ behavior: 'ignoreErrors' });
     await attachDom(page, testInfo);
   },
 

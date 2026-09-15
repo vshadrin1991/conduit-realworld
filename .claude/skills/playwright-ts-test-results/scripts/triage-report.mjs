@@ -5,12 +5,16 @@
  * steps to reproduce in plain language. No dependencies: the XLSX file is written with node:zlib.
  *
  * Usage (from the project root):
- *   node triage-report.mjs [input] [--out-dir reports/triage] [--name triage-report]
+ *   node triage-report.mjs [input] [--out-dir reports/triage] [--name triage-report] [--overrides <file.json>]
  *
  * Input: a Playwright JSON report (default reports/results.json), a folder that contains one (a copied reports/
  * folder, a CI artifact) or a .zip archive of such a folder, unpacked to reports/unpacked/<archive name>/.
  *
  * Status: the category with the highest likelihood when it reaches 60%, otherwise "need to review".
+ *
+ * Steps to reproduce: numbered actions in plain language, then "Actual result:" and "Expected result:".
+ * --overrides: a JSON object keyed by spec file:line (or the full test name) with reviewed `status`, percentages,
+ * `stepsToReproduce`, `reason` or `testMethod`; applied to both files after the automatic triage.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -22,10 +26,11 @@ const option = (name, fallback) => {
   const index = args.indexOf(name);
   return index >= 0 ? args[index + 1] : fallback;
 };
-const optionValues = new Set(['--out-dir', '--name'].map((name) => option(name)).filter(Boolean));
+const optionValues = new Set(['--out-dir', '--name', '--overrides'].map((name) => option(name)).filter(Boolean));
 const input = args.find((a) => !a.startsWith('--') && !optionValues.has(a)) ?? 'reports/results.json';
 const outDir = option('--out-dir', 'reports/triage');
 const baseName = option('--name', 'triage-report');
+const overridesFile = option('--overrides');
 
 const STATUS_THRESHOLD = 60;
 const STATUSES = { defect: 'defect', automation: 'automation bug', flaky: 'flaky', review: 'need to review' };
@@ -150,115 +155,328 @@ function classify({ outcome, result, results, message, logs }) {
 
 // ---------- plain-language steps ----------
 
+/** The failed matcher itself — not code lines of the test quoted in the error's code frame. */
+const EXPECT_VISIBLE = /^\s*Expected: visible$|^Error: expect\(locator\)\.toBeVisible\(\)/m;
+const EXPECT_HIDDEN = /^\s*Expected: hidden$|^Error: expect\(locator\)\.toBeHidden\(\)/m;
+const FRAMEWORK_CLOSED = /has been disposed|context disposed|Target page, context or browser has been closed/i;
+
 const words = (camel) =>
   String(camel)
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
     .replace(/[_-]+/g, ' ')
     .toLowerCase()
     .trim();
-const pageName = (className) => `${words(className.replace(/Page$/, '')).replace(/^./, (c) => c.toUpperCase())} page`;
-const quoted = (list) => list.map((item) => `"${words(item)}"`).join(', ');
+const capitalize = (text) => text.replace(/^./, (c) => c.toUpperCase());
+const label = (name) => capitalize(words(name));
+/** Page objects named the way a user names the pages. */
+const CLASS_PAGES = {
+  HomePage: 'Home page',
+  LoginPage: 'Login page',
+  RegisterPage: 'Sign-up page',
+  SettingsPage: 'Settings page',
+  EditorPage: 'article editor',
+  ArticlePage: 'Article page',
+  ProfilePage: 'Profile page',
+};
+const pageName = (className) => CLASS_PAGES[className] ?? `${label(className.replace(/Page$/, ''))} page`;
+const joinList = (items) => (items.length > 1 ? `${items.slice(0, -1).join(', ')} and ${items.at(-1)}` : (items[0] ?? ''));
+const quotedLabels = (names) => joinList(names.map((name) => `"${label(name)}"`));
 
-function describeLocator(locator = '') {
-  const role = locator.match(/getByRole\('(\w+)'(?:,\s*\{\s*name:\s*'([^']*)'.*?\})?\)/);
-  if (role) return role[2] ? `the "${role[2]}" ${role[1]}` : `a ${role[1]}`;
-  const placeholder = locator.match(/getByPlaceholder\('([^']*)'/);
-  if (placeholder) return `the "${placeholder[1]}" field`;
-  const label = locator.match(/getByLabel\('([^']*)'/);
-  if (label) return `the "${label[1]}" field`;
-  const text = locator.match(/getByText\('([^']*)'/);
-  if (text) return `the text "${text[1]}"`;
-  const css = locator.match(/locator\('\.([\w-]+)/);
-  if (css) return `the ${words(css[1])} block`;
-  return locator ? 'the expected element' : 'the page element';
+/** Hash routes of the app: the page a user opens and the page object that shows it. */
+const ROUTE_PAGES = [
+  [/^\/?$/, 'Home page', 'HomePage'],
+  [/^\/login$/, 'Login page', 'LoginPage'],
+  [/^\/register$/, 'Sign-up page', 'RegisterPage'],
+  [/^\/settings$/, 'Settings page', 'SettingsPage'],
+  [/^\/editor$/, 'new article editor', 'EditorPage'],
+  [/^\/editor\/.+/, 'article editor', 'EditorPage'],
+  [/^\/article\/.+/, 'Article page', 'ArticlePage'],
+  [/^\/profile\/.+/, 'Profile page', 'ProfilePage'],
+];
+
+/** Parts of the application behind an API path, for simulated server responses. */
+const API_FEATURES = [
+  [/\/users\/login/, 'sign-in'],
+  [/\/users\b/, 'registration'],
+  [/\/user\b/, 'account settings'],
+  [/\/comments/, 'comments'],
+  [/\/favorite/, 'favorites'],
+  [/\/articles/, 'articles'],
+  [/\/profiles/, 'profiles'],
+  [/\/tags/, 'tags'],
+];
+
+/** Names of the API steps of the endpoint helpers, as actions. */
+const API_ACTIONS = [
+  [/^login$/, 'Sign in as the test user'],
+  [/^register user$/, 'Register a new user'],
+  [/^current user$/, 'Load the signed-in user'],
+  [/^create article$/, 'Create an article'],
+  [/^update article$/, 'Update the article'],
+  [/^delete article$/, 'Delete the article'],
+  [/^get article$/, 'Load the article'],
+  [/^list articles$/, 'Load the list of articles'],
+  [/^favorite article$/, 'Mark the article as a favorite'],
+  [/^add comment$/, 'Add a comment to the article'],
+  [/^list comments$/, 'Load the comments of the article'],
+  [/^delete comment$/, 'Delete the comment'],
+];
+
+const ROLE_NOUNS = {
+  link: 'link',
+  button: 'button',
+  textbox: 'field',
+  heading: 'heading',
+  img: 'image',
+  checkbox: 'checkbox',
+  radio: 'option',
+  tab: 'tab',
+  combobox: 'drop-down list',
+  listitem: 'list item',
+  dialog: 'dialog',
+};
+const ROLE_AREAS = { navigation: 'in the header', banner: 'in the header', main: 'in the main area', form: 'in the form' };
+const TAG_NOUNS = { h1: 'heading', h2: 'heading', li: 'item', a: 'link', button: 'button', input: 'field', textarea: 'field', img: 'image' };
+const LOCATOR_CALL = /(getByRole|getByPlaceholder|getByLabel|getByText|getByTestId|locator)\(((?:[^()'"`]|'[^']*'|"[^"]*"|`[^`]*`|\([^()]*\))*)\)/g;
+
+/** Splits an argument list at top-level commas; commas inside quotes, brackets and braces stay in their argument. */
+function splitArgs(raw = '') {
+  const parts = [];
+  let current = '';
+  let depth = 0;
+  let quote = null;
+  for (const char of raw) {
+    if (quote) {
+      if (char === quote) quote = null;
+    } else if (char === "'" || char === '"' || char === '`') {
+      quote = char;
+    } else if ('([{'.includes(char)) {
+      depth++;
+    } else if (')]}'.includes(char)) {
+      depth--;
+    } else if (char === ',' && depth === 0) {
+      parts.push(current.trim());
+      current = '';
+      continue;
+    }
+    current += char;
+  }
+  if (current.trim()) parts.push(current.trim());
+  return parts;
 }
 
+/** One locator call as a part of the element a user sees: `{ name: 'Home', noun: 'link' }` or `{ area: 'in the header' }`. */
+function describeLocatorCall(kind, args) {
+  const [first = '', options = ''] = splitArgs(args);
+  const value = first.replace(/^['"`]|['"`]$/g, '');
+  const name =
+    options.match(/name:\s*(['"`])(.*?)\1/)?.[2] ??
+    options.match(/name:\s*\/(.*?)\/\w*/)?.[1]?.replace(/[\\^$()]/g, '').split('|')[0];
+  switch (kind) {
+    case 'getByRole':
+      if (ROLE_AREAS[value] && !name) return { area: ROLE_AREAS[value] };
+      return { name, noun: ROLE_NOUNS[value] ?? words(value) };
+    case 'getByPlaceholder':
+    case 'getByLabel':
+      return { name: value, noun: 'field' };
+    case 'getByText':
+      return { name: value, noun: 'text' };
+    case 'getByTestId':
+      return { name: label(value), noun: 'element' };
+    case 'locator': {
+      const last = value.trim().split(/\s+/).at(-1) ?? '';
+      const className = last.match(/\.([\w-]+)/)?.[1];
+      const tag = TAG_NOUNS[last.match(/^([a-z][a-z0-9]*)/)?.[1]];
+      const noun = [className && words(className), tag].filter(Boolean).join(' ');
+      return noun ? { noun, css: true } : {};
+    }
+    default:
+      return {};
+  }
+}
+
+/** Locators as the elements a user sees: `the "Home" and "Login" links in the header`. */
+function describeElements(locators) {
+  const targets = locators.map((locator) => {
+    const calls = [...String(locator).matchAll(LOCATOR_CALL)].map(([, kind, args]) => describeLocatorCall(kind, args));
+    const index = calls.findLastIndex((call) => call.noun && !(call.css && calls.slice(calls.indexOf(call) + 1).some((c) => c.noun)));
+    const target = calls[index] ?? {};
+    const area = calls.slice(0, Math.max(index, 0)).map((call) => call.area).filter(Boolean).at(-1);
+    return { ...target, area };
+  });
+  if (!targets.length || targets.every((target) => !target.noun)) return 'the expected element';
+  const [first] = targets;
+  const sameKind = targets.every((target) => target.name && target.noun === first.noun && target.area === first.area);
+  if (targets.length > 1 && sameKind) {
+    return `the ${joinList(targets.map((target) => `"${target.name}"`))} ${first.noun}s${first.area ? ` ${first.area}` : ''}`;
+  }
+  return joinList(
+    targets.map((target) => `the ${target.name ? `"${target.name}" ` : ''}${target.noun ?? 'element'}${target.area ? ` ${target.area}` : ''}`),
+  );
+}
+
+/** A report step as what the user does (`action`) and what should happen (`expected`). */
 function describeStep(title) {
   const api = title.match(API_STEP);
   if (api) {
     const [name] = api[2].split(' :: ');
-    return name.startsWith('/') ? `Via the API, send a ${api[1]} request to ${name}` : `Via the API: ${name}`;
+    const action =
+      API_ACTIONS.find(([pattern]) => pattern.test(name))?.[1] ??
+      (name.startsWith('/') ? `Send a ${api[1]} request to ${name}` : capitalize(name));
+    return { action: `${action} through the API`, expected: 'the server accepts the request' };
   }
   const step = title.match(PAGE_STEP);
   if (!step) return undefined;
   const [, className, method, rawArgs] = step;
   const page = pageName(className);
-  const parts = rawArgs.split(',').map((part) => part.trim()).filter(Boolean);
-  const flag = parts.at(-1) === 'true' ? true : parts.at(-1) === 'false' ? false : undefined;
-  const names = parts.filter((part) => part !== 'true' && part !== 'false');
+  const args = splitArgs(rawArgs);
+  const flag = args.at(-1) === 'true' ? true : args.at(-1) === 'false' ? false : undefined;
+  const names = args.filter((arg) => arg !== 'true' && arg !== 'false');
+  const [name = ''] = names;
+  const field = `the "${label(name)}" field`;
+  const check = (statement) => ({ action: `On the ${page}, check that ${statement}`, expected: statement });
   switch (method) {
-    case 'navigate':
-      return `Open the ${page} (${rawArgs || '/'})`;
+    case 'navigate': {
+      const route = ROUTE_PAGES.find(([pattern]) => pattern.test(rawArgs));
+      const target = route?.[1] ?? page;
+      const redirected = route && route[2] !== className;
+      return { action: `Open the ${target}`, expected: redirected ? `the ${page} is shown instead` : `the ${target} opens` };
+    }
     case 'waitUntilPageLoaded':
     case 'expectLoaded':
-      return `Wait until the ${page} is shown`;
-    case 'fillData':
-      return `On the ${page}, enter a value into the ${quoted(names)} field`;
+      return { action: `Wait for the ${page} to open`, expected: `the ${page} opens` };
+    case 'fillData': {
+      const value = /password/i.test(name) ? 'a password' : /email/i.test(name) ? 'an email address' : 'a value';
+      return { action: `On the ${page}, enter ${value} into ${field}`, expected: `${field} is available and accepts the value` };
+    }
     case 'clickActionButton':
-      return `On the ${page}, click ${quoted(names)}`;
+      return { action: `On the ${page}, click "${label(name)}"`, expected: `"${label(name)}" is available and can be clicked` };
     case 'checkCheckbox':
-      return `On the ${page}, select the ${quoted(names)} checkbox`;
+      return { action: `On the ${page}, select the "${label(name)}" checkbox`, expected: `the "${label(name)}" checkbox is selected` };
     case 'uncheckCheckbox':
-      return `On the ${page}, clear the ${quoted(names)} checkbox`;
+      return { action: `On the ${page}, clear the "${label(name)}" checkbox`, expected: `the "${label(name)}" checkbox is cleared` };
     case 'clickRadioButton':
-      return `On the ${page}, choose the ${quoted(names)} option`;
+      return { action: `On the ${page}, choose the "${label(name)}" option`, expected: `the "${label(name)}" option is chosen` };
     case 'verifyFieldData':
-      return `On the ${page}, check that the ${quoted(names)} field shows the entered value`;
+      return check(`${field} shows the entered value`);
+    case 'verifyFieldAttribute':
+      return check(`${field} has the expected ${words(names[1] ?? 'type')}`);
     case 'verifyCheckboxStatus':
-      return `On the ${page}, check that ${quoted(names)} is ${flag ? 'selected' : 'not selected'}`;
+      return check(`the "${label(name)}" checkbox is ${flag ? 'selected' : 'not selected'}`);
     case 'verifyRadioButtonStatus':
-      return `On the ${page}, check that the ${quoted(names)} option is ${flag ? 'chosen' : 'not chosen'}`;
+      return check(`the "${label(name)}" option is ${flag ? 'chosen' : 'not chosen'}`);
     case 'verifyErrorField':
-      return `On the ${page}, check that the error for ${quoted(names)} is ${flag ? 'shown' : 'not shown'}`;
+      return check(`an error message for ${field} is ${flag ? 'shown' : 'not shown'}`);
     case 'verifyErrorFieldText':
-      return `On the ${page}, check the error text of the ${quoted(names)} field`;
+      return check(`the error message for ${field} shows the expected text`);
     case 'verifyElementExist':
-      return `On the ${page}, check that ${quoted(names)} is ${flag ? 'shown' : 'not shown'}`;
+      return check(`${quotedLabels(names)} ${names.length > 1 ? 'are' : 'is'} ${flag ? 'shown' : 'not shown'}`);
+    case 'verifyElementIsVisible':
+      return check(`${describeElements(args)} ${args.length > 1 ? 'are' : 'is'} shown`);
     default:
-      return `On the ${page}, ${words(method)}${names.length ? ` ${quoted(names)}` : ''}`;
+      return { action: `On the ${page}, ${words(method)}`, expected: `"${words(method)}" completes` };
   }
 }
 
-/** Steps from the logs that the report does not record as steps (browser login, mocked responses). */
+/** Steps from the logs that the report does not record as steps: simulated server responses. */
 function preconditionsFromLogs(logs) {
   const steps = [];
-  if (/Browser session prepared for/.test(logs)) steps.push('Log in to the application as the test user');
   for (const [, url, status] of logs.matchAll(/\bMock (\S+) -> (\d{3})/g)) {
-    steps.push(`Make the server answer requests to ${url} with status ${status} (simulated response)`);
+    const feature = API_FEATURES.find(([pattern]) => pattern.test(url))?.[1] ?? 'the requested data';
+    steps.push(
+      Number(status) >= 400
+        ? `Simulate a server error for ${feature} (status ${status}) instead of calling the real server`
+        : `Simulate the server response for ${feature} (status ${status}) instead of calling the real server`,
+    );
   }
   return steps;
 }
 
-function actualResult(message, result) {
-  const locator = message.match(/^Locator: (.+)$/m)?.[1] ?? message.match(/strict mode violation: (.+?) resolved to/)?.[1];
+/** The element an assertion or locator error is about, as the user sees it. */
+function failingElement(message) {
+  const locator =
+    message.match(/^Locator: (.+)$/m)?.[1] ??
+    message.match(/strict mode violation: (.+?) resolved to/)?.[1] ??
+    message.match(/waiting for ((?:locator|getBy)\(.*)$/m)?.[1];
+  return locator ? describeElements([locator.trim()]) : undefined;
+}
+
+function actualResult(message, result, logs) {
+  const element = failingElement(message);
   const apiStatus = message.match(API_STATUS);
-  const expected = message.match(/^\s*Expected:\s*(.+)$/m)?.[1];
-  const received = message.match(/^\s*Received:\s*(.+)$/m)?.[1];
+  const received = message.match(/^\s*Received(?: string| value)?:\s*(.+)$/m)?.[1]?.trim();
   const missing = message.match(MISSING_NAME);
-  if (RATE_LIMIT.test(message)) return 'Actual result: the server refused the requests because of its rate limit (HTTP 429).';
-  if (missing) return `Actual result: the test refers to "${words(missing[2])}", which the page description does not contain.`;
-  if (STRICT.test(message)) return `Actual result: ${describeLocator(locator)} matches several elements on the page.`;
-  if (NOT_FOUND.test(message) && !apiStatus) return `Expected result: ${describeLocator(locator)} is shown. Actual result: it is not on the page.`;
-  if (apiStatus) return `Expected result: the server answers ${apiStatus[2]}. Actual result: it answered ${apiStatus[1]}.`;
-  if (expected && received) return `Expected result: ${expected.trim()}. Actual result: ${received.trim()}.`;
-  if (result.status === 'timedOut') return 'Actual result: the scenario did not finish within the time limit.';
-  if (TEST_CODE.test(message)) return `Actual result: the test stopped with a script error (${message.match(TEST_CODE)[0]}).`;
+  const rateLimitedMeanwhile = !RATE_LIMIT.test(message) && RATE_LIMIT_LOG.test(logs);
+  const note = rateLimitedMeanwhile ? '; at that time the server was refusing requests because of its rate limit' : '';
+  if (RATE_LIMIT.test(message)) return 'the server refused the request because too many requests were sent in a short time (rate limit, status 429)';
+  if (NETWORK.test(message)) return 'the application could not be reached (network error)';
+  if (missing) return `the test refers to "${label(missing[2])}", which is not described for this page`;
+  if (FRAMEWORK_CLOSED.test(message)) return 'the test stopped with a technical error in the test framework: the browser page was closed while a file was still loading';
+  if (STRICT.test(message)) return `${element} matches several elements on the page, so the test cannot tell which one to use`;
+  if (apiStatus) return `the server answered with status ${apiStatus[1]}`;
+  if (EXPECT_HIDDEN.test(message) && element) return `${element} is still shown${note}`;
+  if (element && (NOT_FOUND.test(message) || EXPECT_VISIBLE.test(message))) return `${element} did not appear on the page${note}`;
+  if (received) return `${element ? `${element} shows` : 'the application returned'} ${received}${note}`;
+  if (result.status === 'timedOut') return `the scenario did not finish within the time limit${note}`;
+  if (TEST_CODE.test(message)) return 'the test stopped because of an error in the test code';
   const first = message.split('\n').map((line) => line.trim()).find(Boolean);
-  return `Actual result: ${first ? first.replace(/^Error:\s*/, '') : 'the test failed'}.`;
+  return `${first ? first.replace(/^Error:\s*/, '') : 'the test failed'}${note}`;
+}
+
+function expectedResult(message, stepExpected) {
+  const element = failingElement(message);
+  const apiStatus = message.match(API_STATUS);
+  const expected = message.match(/^\s*Expected(?: string| value| pattern)?:\s*(.+)$/m)?.[1]?.trim();
+  if (FRAMEWORK_CLOSED.test(message)) return `${stepExpected ?? 'the scenario finishes'}, and the test finishes without a technical error`;
+  if (apiStatus) return `the server accepts the request (status ${apiStatus[2].trim()})`;
+  if (element && EXPECT_HIDDEN.test(message)) return `${element} is not shown`;
+  if (element && (NOT_FOUND.test(message) || EXPECT_VISIBLE.test(message))) return `${element} is shown`;
+  if (expected && !/^(visible|hidden)$/.test(expected)) return `${element ? `${element} shows` : 'the application returns'} ${expected}`;
+  return stepExpected ?? 'the scenario completes without errors';
+}
+
+/** Report steps up to the failed one; consecutive checks of named elements on one page become one step. */
+function reportSteps(result) {
+  const failedStep = failedStepChain(result.steps)[0];
+  const merged = [];
+  for (const step of result.steps ?? []) {
+    if (/check cached token/.test(step.title)) continue;
+    const current = step.title.match(PAGE_STEP);
+    const previous = merged.at(-1);
+    const before = previous?.title.match(PAGE_STEP);
+    const sameCheck =
+      current?.[2] === 'verifyElementExist' &&
+      before?.[2] === 'verifyElementExist' &&
+      current[1] === before[1] &&
+      splitArgs(current[3]).at(-1) === splitArgs(before[3]).at(-1) &&
+      !previous.failed;
+    if (sameCheck) {
+      const names = [...splitArgs(before[3]).slice(0, -1), ...splitArgs(current[3])];
+      previous.title = `${current[1]}.verifyElementExist(${names.join(', ')})`;
+      previous.failed = step === failedStep;
+    } else {
+      merged.push({ title: step.title, failed: step === failedStep });
+    }
+    if (step === failedStep) break;
+  }
+  return merged;
 }
 
 function stepsToReproduce(result, logs, message) {
   const lines = [...preconditionsFromLogs(logs)];
-  const failedChain = failedStepChain(result.steps);
-  const failedStep = failedChain[0];
-  for (const step of result.steps ?? []) {
-    if (/check cached token/.test(step.title)) continue;
+  let stepExpected;
+  for (const step of reportSteps(result)) {
     const described = describeStep(step.title);
-    if (described && lines.at(-1) !== described) lines.push(described);
-    if (step === failedStep) break;
+    if (!described || lines.at(-1) === described.action) continue;
+    const createdArticle = lines.some((line) => /^Create an article through the API$/.test(line));
+    lines.push(createdArticle ? described.action.replace(/^Open the (Article page|article editor)$/, 'Open the $1 of the article created through the API') : described.action);
+    stepExpected = described.expected;
   }
-  lines.push(actualResult(message, result));
-  return lines.map((line, index) => `${index + 1}. ${line}`).join('\n');
+  return [
+    ...lines.map((line, index) => `${index + 1}. ${line}`),
+    `Actual result: ${capitalize(actualResult(message, result, logs))}.`,
+    `Expected result: ${capitalize(expectedResult(message, stepExpected))}.`,
+  ].join('\n');
 }
 
 // ---------- rows ----------
@@ -291,8 +509,55 @@ function buildRows(report) {
       reason: reasons.join('; '),
     });
   }
+  return sortRows(rows);
+}
+
+const PERCENT_FIELDS = { defect: 'defectPercent', automation: 'automationBugPercent', flaky: 'flakyPercent' };
+
+function sortRows(rows) {
   const order = [STATUSES.defect, STATUSES.automation, STATUSES.review, STATUSES.flaky];
   return rows.sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
+}
+
+/**
+ * Applies reviewed values to the rows: `{ "tests/ui/auth.ui.spec.ts:12": { "status": "automation bug", "stepsToReproduce": "..." } }`.
+ * Keys are the spec file:line (or its end, e.g. `auth.ui.spec.ts:12`) or the full test name. Percentages: all three
+ * (`defectPercent`, `automationBugPercent`, `flakyPercent`, adding up to 100) or none — then a changed status gets 100%.
+ */
+function applyOverrides(rows, file) {
+  const overrides = JSON.parse(fs.readFileSync(file, 'utf-8'));
+  const unmatched = [];
+  for (const [key, change] of Object.entries(overrides)) {
+    const row = rows.find((candidate) => candidate.testName === key || candidate.testName.endsWith(`${key})`));
+    if (!row) {
+      unmatched.push(key);
+      continue;
+    }
+    if (change.status && !Object.values(STATUSES).includes(change.status)) {
+      throw new Error(`Override "${key}": unknown status "${change.status}" (use ${Object.values(STATUSES).join(', ')})`);
+    }
+    const given = Object.values(PERCENT_FIELDS).filter((field) => change[field] !== undefined);
+    if (given.length) {
+      const valid = given.length === 3 && given.every((field) => Number.isInteger(change[field]) && change[field] >= 0);
+      if (!valid || given.reduce((sum, field) => sum + change[field], 0) !== 100) {
+        throw new Error(`Override "${key}": give defectPercent, automationBugPercent and flakyPercent as whole numbers that add up to 100`);
+      }
+      const bucket = Object.keys(STATUSES).find((name) => STATUSES[name] === (change.status ?? row.status));
+      if (PERCENT_FIELDS[bucket] && given.some((field) => change[field] > change[PERCENT_FIELDS[bucket]])) {
+        throw new Error(`Override "${key}": status "${change.status ?? row.status}" must have the highest percentage`);
+      }
+      for (const field of given) row[field] = change[field];
+    } else if (change.status && change.status !== row.status && change.status !== STATUSES.review) {
+      const bucket = Object.keys(STATUSES).find((name) => STATUSES[name] === change.status);
+      for (const [name, field] of Object.entries(PERCENT_FIELDS)) row[field] = name === bucket ? 100 : 0;
+    }
+    for (const field of ['status', 'testMethod', 'stepsToReproduce', 'reason']) {
+      if (typeof change[field] === 'string') row[field] = change[field];
+    }
+    row.reviewed = true;
+  }
+  sortRows(rows);
+  return unmatched;
 }
 
 // ---------- XLSX (Office Open XML in a ZIP, no dependencies) ----------
@@ -490,6 +755,15 @@ if (resolved.unpackedFrom) console.log(`Unpacked ${rel(path.resolve(resolved.unp
 const artifactsRoot = resolved.root;
 const report = JSON.parse(fs.readFileSync(resolved.path, 'utf-8'));
 const rows = buildRows(report);
+let unmatchedOverrides = [];
+if (overridesFile) {
+  try {
+    unmatchedOverrides = applyOverrides(rows, overridesFile);
+  } catch (error) {
+    console.error(`Cannot apply ${overridesFile}: ${error.message}`);
+    process.exit(2);
+  }
+}
 const count = (status) => rows.filter((row) => row.status === status).length;
 const stats = report.stats ?? {};
 const run = {
@@ -501,6 +775,8 @@ const run = {
   totals: { passed: stats.expected ?? 0, failed: stats.unexpected ?? 0, flaky: stats.flaky ?? 0, skipped: stats.skipped ?? 0 },
   byStatus: Object.fromEntries(Object.values(STATUSES).map((status) => [status, count(status)])),
   statusRule: `highest likelihood when it reaches ${STATUS_THRESHOLD}%, otherwise "${STATUSES.review}"`,
+  overrides: overridesFile ? rel(path.resolve(overridesFile)) : null,
+  reviewed: rows.filter((row) => row.reviewed).length,
 };
 
 fs.mkdirSync(outDir, { recursive: true });
@@ -516,9 +792,12 @@ const summary = [
   { item: 'Passed / failed / flaky / skipped', value: `${run.totals.passed} / ${run.totals.failed} / ${run.totals.flaky} / ${run.totals.skipped}` },
   ...Object.entries(run.byStatus).map(([status, n]) => ({ item: `Status: ${status}`, value: String(n) })),
   { item: 'Status rule', value: run.statusRule },
+  { item: 'Reviewed rows', value: run.overrides ? `${run.reviewed} (from ${run.overrides})` : 'none' },
 ];
 fs.writeFileSync(xlsxFile, workbook(rows, summary));
 
 console.log(`Triage: ${rows.length} test(s) — ${Object.entries(run.byStatus).map(([s, n]) => `${n} ${s}`).join(', ')}`);
 console.log(`JSON: ${rel(path.resolve(jsonFile))}`);
 console.log(`XLSX: ${rel(path.resolve(xlsxFile))}`);
+if (run.overrides) console.log(`Reviewed rows: ${run.reviewed} from ${run.overrides}`);
+if (unmatchedOverrides.length) console.log(`Overrides without a matching failed test: ${unmatchedOverrides.join(', ')}`);

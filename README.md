@@ -124,4 +124,6 @@ Example: `HEADLESS=false SLOW_MO=300 npx playwright test tests/ui/auth.ui.spec.t
 | `npm run allure:generate` then `npm run allure:open` | Allure (`reports/allure-report`) |
 | `npm run results` | text summary with failure categories (`reports/results.json`) |
 
+Every `npm test` / `npm run test:*` script clears `reports/allure-results` first (`npm run clean:results`), so the Allure report shows only the last run — for example no API tests after `npm run test:ui`. Runs started with `npx playwright test` or from an IDE do not clear it; run `npm run clean:results` before them.
+
 Each test has a `logs` attachment with API calls, navigation and page actions; API calls are also report steps. Failed tests keep a trace, screenshot and video in `test-results/`.
