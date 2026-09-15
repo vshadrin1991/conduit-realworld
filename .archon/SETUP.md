@@ -1,8 +1,8 @@
-# Quickstart — Archon workflows
+# Setup — Archon workflows
 
-What to install and configure before running the Playwright workflows in [`.archon/workflows/`](.archon/workflows).
+What to install and configure before running the Playwright workflows in [`workflows/`](workflows).
 
-For what the workflows do and which inputs they take, see [`.archon/README.md`](.archon/README.md).
+For what the workflows do and which inputs they take, see [`README.md`](README.md).
 
 ## Prerequisites
 

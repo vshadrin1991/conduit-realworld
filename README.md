@@ -13,6 +13,8 @@ npm run test:quick     # everything except tests that spend the auth quota
 
 Requires Node.js ≥ 20.12.
 
+The repeatable Archon workflows (test implementation, review, execution, requirements testing) live in [.archon/](.archon/README.md); their prerequisites and setup are in [.archon/SETUP.md](.archon/SETUP.md).
+
 ## Structure
 
 ```

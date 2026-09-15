@@ -17,8 +17,16 @@ reports/
 !.env.example
 
 # IDE
-.idea/workspace.xml
+.idea/
 .DS_Store
 
 # tests description
 new_tests/
+
+# Obsidian vaults (local editor state)
+.obsidian/
+
+# Workflow output: keep reviews and test cases, not copied sources and saved pages
+tasks/*/pages/
+tasks/**/source/
+tasks/**/extracted/

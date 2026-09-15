@@ -7,7 +7,7 @@
 | `playwright-tests-implementation` | Task file (`tasks/<KEY>/<KEY>.md`) or a description, plus the options `--requirements`, `--test-cases`, `--artifacts` ([Implementation inputs](#implementation-inputs)) | Inputs → page descriptions → plan (stops if open questions block it) → implement → typecheck/lint until clean → one verification run → Allure report served → review → report |
 | `playwright-tests-review` | Files or folders (empty = changed files) | Typecheck and lint → conventions review + test design review (in parallel, read-only) → Allure report of the last run served → report with verdict |
 | `playwright-tests-execution` | Playwright arguments (empty = quick suite without `@auth-quota`) | Preflight → run → triage → heal broken locators (only when needed) → Allure report served → report |
-| `playwright-requirements-testing` | `--r <requirements file>` ([Requirements testing](#requirements-testing)) | Inputs + environment check → requirements review → check in Chrome through Playwright MCP → gate → result and test cases (passed) or failure report (failed) |
+| `playwright-requirements-testing` | `--r <requirements file>` ([Requirements testing](#requirements-testing)) | Inputs + environment check → requirements review → evidence from the app in Chrome (Playwright MCP) → gate → result and test cases; blocked only by a blocked review |
 
 ## Layout
 
@@ -27,10 +27,10 @@ Workflow AI nodes never name a model directly — they reference a level, `model
 
 | Level | Model / effort | Nodes |
 |---|---|---|
-| `@planner` | opus / high | implementation: `plan`; requirements testing: `passed_report` |
+| `@planner` | opus / high | implementation: `plan`; requirements testing: `result_report` |
 | `@implementer` | opus / high | implementation: `implement`, `static_checks`, `verify`; execution: `heal` |
-| `@reviewer` | opus / medium | implementation and review: `review_conventions`, `review_design`; requirements testing: `review`, `live_testing` |
-| `@general` | haiku / low | execution: `triage`; implementation, review, execution: `report`; requirements testing: `failed_report` |
+| `@reviewer` | opus / medium | implementation and review: `review_conventions`, `review_design`; requirements testing: `review`, `evidence` |
+| `@general` | haiku / low | execution: `triage`; implementation, review, execution: `report`; requirements testing: `blocked_report` |
 
 - Model values: `opus`, `sonnet`, `haiku` or a full Claude model id; effort: `low`, `medium`, `high`.
 - A new AI node gets `model: '@<level>'` right after its `id`; a new level is added to `aliases` in `config.yaml` and to the table in `.archon/.env.example`.
@@ -49,11 +49,13 @@ Workflow AI nodes never name a model directly — they reference a level, `model
 | `playwright-heal-locators` | execution | Page-object locator fixes, re-run healed tests |
 | `playwright-execution-report` | execution | `execution-report.md` |
 | `playwright-requirements-review` | requirements testing | Normalize and review the requirements, plan checks in Chrome; `READY` / `BLOCKED` |
-| `playwright-requirements-live-check` | requirements testing | Verify the planned requirements in Chrome (Playwright MCP); `PASSED` / `FAILED` / `ENV_BLOCKED` |
-| `playwright-requirements-passed-report` | requirements testing | `requirements-testing-result.md` + `test-cases.md` |
-| `playwright-requirements-failed-report` | requirements testing | `requirements-testing-failed.md` with the reasons |
+| `playwright-requirements-evidence` | requirements testing | Observe the app in Chrome (Playwright MCP); `MATCHES` / `DIFFERS` / `NOT_OBSERVED` per requirement |
+| `playwright-requirements-result-report` | requirements testing | `requirements-testing-result.md` + `test-cases.md` |
+| `playwright-requirements-blocked-report` | requirements testing | `requirements-testing-blocked.md` when the review is blocked |
 
 ## Setup
+
+Step by step, with the checks for each prerequisite: [SETUP.md](SETUP.md). In short:
 
 1. Install the Archon CLI and run `archon doctor`.
 2. Point Archon at Claude Code (AI nodes fail with "Claude Code not found" otherwise) — in `~/.archon/config.yaml`:
@@ -108,7 +110,7 @@ archon workflow run playwright-tests-implementation --no-worktree -- Automate th
 
 ## Requirements testing
 
-`playwright-requirements-testing` tests one requirements file — static review plus a check on the running app in Chrome — and turns passed requirements into ready test cases.
+`playwright-requirements-testing` reviews one requirements file (static testing: gaps, ambiguity, contradictions, testability), collects evidence from the running application in Chrome and writes the review result plus ready test cases.
 
 ```bash
 archon workflow run playwright-requirements-testing --no-worktree -- --r requirements/REQ-01-registration-and-sign-in.md
@@ -118,17 +120,18 @@ archon workflow run playwright-requirements-testing --no-worktree -- --r require
 |---|---|---|
 | `inputs` | bash (`requirements-inputs.mjs`) | Takes `--requirements` / `--r <file>` (one file: Markdown, text, Word, PDF, spreadsheet, HTML, image), copies it to `tasks/<KEY>/requirements/source/` (`<KEY>` = file name without extension) and extracts text from non-Markdown files; stops the run with `Input error: ...` otherwise |
 | `preflight` | bash | One request to the home page (`BASE_URL` or the demo URL) and a check that Google Chrome is installed |
-| `review` | AI | Requirements review with the `playwright-ts-test-requirements` skill; `requirements-review.md` and `live-check-plan.md` (what can be checked in the browser, by route) |
-| `live_testing` | AI + MCP | Opens Chrome through `.archon/mcp/playwright.json` (`@playwright/mcp`, pinned version, in-memory profile) and verifies the plan as a guest; signs in at most once with `.auth/user.json` when a requirement needs a signed-in user; `live-check.md` with PASS / FAIL / NOT_VERIFIED and screenshots of failures |
-| `gate` | bash (`requirements-gate.mjs`) | `PASSED` only when the app was reachable, the review is not `BLOCKED` and nothing failed in Chrome; otherwise `FAILED` with the reasons |
-| `passed_report` | AI | `tasks/<KEY>/requirements/requirements-testing-result.md` (review + verification in Chrome) and `test-cases.md` (Ready cases, drafts only for open findings, traceability) |
-| `failed_report` | AI | `tasks/<KEY>/requirements/requirements-testing-failed.md`: failure reasons, failed requirements with expected / actual / evidence, blocking findings, environment problems, next steps |
-| `outputs` | bash | Lists the result files |
+| `review` | AI | Requirements review with the `playwright-ts-test-requirements` skill; `requirements-review.md` (requirements, findings `RV-n`, questions) and `live-check-plan.md` (what the browser can answer) |
+| `evidence` | AI + MCP | Opens Chrome through `.archon/mcp/playwright.json` (`@playwright/mcp`, pinned version, in-memory profile), answers the open questions first, then the rest of the plan; `evidence.md` with `MATCHES` / `DIFFERS` / `NOT_OBSERVED`, and every difference classified (possible product defect / requirement may be outdated / not specified) with the question for the author |
+| `gate` | bash (`requirements-gate.mjs`) | `BLOCKED` only when the review did not complete or found blockers; otherwise `READY`, with the evidence coverage (`COLLECTED` / `PARTIAL` / `NONE`) |
+| `result_report` | AI | `tasks/<KEY>/requirements/requirements-testing-result.md` (result, requirements, findings and questions, what the application shows, coverage, next steps) and `test-cases.md` (traceability; cases affected by an open finding or a difference are `Draft — confirm`) |
+| `blocked_report` | AI | `tasks/<KEY>/requirements/requirements-testing-blocked.md`: the blocker findings with their questions, evidence that helps answer them, environment problems, next steps |
+| `outputs` | bash | Lists the files the run produced |
 
-- Result files are written to `tasks/<KEY>/requirements/` and copied to the run's artifacts with `requirements-review.md`, `live-check-plan.md`, `live-check.md` and `live/` screenshots. The MCP server's own files go to `reports/requirements-mcp/`.
+- **Differences are questions, not failures.** The application never "fails" a requirement here: a difference is either a product defect or an outdated requirement, and only the author decides. It is recorded with evidence and a question, and the test cases are written anyway — affected cases as drafts.
+- **What stops the run:** a review that did not complete, or blocker findings that make test design impossible. An unreachable application, a missing Chrome or a rate limit only reduce the evidence: the review and the test cases are still written, and the result says what could not be observed.
+- Result files are written to `tasks/<KEY>/requirements/` and copied to the run's artifacts with `requirements-review.md`, `live-check-plan.md`, `evidence.md` and `evidence/` screenshots. The MCP server's own files go to `reports/requirements-mcp/`.
 - The browser window is visible (headed Chrome). The first run downloads `@playwright/mcp` with `npx`.
 - Budget: opening the pages spends the site-wide limit (~100 requests / 15 min per IP) and a sign-in spends the auth quota (~5 / hour). Run one requirements file at a time.
-- Open questions never stop the run: they are recorded as findings. Only blocker findings, failed checks in Chrome or an unreachable environment fail it.
 
 ## Runs and reports
 

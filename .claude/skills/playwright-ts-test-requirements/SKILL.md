@@ -49,6 +49,7 @@ tasks/<KEY>/requirements/
 | Concrete test data (values, lengths, boundaries) | Anyone can reproduce the case |
 | Design for a blocked requirement stays **Draft — confirm** | Work on unclear requirements is not presented as final |
 | Check [app-behaviour](../playwright-ts-conduit-realworld/references/app-behaviour.md) before calling current behaviour a contradiction | Known demo-app behaviour is not a requirements defect |
+| A difference between a requirement and the running application is a finding with a question — possible product defect, outdated requirement or unspecified case — never a failed requirement | Only the author decides which side is wrong; test design continues meanwhile |
 
 ## References
 

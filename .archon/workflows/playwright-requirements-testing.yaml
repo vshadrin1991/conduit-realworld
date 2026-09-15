@@ -3,10 +3,11 @@ worktree:
   enabled: false
 description: >-
   Test the requirements of the Conduit application from one requirements file: review them with the
-  playwright-ts-test-requirements skill, verify the observable requirements on the running app in Chrome through the
-  Playwright MCP server and write the result. Passed: tasks/<KEY>/requirements/requirements-testing-result.md and
-  test-cases.md with ready test cases. Failed: tasks/<KEY>/requirements/requirements-testing-failed.md with the
-  reasons. Input: --requirements|--r <file>.
+  playwright-ts-test-requirements skill (gaps, ambiguity, contradictions, testability), collect evidence from the
+  running app in Chrome through the Playwright MCP server, and write tasks/<KEY>/requirements/
+  requirements-testing-result.md and test-cases.md. Differences between a requirement and the application are
+  questions for the author, not failures; only a blocked review stops the run
+  (tasks/<KEY>/requirements/requirements-testing-blocked.md). Input: --requirements|--r <file>.
 
 nodes:
   # Deterministic: --r <file> → inputs.json, a source copy in tasks/<KEY>/requirements/source/, extracted text.
@@ -30,7 +31,7 @@ nodes:
       chrome=no; { [ -d "/Applications/Google Chrome.app" ] || command -v google-chrome >/dev/null 2>&1; } && chrome=yes
       printf '{"site":"%s","http_status":"%s","base_url":"%s","chrome":"%s"}\n' "$site" "${code:-000}" "$base" "$chrome"
 
-  # Static testing: normalize and review the requirements, plan what can be checked in the browser.
+  # Static testing: normalize and review the requirements, plan what the browser can answer.
   - id: review
     model: '@reviewer'
     command: playwright-requirements-review
@@ -50,10 +51,10 @@ nodes:
         live_checks: { type: integer }
       required: [status, summary, requirements, blockers, majors, minors, live_checks]
 
-  # Dynamic testing: opens Chrome through the Playwright MCP server (.archon/mcp/playwright.json) and checks the plan.
-  - id: live_testing
+  # Evidence from the running app: opens Chrome through .archon/mcp/playwright.json; differences are questions, not failures.
+  - id: evidence
     model: '@reviewer'
-    command: playwright-requirements-live-check
+    command: playwright-requirements-evidence
     depends_on: [review, preflight]
     when: "$review.output.status == 'READY' && $preflight.output.site == 'UP' && $preflight.output.chrome == 'yes'"
     context: fresh
@@ -63,45 +64,50 @@ nodes:
     output_format:
       type: object
       properties:
-        status: { type: string, enum: [PASSED, FAILED, ENV_BLOCKED] }
+        status: { type: string, enum: [COLLECTED, PARTIAL, ENV_BLOCKED] }
         summary: { type: string }
-        passed: { type: integer }
-        failed: { type: integer }
-        not_verified: { type: integer }
-      required: [status, summary, passed, failed, not_verified]
+        matches: { type: integer }
+        differences: { type: integer }
+        not_observed: { type: integer }
+      required: [status, summary, matches, differences, not_observed]
 
-  # Deterministic: PASSED only when the app is reachable, the review is not blocked and nothing failed in Chrome.
+  # Deterministic: BLOCKED only when the review did not complete or found blockers; evidence only sets the coverage.
   - id: gate
-    depends_on: [preflight, review, live_testing]
+    depends_on: [review, evidence, preflight]
     trigger_rule: all_done
     bash: |
       cd "${PROJECT_PATH:-$PWD}"
-      node .archon/scripts/requirements-gate.mjs $preflight.output $review.output $live_testing.output
+      node .archon/scripts/requirements-gate.mjs $review.output $evidence.output $preflight.output
 
-  - id: passed_report
+  - id: result_report
     model: '@planner'
-    command: playwright-requirements-passed-report
+    command: playwright-requirements-result-report
     depends_on: [gate]
-    when: "$gate.output.verdict == 'PASSED'"
+    when: "$gate.output.verdict == 'READY'"
     context: fresh
     skills: [playwright-ts-test-requirements, playwright-ts-conduit-realworld]
     allowed_tools: [Read, Write, Glob, Grep, Bash]
 
-  - id: failed_report
+  - id: blocked_report
     model: '@general'
-    command: playwright-requirements-failed-report
+    command: playwright-requirements-blocked-report
     depends_on: [gate]
-    when: "$gate.output.verdict == 'FAILED'"
+    when: "$gate.output.verdict == 'BLOCKED'"
     context: fresh
     skills: [playwright-ts-test-requirements]
     allowed_tools: [Read, Write, Glob, Grep, Bash]
 
-  # Deterministic: list the result files the run produced.
+  # Deterministic: list the files the run produced.
   - id: outputs
-    depends_on: [passed_report, failed_report]
+    depends_on: [result_report, blocked_report]
     trigger_rule: one_success
     bash: |
       cd "${PROJECT_PATH:-$PWD}"
       dir=$(node -e 'console.log(require(process.argv[1]).outputDir)' "$ARTIFACTS_DIR/inputs.json")
       echo "Result files in $dir (copies in $ARTIFACTS_DIR):"
-      ls -1 "$dir"/requirements-testing-*.md "$dir"/test-cases.md 2>/dev/null
+      found=0
+      for file in "$dir"/requirements-testing-result.md "$dir"/test-cases.md "$dir"/requirements-testing-blocked.md; do
+        [ -f "$file" ] && { echo "$file"; found=1; }
+      done
+      [ "$found" = 1 ] || echo "(no result files were written)"
+      exit 0
