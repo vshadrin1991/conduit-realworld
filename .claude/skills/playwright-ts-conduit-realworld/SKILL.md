@@ -28,6 +28,7 @@ src/
   api/client/path/        BasePath enum with {dataN} placeholders
   api/client/session/     RestClientFactory (headers), auth/User.ts (getTestUser: lazy, cached token → login → register)
   api/request/, api/responses/  request and response models by domain
+  api/schemas/            JSON schemas of the responses by domain + Schema storage (expect(...).toMatchSchema)
   utilities/logger/       logger (console + per-test `logs` attachment)
   utilities/interceptor/  Interceptor — get(Interceptor): mock + API and console capture started for every test
   utilities/reporter/     ArtifactsReporter (reports/artifacts.json for failed and flaky tests)
@@ -115,7 +116,7 @@ Structure each test as Arrange / Act / Assert separated by blank lines, one beha
 - **Browser** — every UI test runs in its own new browser and starts as a guest. A test that needs a user signs in through the login form — `getTestUser()` credentials, then `get(LoginPage, Route.login).fillData('email', …).fillData('password', …).clickActionButton('login')` and `get(HomePage).waitUntilPageLoaded()` — in `beforeEach` or the test, never in `beforeAll`, and is tagged `AUTH_QUOTA` (each sign-in spends the ~5 requests / hour auth quota). Details: [execution-and-config](references/execution-and-config.md), [test-data-and-auth](references/test-data-and-auth.md).
 - **Page objects** — locators only; priority role → placeholder/label/text → semantic CSS; no XPath. Details: [page-objects](references/page-objects.md).
 - **Components** — `BaseComponent` is for page components only (element components, `Header`, `Confirmation`, `LocalStorage` in `src/pageObject/components/`); `Interceptor` is a utility and does not extend it. Element components and `confirmation` are called from the page; `get()` only for `Interceptor` and `LocalStorage`. Details: [components](references/components.md).
-- **API** — every call starts with `get(APIClient)`; paths in `BasePath`, models by domain. Details: [api-client](references/api-client.md).
+- **API** — every call starts with `get(APIClient)`; paths in `BasePath`, models by domain; validate the response shape with `expect(model).toMatchSchema(Schema.X)`. Details: [api-client](references/api-client.md).
 - **Configuration** — never read `process.env` outside `src/config`. Details: [execution-and-config](references/execution-and-config.md).
 - **Comments** — no `//` or one-line `/** */` comments in code; a multi-line JSDoc block (one sentence, `@param` for every parameter, `@return` unless `void`) on every function and method in base classes, utilities, page objects, helpers, flows and components; no class-level comments on page objects and utility classes. Details: [code-conventions](references/code-conventions.md).
 

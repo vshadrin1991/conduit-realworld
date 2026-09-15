@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "comments.schema.json",
+  "title": "Comment list",
+  "type": "array",
+  "items": { "$ref": "comment.schema.json" }
+}

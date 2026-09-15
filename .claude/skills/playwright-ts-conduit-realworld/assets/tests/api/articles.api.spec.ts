@@ -2,6 +2,7 @@ import { APIClient } from '@/api/client/APIClient';
 import { BasePath } from '@/api/client/path/BasePath';
 import { getTestUser } from '@/api/client/session/auth/User';
 import type { ErrorResponse } from '@/api/responses/errors/ErrorResponse';
+import { Schema } from '@/api/schemas/Schema';
 import { expect, test } from '@/base/BaseTest';
 import { generateArticle } from '@/utilities/tests/TestDataGenerator';
 
@@ -10,6 +11,8 @@ test.describe('Articles API', () => {
     const [created] = await get(APIClient).api.articles.create();
 
     const article = await get(APIClient).post.articles.favorite(created.slug);
+
+    expect(article).toMatchSchema(Schema.ARTICLE);
 
     expect(article).toMatchObject({ slug: created.slug, favorited: true, favoritesCount: 1 });
   });

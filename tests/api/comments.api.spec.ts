@@ -1,5 +1,6 @@
 import {APIClient} from '@/api/client/APIClient';
 import {getTestUser} from '@/api/client/session/auth/User';
+import {Schema} from '@/api/schemas/Schema';
 import {expect, test} from '@/base/BaseTest';
 import {generateComment} from '@/utilities/tests/TestDataGenerator';
 
@@ -9,9 +10,11 @@ test.describe('Comments API', () => {
         const data = generateComment();
 
         const comment = await get(APIClient).post.comments.with(article.slug, data);
+        expect(comment).toMatchSchema(Schema.COMMENT);
         expect(comment).toMatchObject({body: data.body, author: {username: (await getTestUser()).username}});
 
         const comments = await get(APIClient).get.comments.list(article.slug);
+        expect(comments).toMatchSchema(Schema.COMMENTS);
         expect(comments.map((c) => c.id)).toContain(comment.id);
 
         await get(APIClient).delete.comments.by(article.slug, comment.id);

@@ -1,6 +1,7 @@
 import {APIClient} from '@/api/client/APIClient';
 import {BasePath} from '@/api/client/path/BasePath';
 import {getTestUser} from '@/api/client/session/auth/User';
+import {Schema} from '@/api/schemas/Schema';
 import type {ErrorResponse} from '@/api/responses/errors/ErrorResponse';
 import {expect, test} from '@/base/BaseTest';
 import {generateArticle} from '@/utilities/tests/TestDataGenerator';
@@ -13,6 +14,7 @@ test.describe('Articles API', () => {
         const article = await get(APIClient).post.articles.with(data);
         get(APIClient).api.articles.track(article.slug);
 
+        expect(article).toMatchSchema(Schema.ARTICLE);
         expect(article).toMatchObject({
             title: data.title,
             description: data.description,
@@ -29,6 +31,7 @@ test.describe('Articles API', () => {
 
         const article = await get(APIClient, {guest: true}).get.articles.bySlug(created.slug);
 
+        expect(article).toMatchSchema(Schema.ARTICLE);
         expect(article).toMatchObject({slug: created.slug, title: created.title, body: created.body});
     });
 
@@ -36,13 +39,14 @@ test.describe('Articles API', () => {
         const testUser = await getTestUser();
         const [created] = await get(APIClient).api.articles.create();
 
-        const {articles} = await get(APIClient, {guest: true}).get.articles.list({
+        const response = await get(APIClient, {guest: true}).get.articles.list({
             author: testUser.username,
             limit: 10,
         });
 
-        expect(articles.map((a) => a.slug)).toContain(created.slug);
-        expect(articles.every((a) => a.author.username === testUser.username)).toBe(true);
+        expect(response).toMatchSchema(Schema.ARTICLES);
+        expect(response.articles.map((a) => a.slug)).toContain(created.slug);
+        expect(response.articles.every((a) => a.author.username === testUser.username)).toBe(true);
     });
 
     test('updates an article', async ({get}) => {
@@ -52,6 +56,7 @@ test.describe('Articles API', () => {
         const article = await get(APIClient).put.articles.with(created.slug, changes);
         get(APIClient).api.articles.track(article.slug);
 
+        expect(article).toMatchSchema(Schema.ARTICLE);
         expect(article).toMatchObject(changes);
     });
 
@@ -77,8 +82,9 @@ test.describe('Articles API', () => {
             statusCode: 401,
         });
 
-        const {errors} = (await response.json()) as ErrorResponse;
-        expect(errors.body).toContain('You need to login first!');
+        const body = (await response.json()) as ErrorResponse;
+        expect(body).toMatchSchema(Schema.ERROR);
+        expect(body.errors.body).toContain('You need to login first!');
     });
 
     test('requires a title', async ({get}) => {
@@ -92,7 +98,8 @@ test.describe('Articles API', () => {
             statusCode: 422,
         });
 
-        const {errors} = (await response.json()) as ErrorResponse;
-        expect(errors.body).toContain('A title is required');
+        const body = (await response.json()) as ErrorResponse;
+        expect(body).toMatchSchema(Schema.ERROR);
+        expect(body.errors.body).toContain('A title is required');
     });
 });

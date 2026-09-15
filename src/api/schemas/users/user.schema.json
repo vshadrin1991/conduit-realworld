@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "user.schema.json",
+  "title": "User",
+  "type": "object",
+  "required": ["email", "username", "bio", "image", "token"],
+  "additionalProperties": false,
+  "properties": {
+    "email": { "type": "string", "format": "email" },
+    "username": { "type": "string", "minLength": 1 },
+    "bio": { "type": ["string", "null"] },
+    "image": { "type": ["string", "null"] },
+    "token": { "type": "string", "minLength": 1 }
+  }
+}

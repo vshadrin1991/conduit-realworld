@@ -67,6 +67,22 @@ this.users = new UsersPutAPI(request, token);
 
 Now `get(APIClient).put.users.with(changes)` works.
 
+## API response schema — `src/api/schemas/<domain>/<name>.schema.json`
+
+1. Write the schema as a JSON file next to the other schemas of the domain: `$schema` draft 2020-12, `$id` the file name, `title` the model name, `additionalProperties: false`, every field the API always returns in `required`, `format: date-time` for timestamps. Reuse a shared model with `{ "$ref": "profile.schema.json" }`.
+2. Register it in `src/api/schemas/Schema.ts`:
+
+```ts
+import tags from './tags/tags.schema.json';
+
+export const Schema = {
+  // ...
+  TAGS: tags,
+} as const;
+```
+
+3. Use it in the spec next to the value assertions: `expect(tags).toMatchSchema(Schema.TAGS);`. The schema describes what the endpoint helper returns — the whole response for `Schema.ARTICLES`, the array for `Schema.COMMENTS`.
+
 ## API flow — `src/api/client/api/<domain>/<Domain>API.ts`
 
 Example: `assets/src/api/client/api/comments/CommentsAPI.ts`.

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "articles.schema.json",
+  "title": "Articles response",
+  "type": "object",
+  "required": ["articles", "articlesCount"],
+  "additionalProperties": false,
+  "properties": {
+    "articles": { "type": "array", "items": { "$ref": "article.schema.json" } },
+    "articlesCount": { "type": "integer", "minimum": 0 }
+  }
+}

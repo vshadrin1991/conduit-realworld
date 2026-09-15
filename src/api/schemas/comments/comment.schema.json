@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "comment.schema.json",
+  "title": "Comment",
+  "type": "object",
+  "required": ["id", "body", "createdAt", "updatedAt", "author"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "integer", "minimum": 1 },
+    "body": { "type": "string" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "author": { "$ref": "profile.schema.json" }
+  }
+}

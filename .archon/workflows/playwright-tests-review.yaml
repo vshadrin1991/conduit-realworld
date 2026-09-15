@@ -91,4 +91,5 @@ nodes:
     command: playwright-review-report
     depends_on: [static_checks, allure, review_conventions, review_design]
     trigger_rule: all_done
+    skills: [playwright-ts-conduit-realworld, playwright-ts-test-results]
     allowed_tools: [Read, Write]

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import {
   test as base,
-  expect,
+  expect as baseExpect,
   type APIRequestContext,
   type Browser,
   type Page,
@@ -10,6 +10,7 @@ import {
 } from '@playwright/test';
 import { APIClient } from '@/api/client/APIClient';
 import type { RestClient, Token } from '@/api/client/RestClient';
+import { schemaMatchers } from '@/api/schemas/SchemaMatcher';
 import { getTestUser } from '@/api/client/session/auth/User';
 import { envConfig } from '@/config/env.config';
 import { createLogger, drainTestLogs } from '@/utilities/logger/Logger';
@@ -313,4 +314,4 @@ export const test = base.extend<BaseFixtures & BaseOptions, WorkerFixtures>({
 
 export const AUTH_QUOTA = '@auth-quota';
 
-export { expect };
+export const expect = baseExpect.extend(schemaMatchers);

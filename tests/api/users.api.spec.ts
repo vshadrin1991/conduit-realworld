@@ -3,6 +3,7 @@ import {BasePath} from '@/api/client/path/BasePath';
 import {getTestUser} from '@/api/client/session/auth/User';
 import type {ErrorResponse} from '@/api/responses/errors/ErrorResponse';
 import type {UserResponse} from '@/api/responses/users/User';
+import {Schema} from '@/api/schemas/Schema';
 import {AUTH_QUOTA, expect, test} from '@/base/BaseTest';
 import {generateEmail, generateUser} from '@/utilities/tests/TestDataGenerator';
 
@@ -13,6 +14,7 @@ test.describe('Users API', () => {
 
             const user = await get(APIClient, {guest: true}).post.users.with(newUser);
 
+            expect(user).toMatchSchema(Schema.USER);
             expect(user).toMatchObject({username: newUser.username, email: newUser.email});
             expect(user.token).toBeTruthy();
             expect(user).toHaveProperty('bio');
@@ -30,7 +32,9 @@ test.describe('Users API', () => {
                 statusCode: 422,
             });
 
-            expect(((await response.json()) as ErrorResponse).errors.body).toContain('A username is required');
+            const body = (await response.json()) as ErrorResponse;
+            expect(body).toMatchSchema(Schema.ERROR);
+            expect(body.errors.body).toContain('A username is required');
             const login = await get(APIClient, {guest: true}).response({
                 name: 'login after the rejected sign-up',
                 path: BasePath.USERS_LOGIN,
@@ -148,6 +152,7 @@ test.describe('Users API', () => {
 
             const user = await get(APIClient, {guest: true}).post.users.login(testUser);
 
+            expect(user).toMatchSchema(Schema.USER);
             expect(user).toMatchObject({email: testUser.email, username: testUser.username});
             expect(user.token).toBeTruthy();
         });
@@ -190,6 +195,7 @@ test.describe('Users API', () => {
             expect(signedIn).toMatchObject({email: newUser.email, username: newUser.username});
             expect(signedIn.token).toBeTruthy();
             const current = await get(APIClient, {token: signedIn.token}).get.users.current();
+            expect(current).toMatchSchema(Schema.USER);
             expect(current).toMatchObject({email: newUser.email, username: newUser.username});
         });
     });
@@ -229,6 +235,7 @@ test.describe('Users API', () => {
                 });
 
                 const {user} = (await response.json()) as UserResponse;
+                expect(user, scheme).toMatchSchema(Schema.USER);
                 expect(user, scheme).toMatchObject({email: testUser.email, username: testUser.username});
             }
         });

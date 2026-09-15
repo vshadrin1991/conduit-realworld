@@ -71,6 +71,7 @@ nodes:
   - id: static_checks
     model: '@implementer'
     depends_on: [implement]
+    skills: [playwright-ts-conduit-realworld]
     loop:
       prompt: |
         Run `npm run typecheck` and `npm run lint` and fix every error, following the

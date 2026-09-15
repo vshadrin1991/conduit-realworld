@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "profile.schema.json",
+  "title": "Profile",
+  "type": "object",
+  "required": ["username", "bio", "image", "following"],
+  "additionalProperties": false,
+  "properties": {
+    "username": { "type": "string", "minLength": 1 },
+    "bio": { "type": ["string", "null"] },
+    "image": { "type": ["string", "null"] },
+    "following": { "type": "boolean" },
+    "followersCount": { "type": "integer", "minimum": 0 }
+  }
+}
