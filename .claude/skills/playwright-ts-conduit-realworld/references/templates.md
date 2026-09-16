@@ -23,8 +23,8 @@ Example: `assets/tests/api/articles.api.spec.ts`.
 
 Examples: `assets/tests/ui/articles.ui.spec.ts` (hybrid), `assets/tests/ui/auth.ui.spec.ts` (mocked response, header menu, localStorage).
 
-- Signed-in browser: sign in through the form — `const testUser = await getTestUser()`, then `await get(LoginPage, Route.login).fillData('email', testUser.email).fillData('password', testUser.password).clickActionButton('login')` and `await get(HomePage).waitUntilPageLoaded()` (in `test.beforeEach` for the whole describe). Guest scenarios skip it.
-- Steps: `await get(Page, Route.x).fillData(...).clickActionButton(...)`; after navigation `await get(NextPage).waitUntilPageLoaded()`.
+- Signed-in browser: sign in through the form in `test.beforeEach` — worked example: `assets/tests/ui/articles.ui.spec.ts`. Guest scenarios skip it.
+- Steps: one awaited page call per line — `await get(Page, Route.x);` then `await get(Page).fillData(...);` — and after an action that navigates, `await get(NextPage).waitUntilPageLoaded()`.
 - Locators outside the named maps: call element components through the page — `get(HomePage).button.click(locator)`, `get(SettingsPage).input.enter(locator, text)`, `get(ArticlePage).text.getTexts(locator)`.
 - Mock only what the backend cannot produce on demand: `await get(Interceptor).mock(url, { status, json })` before the action; state the reason in the task or pull request (no code comment).
 - Tests of a file run one by one, each in its own new browser: log in and arrange in `beforeEach` (never `beforeAll`), with no dependency between tests.
@@ -36,7 +36,7 @@ Example: `assets/src/pageObject/pages/SettingsPage.ts`.
 1. Type unions for the groups the page has (`never` for the rest: `BasePage<never, ButtonName>`; checkboxes and radio buttons are the 3rd and 4th type parameters).
 2. `root` — a locator present only when the page is rendered.
 3. Named maps (`fields`, `errors`, `buttons`, `checkboxes`, `radioButtons`), public read-only locators, locator-returning methods for parametrised elements.
-4. Route in `../../../../src/pageObject/pagePath/Routes.ts`.
+4. Route in `src/pageObject/pagePath/Routes.ts`.
 5. JSDoc with `@param` / `@return` on every getter and method; no class-level comment — see [code-conventions](code-conventions.md#page-objects).
 
 ## Page component — `src/pageObject/components/<Name>.ts`

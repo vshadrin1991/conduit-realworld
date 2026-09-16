@@ -1,6 +1,6 @@
 ---
 name: playwright-ts-conduit-realworld
-description: Project conventions of this Conduit Playwright + TypeScript framework — the base rules that test implementation, locator self-healing, results triage and reviews follow — and testing strategies for writing, extending and refactoring UI and API tests (BaseTest fixtures with get(), BasePage page objects with element helpers, components, REST client with verb helpers and api flows, paths and request/response models, TestDataGenerator/TestDataStorage, auth caching, Allure, logger, rate limits). Use this skill whenever the user asks to add, write, automate, cover, fix or refactor a test, spec, scenario, page object, component, API endpoint or flow, fixture or test data in this repo — including requests like "cover article favoriting", "automate the settings page", "add a negative case", "write an API test for comments" or "why is my new test flaky", even if they do not mention Playwright.
+description: Project conventions and testing strategies of this Conduit Playwright + TypeScript framework — writing, extending and refactoring UI and API tests (BaseTest `get()` fixtures, BasePage page objects, components, REST client and api flows, test data, rate limits). Use this skill whenever the user asks to add, write, automate, cover, fix or refactor a test, spec, scenario, page object, component, API endpoint or flow, fixture or test data in this repo — including requests like "cover article favoriting", "automate the settings page", "add a negative case", "write an API test for comments" or "why is my new test flaky", even if they do not mention Playwright.
 ---
 
 # Playwright + TS project conventions (Conduit)
@@ -12,7 +12,7 @@ The framework mirrors the team's Java framework (`BaseTest.get`, `BasePage`, `pa
 
 **Task file:** when the work comes with a prepared task (`tasks/<KEY>/<KEY>.md`, created by the [playwright-ts-test-aqa-task](../playwright-ts-test-aqa-task/SKILL.md) skill), read it first — its cases, page descriptions (`pages/<name>.md`), requirements and open questions are the source of truth; resolve open questions with the user before implementing them.
 
-**Skills built on these conventions:** [playwright-ts-test-self-healing](../playwright-ts-test-self-healing/SKILL.md) repairs locators broken by UI changes, [playwright-ts-test-results](../playwright-ts-test-results/SKILL.md) triages runs, [playwright-ts-test-aqa-task](../playwright-ts-test-aqa-task/SKILL.md) and [playwright-ts-test-requirements](../playwright-ts-test-requirements/SKILL.md) prepare the work. They apply the rules of this skill; whenever they change code, these rules and the Definition of done below apply to that change.
+**Skills built on these conventions:** [playwright-ts-api-checklist](../playwright-ts-api-checklist/SKILL.md) turns an endpoint into a case list before code is written, [playwright-ts-test-self-healing](../playwright-ts-test-self-healing/SKILL.md) repairs locators broken by UI changes, [playwright-ts-test-results](../playwright-ts-test-results/SKILL.md) triages runs, [playwright-ts-test-aqa-task](../playwright-ts-test-aqa-task/SKILL.md) and [playwright-ts-test-requirements](../playwright-ts-test-requirements/SKILL.md) prepare the work. They apply the rules of this skill; whenever they change code, these rules and the Definition of done below apply to that change.
 
 ## Project map
 
@@ -85,11 +85,7 @@ const dialog = get(ArticlePage).confirmation.answerNext('accept');
 await get(ArticlePage).clickActionButton('deleteArticle');
 ```
 
-| Bad | Good |
-|---|---|
-| `const homePage = get(HomePage); await homePage.button.click(x)` | `await get(HomePage).button.click(x)` |
-| `get(Button).click(locator)` | `get(HomePage).button.click(locator)` |
-| `new Input(page).enter(locator, 'x')` | `get(SettingsPage).input.enter(locator, 'x')` |
+More Bad → Good pairs: [assets/README.md](assets/README.md#bad--good).
 
 Tests describe the flow step by step — pages have no multi-step business methods, so every user action is visible in the spec:
 
@@ -103,7 +99,7 @@ await get(ArticlePage).clickActionButton('postComment');
 await expect(get(ArticlePage).comment(text)).toBeVisible();
 ```
 
-Every page call is a separate `await` and is one named step (like the Java `FunctionalPage<P>`): `navigate`, `waitUntilPageLoaded`, `fillData`, `clickActionButton` and the `verify*` methods run on their own and are shown as a report step (`ArticlePage.fillData(comment)`) reported at the spec line that called them.
+Every page call is a separate `await` and is one named step: `navigate`, `waitUntilPageLoaded`, `fillData`, `clickActionButton` and the `verify*` methods run on their own and are shown as a report step (`ArticlePage.fillData(comment)`) reported at the spec line that called them.
 
 - Always `await` every page call — lint's `no-floating-promises` catches a missing one.
 - `get(PageClass, route)` returns a promise, so it is awaited on its own line: `await get(ArticlePage, Route.article(slug));`. Everything after it goes through `get(ArticlePage)` — the same cached instance, no local variable.
@@ -123,9 +119,9 @@ Structure each test as Arrange / Act / Assert separated by blank lines, one beha
 
 - **Rate limits** — ~100 requests / 15 min per IP and ~5 auth requests / hour: arrange and verify through the API, run the smallest scope, keep sign-in and registration tests few. Details: [execution-and-config](references/execution-and-config.md).
 - **Test data** — generate it with `TestDataGenerator`, create prerequisites with API flows, track anything created another way. Details: [test-data-and-auth](references/test-data-and-auth.md).
-- **Browser** — every UI test runs in its own new browser and starts as a guest. A test that needs a user signs in through the login form — `getTestUser()` credentials, then `get(LoginPage, Route.login).fillData('email', …).fillData('password', …).clickActionButton('login')` and `get(HomePage).waitUntilPageLoaded()` — in `beforeEach` or the test, never in `beforeAll`. Each sign-in spends the ~5 requests / hour auth quota, so keep such tests few. Details: [execution-and-config](references/execution-and-config.md), [test-data-and-auth](references/test-data-and-auth.md).
+- **Browser** — every UI test runs in its own new browser and starts as a guest. A test that needs a user signs in through the login form — `getTestUser()` credentials, then one awaited `LoginPage` step per line, ending with `await get(HomePage).waitUntilPageLoaded()` (worked example: `assets/tests/ui/articles.ui.spec.ts`) — in `beforeEach` or the test, never in `beforeAll`. Each sign-in spends the ~5 requests / hour auth quota, so keep such tests few. Details: [execution-and-config](references/execution-and-config.md), [test-data-and-auth](references/test-data-and-auth.md).
 - **Page objects** — locators only; priority role → placeholder/label/text → semantic CSS; no XPath. Details: [page-objects](references/page-objects.md).
-- **Components** — `BaseComponent` (`src/pageObject/components/`) is for page components only (element components, `Header`, `Confirmation`, `LocalStorage`); `Interceptor` is a utility and does not extend it. Element components and `confirmation` are called from the page; `get()` only for `Interceptor` and `LocalStorage`. Details: [components](references/components.md).
+- **Components** — `BaseComponent` (`src/pageObject/components/`) is for page components only (element components, `Header`, `Confirmation`, `Navigation`, `LocalStorage`); `Interceptor` is a utility and does not extend it. Element components and `confirmation` are called from the page; `get()` only for `Interceptor` and `LocalStorage`. Details: [components](references/components.md).
 - **API** — every call starts with `get(APIClient)`; paths in `BasePath`, models by domain; validate the response shape with `expect(model).toMatchSchema(Schema.X)`. Details: [api-client](references/api-client.md).
 - **Configuration** — never read `process.env` outside `src/config`. Details: [execution-and-config](references/execution-and-config.md).
 - **Comments** — no `//` or one-line `/** */` comments in code; a multi-line JSDoc block (one sentence, `@param` for every parameter, `@return` unless `void`) on every function and method in base classes, utilities, page objects, helpers, flows and components; no class-level comments on page objects and utility classes. Details: [code-conventions](references/code-conventions.md).
@@ -139,6 +135,7 @@ Open the reference that matches the work before writing code:
 | [page-objects.md](references/page-objects.md) | Adding or changing a page object, choosing locators, turning a saved page (Ctrl/Cmd+S) into a page description |
 | [components.md](references/components.md) | Using or adding page components (`BaseComponent`) or `Interceptor` |
 | [api-client.md](references/api-client.md) | API tests, new endpoints, paths, models, helpers or flows |
+| [playwright-ts-api-checklist](../playwright-ts-api-checklist/SKILL.md) | Deciding **what** to cover for an endpoint before writing the cases |
 | [test-data-and-auth.md](references/test-data-and-auth.md) | Generating and cleaning up data, the shared test user, signing in through the UI, auth quota |
 | [execution-and-config.md](references/execution-and-config.md) | Parallel workers and browsers, rate-limit budget, config variables, reports and logs |
 | [app-behaviour.md](references/app-behaviour.md) | Tests touching feeds, the editor, article deletion, slugs or users |
@@ -152,5 +149,6 @@ Open the reference that matches the work before writing code:
 2. The test passes when run alone, and again with `--repeat-each=2` if budget allows — this catches data coupling.
 3. It fails for the right reason: temporarily break the expectation and check the message is clear.
 4. Created data is registered for cleanup (API flows or `api.articles.track`).
-6. Every API call starts with `get(APIClient)`; element components (`input`, `button`, `checkbox`, `radioButton`, `text`) are called from the page.
-7. Triage any failure with the [playwright-ts-test-results](../playwright-ts-test-results/SKILL.md) skill before changing expectations; heal locators broken by a UI change with the [playwright-ts-test-self-healing](../playwright-ts-test-self-healing/SKILL.md) skill.
+5. Every API call starts with `get(APIClient)`; element components (`input`, `button`, `checkbox`, `radioButton`, `text`) are called from the page.
+6. Triage any failure with the [playwright-ts-test-results](../playwright-ts-test-results/SKILL.md) skill before changing expectations; heal locators broken by a UI change with the [playwright-ts-test-self-healing](../playwright-ts-test-self-healing/SKILL.md) skill.
+7. If the change alters a convention, the skills, templates and README say so too — otherwise the next agent follows the old rule.

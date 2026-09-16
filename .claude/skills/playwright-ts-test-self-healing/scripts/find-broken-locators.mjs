@@ -24,7 +24,7 @@ const MISSING_NAME = /has no (field|button|checkbox|radio button|error|element) 
 const RATE_LIMIT_LOG = /-> 429\b/;
 /** Report step title written by BasePage.enqueue: `ArticlePage.clickActionButton(postComment)`. */
 const PAGE_STEP = /^([A-Z]\w*)\.(\w+)\((.*)\)$/;
-/** Page-object section searched for the element used by each FunctionalPage method. */
+/** Page-object section searched for the element used by each BasePage step method. */
 const SECTION_BY_METHOD = {
   fillData: 'fields',
   verifyFieldData: 'fields',

@@ -49,6 +49,8 @@
 
 ## Pages and artifacts
 
+*UI and hybrid tasks only — remove this section for an API-only task.*
+
 | Page | Route | State | Saved file | Page object |
 |---|---|---|---|---|
 | <Settings> | `#/settings` | <logged in, empty form> | `pages/<name>.html` | <new `SettingsPage` / extend `ArticlePage`> |
@@ -68,9 +70,15 @@ Page description: `pages/<name>.md` · Root: `<locator>`
 
 ### API contract
 
+*API and hybrid tasks only — remove this section for a UI-only task.*
+
+Source: `api/<openapi.json>` <or HAR / examples / "no contract — see open questions">
+
 | Method | Path | Auth | Success | Errors | Notes |
 |---|---|---|---|---|---|
 | <POST> | `/api/<path>` | <token/guest> | <201> | <401, 422> | <payload notes> |
+
+**Error payload shape:** <`{ errors: { body: [string] } }` — source>
 
 ### Test data and users
 - <Shared test user / user created in the test / generated data>
@@ -81,13 +89,19 @@ Page description: `pages/<name>.md` · Root: `<locator>`
 
 ## Implementation plan
 
+Keep only the rows the chosen layer needs.
+
 | Change | File | New / Extend | Notes |
 |---|---|---|---|
-| UI spec | `tests/ui/<feature>.ui.spec.ts` | <New> | <cases TC-1, TC-2> |
-| Page object | `src/pageObject/pages/<Name>Page.ts` | <New> | <fields, buttons from extraction> |
-| Route | `../../../../src/pageObject/pagePath/Routes.ts` | <Extend> | `<Route.name>` |
+| API spec | `tests/api/<feature>.api.spec.ts` | <New> | <cases TC-1, TC-2> |
+| Path | `src/api/client/path/BasePath.ts` | <Extend> | `<PATH_NAME>` |
+| Request / response model | `src/api/request/<domain>/<Name>.ts` | <New> | <from the contract> |
 | Endpoint helper | `src/api/client/helpers/<domain>/<Domain><Verb>API.ts` | <New> | <path + models> |
 | API flow | `src/api/client/api/<domain>/<Domain>API.ts` | <New> | <arrange + cleanup> |
+| Response schema | `src/api/schemas/<domain>/<name>.schema.json` | <New> | `toMatchSchema(Schema.<X>)` |
+| UI spec | `tests/ui/<feature>.ui.spec.ts` | <New> | <cases TC-3, TC-4> |
+| Page object | `src/pageObject/pages/<Name>Page.ts` | <New> | <fields, buttons from the page description> |
+| Route | `src/pageObject/pagePath/Routes.ts` | <Extend> | `<Route.name>` |
 
 ### Subtasks
 - [ ] <Page object + route>
@@ -97,12 +111,8 @@ Page description: `pages/<name>.md` · Root: `<locator>`
 
 ## Definition of done
 
-- [ ] `npm run typecheck` and `npm run lint` pass
-- [ ] New tests pass when run alone (and with `--repeat-each=2` if the rate-limit budget allows)
-- [ ] Each test fails for the right reason when its expectation is broken
-- [ ] Created data is registered for cleanup
-- [ ] API calls start with `get(APIClient)`; element components are called from pages
-- [ ] Skills, templates and README are updated if a convention changed
+- [ ] Every item of the Definition of done in the `playwright-ts-conduit-realworld` skill
+- [ ] <Anything this task adds on top — a specific report, a doc update, a migration>
 
 ## Open questions
 
@@ -112,5 +122,6 @@ Page description: `pages/<name>.md` · Root: `<locator>`
 
 ## Attachments
 
+- `tasks/<KEY>/api/<name>.json` — <OpenAPI spec / HAR / request examples>
 - `tasks/<KEY>/pages/<name>.html` (+ `<name>_files/`) — <state>
 - `tasks/<KEY>/requirements/<file>`

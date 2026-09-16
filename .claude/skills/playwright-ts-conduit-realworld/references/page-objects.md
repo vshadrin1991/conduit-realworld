@@ -7,11 +7,11 @@ Read when adding or changing a page object, choosing a locator, or turning a pag
 ## Page objects
 
 - Extend `BasePage<FieldName, ButtonName, CheckboxName, RadioButtonName>`; define `protected readonly root` — a locator that exists only when the page is rendered (used by `navigate` / `waitUntilPageLoaded`).
-- Declare interactive elements by name: string-literal unions plus `protected readonly fields/buttons/checkboxes/radioButtons: Record<Name, Locator>`, and `errors: Partial<Record<FieldName, Locator>>` for fields that show validation errors. `BasePage` provides the actions on top of them — `fillData`, `clickActionButton`, `checkCheckbox`/`uncheckCheckbox`, `clickRadioButton`, `verifyFieldData`, `verifyCheckboxStatus`, `verifyRadioButtonStatus`, `verifyErrorField`, `verifyErrorFieldText`, `verifyElementExist` — with type-checked names and logging. Do not re-implement these per page.
+- Declare interactive elements by name: string-literal unions plus `protected readonly fields/buttons/checkboxes/radioButtons: Record<Name, Locator>`, and `errors: Partial<Record<FieldName, Locator>>` for fields that show validation errors. `BasePage` provides the actions on top of them — `fillData`, `clickActionButton`, `checkCheckbox`/`uncheckCheckbox`, `clickRadioButton`, `verifyFieldData`, `verifyCheckboxStatus`, `verifyRadioButtonStatus`, `verifyErrorField`, `verifyErrorFieldText`, `verifyElementExist`, `verifyFieldAttribute`, `verifyElementIsVisible` — with type-checked names and logging. Do not re-implement these per page.
 - Pages contain **locators only**: element maps, public `readonly` locators for read-only content and locator-returning methods for parametrised elements (`articlePreview(title)`, `articleLink(title)`). No methods that bundle steps (`login`, `publish`, `expectArticle`). The only accepted exception is a search helper with real logic (`HomePage.findArticleInFeed`); document why.
 - A new generic page action belongs in `BasePage` and must stay a single named step: `async name(args): Promise<void> { return this.step('name(args)', async () => { ... }); }`.
 - Page objects never make API calls or create test data.
-- Add new routes to `pageObject/pagePath/routes.ts` instead of hard-coding URLs.
+- Add new routes to `pageObject/pagePath/Routes.ts` instead of hard-coding URLs.
 - Example: `assets/src/pageObject/pages/SettingsPage.ts`.
 
 ## Locators (in priority order)

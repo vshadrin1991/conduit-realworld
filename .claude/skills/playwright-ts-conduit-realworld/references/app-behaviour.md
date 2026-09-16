@@ -14,4 +14,4 @@ Read when a test touches feeds, the editor, article deletion, slugs or users —
 - Article author actions (Edit Article, Delete Article) are rendered twice — in the banner and below the body; page objects use the banner copy (`.first()`).
 - Login and registration show server errors in one `.error-messages` block above the form (for example an unknown or invalid email).
 - Title update regenerates the slug; omitting `tagList` on update clears tags.
-- Unknown email login → 404; duplicate usernames are accepted; `PUT /api/user` with only `bio` → 500 (backend bug).
+- Unknown email login returns **404** "Email not found sign in first"; duplicate usernames are accepted on registration; `PUT /api/user` with only `bio` returns **500** "data and salt arguments required" (backend bug).

@@ -2,7 +2,7 @@
 
 Part of the [playwright-ts-conduit-realworld](../SKILL.md) skill. Paths like `assets/…` and `scripts/…` are relative to the skill folder.
 
-Read when using or adding page components — element components (`page.input`, `page.button`, `page.checkbox`, `page.radioButton`, `page.text`), native dialogs (`page.confirmation`), navigation (`page.navigation`), page fragments (`page.header`), `LocalStorage` — or the `Interceptor` utility.
+Read when using or adding page components — element components (`get(Page).input`, `.button`, `.checkbox`, `.radioButton`, `.text`), native dialogs (`.confirmation`), navigation (`.navigation`), page fragments (`.header`), `LocalStorage` — or the `Interceptor` utility.
 
 ## BaseComponent is for page components only
 
@@ -12,7 +12,7 @@ Read when using or adding page components — element components (`page.input`, 
 
 ## Page components
 
-- `src/pageObject/components/` mirrors the Java `pageElements`. **Element components** — `Input` (`enter`, `verifyValue`, `getInput`), `Button` (`click`), `Checkbox` (`check` / `uncheck` idempotent, `verifyStatus`), `RadioButton` (`click` idempotent, `verifyStatus`), `Text` (`getTexts`) — are fields of every page (`page.input`, `page.button`, `page.checkbox`, `page.radioButton`, `page.text`), and so is `Confirmation` (`page.confirmation` — native dialogs: `answerNext('accept' | 'dismiss')`). **Specs always call them as `get(PageClass).<component>.<action>()`** — never through `get(Component)` and never from a page kept in a local variable.
+- `src/pageObject/components/` mirrors the Java `pageElements`. **Element components** — `Input` (`enter`, `verifyValue`, `getInput`), `Button` (`click`), `Checkbox` (`check` / `uncheck` idempotent, `verifyStatus`), `RadioButton` (`click` idempotent, `verifyStatus`), `Text` (`getTexts`) — are fields of every page, and so is `Confirmation` (native dialogs: `answerNext('accept' | 'dismiss')`). **Specs always call them as `get(PageClass).<component>.<action>()`** — never through `get(Component)` and never from a page kept in a local variable.
 - `Navigation` (`to(route)` — opens `/#<route>`, skipped when the page is already there) has no element to act on but belongs to the page: it is `page.navigation`, and `BasePage.navigate` is the step that calls it and then waits for the page's `root`.
 - `LocalStorage` (`getItem`) has no element to act on and is obtained with `get(LocalStorage)`.
 - Components extend `BaseComponent`, take the locator as an argument of each call and log at `debug` level. Page fragments shared by pages (`Header`) are components used through composition (`page.header`). A new element component is added as a `readonly` field of `BasePage` (created in its constructor) so tests call it from the page; example: `assets/src/pageObject/components/Selector.ts`.

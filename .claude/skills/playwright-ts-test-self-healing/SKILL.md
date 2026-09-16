@@ -13,7 +13,7 @@ A heal is only as good as its evidence: every new locator must be backed by the 
 
 ## Base conventions
 
-Healing edits framework code, so it follows the project conventions skill [playwright-ts-conduit-realworld](../playwright-ts-conduit-realworld/SKILL.md). Read its `SKILL.md` before the first heal and open the reference for what the heal touches:
+Healing edits framework code, so it follows the project conventions skill [playwright-ts-conduit-realworld](../playwright-ts-conduit-realworld/SKILL.md). Open the reference for what the heal touches — the whole skill is rarely needed for a locator repair:
 
 | Healing touches | Conventions to apply |
 |---|---|

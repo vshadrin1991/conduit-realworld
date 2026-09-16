@@ -24,15 +24,15 @@ Every function, method, getter and constructor with parameters — public, prote
 - `@return` with the result whenever it is not `void`, including `undefined`/`null` cases; write `@return`, never `@returns`;
 - no rationale, history or conventions in the block — those go to the task, pull request or skill references.
 
-Chainable page actions return `current page instance`:
+Page actions are async and document what the promise means:
 
 ```ts
 /**
  * Opens a hash route unless already there, then waits for the page to render.
  * @param route - hash route to navigate to, e.g. `Route.article(slug)`
- * @return current page instance
+ * @return promise resolved when the action has finished
  */
-navigate(route: string): this {
+async navigate(route: string): Promise<void> {
 ```
 
 Utility functions and private helpers follow the same shape:

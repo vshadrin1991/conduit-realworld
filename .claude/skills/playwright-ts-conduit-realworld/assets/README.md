@@ -23,7 +23,7 @@ Complete files that show the framework conventions at full size. Paths mirror wh
 | `get(Text).getTexts(locator)` | `get(ArticlePage).text.getTexts(locator)` |
 | `const homePage = get(HomePage); await homePage.button.click(x)` | `await get(HomePage).button.click(x)` |
 | `await get(ArticlePage).expectLoaded()` | `await get(ArticlePage).waitUntilPageLoaded()` |
-| `get(EditorPage, Route.newArticle)` (no `await`) | `const editorPage = await get(EditorPage, Route.newArticle)` |
+| `get(EditorPage, Route.newArticle)` (no `await`) | `await get(EditorPage, Route.newArticle);` |
 | `await get(ArticlePage, route).fillData(...)` (chaining) | `await get(ArticlePage, route);` then `await get(ArticlePage).fillData(...)` |
 | Page method `publishArticle(data)` that fills and submits | Separate `fillData` / `clickActionButton` steps in the spec |
 | `page.waitForTimeout(2000)` | `await expect(locator).toBeVisible()` / `waitUntilPageLoaded()` |
