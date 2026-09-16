@@ -24,6 +24,7 @@ Use the `playwright-ts-test-results` skill. Do not edit project files.
 ## Output
 
 Return JSON with:
+
 - `verdict` — `PASSED`, `FAILED`, `ENV_BLOCKED` (all failures are environmental) or `NO_RESULTS`
 - `locator_failures` — `YES` when at least one failure is a locator broken by a UI change, otherwise `NO`
 - `summary` — totals and failures by category, at most 10 lines

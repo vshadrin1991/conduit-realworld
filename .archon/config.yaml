@@ -1,5 +1,6 @@
 # Archon config for the Conduit Playwright + TypeScript project.
-# The project is not a git remote checkout: run workflows with --no-worktree (see .archon/README.md).
+# Workflows run in an isolated git worktree; the first bash node links node_modules, .env and .auth from the main
+# checkout (.archon/scripts/workspace-setup.sh). See .archon/README.md.
 
 assistant: claude
 

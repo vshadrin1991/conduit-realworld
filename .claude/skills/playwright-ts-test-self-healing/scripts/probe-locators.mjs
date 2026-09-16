@@ -77,7 +77,13 @@ async function describeMatches(locator) {
   }
   const visibleCount = matches.filter((m) => m.visible).length;
   const verdict =
-    count === 0 ? 'NOT FOUND' : count > 1 ? `AMBIGUOUS (${count} matches, ${visibleCount} visible of first 5)` : visibleCount ? 'UNIQUE' : 'HIDDEN';
+    count === 0
+      ? 'NOT FOUND'
+      : count > 1
+        ? `AMBIGUOUS (${count} matches, ${visibleCount} visible of first 5)`
+        : visibleCount
+          ? 'UNIQUE'
+          : 'HIDDEN';
   return { count, verdict, matches };
 }
 
@@ -95,7 +101,8 @@ async function main() {
   try {
     if (opts.login) {
       const userFile = path.join(config.authDir, 'user.json');
-      if (!fs.existsSync(userFile)) throw new Error(`${userFile} not found: run any authenticated test once to cache the user`);
+      if (!fs.existsSync(userFile))
+        throw new Error(`${userFile} not found: run any authenticated test once to cache the user`);
       const user = JSON.parse(fs.readFileSync(userFile, 'utf-8'));
       const session = JSON.stringify({
         headers: { Authorization: `Token ${user.token}` },
@@ -115,13 +122,19 @@ async function main() {
     if (opts.waitFor) await resolveLocator(page, opts.waitFor).first().waitFor({ timeout: 15_000 });
     else await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {});
 
-    if (rateLimited) console.log(`> WARNING: ${rateLimited} response(s) with HTTP 429 — the page may be incomplete, results are unreliable.\n`);
+    if (rateLimited)
+      console.log(
+        `> WARNING: ${rateLimited} response(s) with HTTP 429 — the page may be incomplete, results are unreliable.\n`,
+      );
 
     for (const expression of opts.tries) {
       try {
         const { verdict, matches } = await describeMatches(resolveLocator(page, expression));
         console.log(`## ${verdict}: ${expression}`);
-        for (const m of matches) console.log(`  - <${m.tag}> ${m.visible ? 'visible' : 'hidden'} "${m.text}"${m.className ? ` .${m.className}` : ''}`);
+        for (const m of matches)
+          console.log(
+            `  - <${m.tag}> ${m.visible ? 'visible' : 'hidden'} "${m.text}"${m.className ? ` .${m.className}` : ''}`,
+          );
       } catch (error) {
         console.log(`## ERROR: ${expression}\n  ${String(error.message ?? error).split('\n')[0]}`);
       }
@@ -132,7 +145,8 @@ async function main() {
       const lines = (await scope.ariaSnapshot()).split('\n');
       console.log(`\n## ARIA snapshot${opts.scope ? ` of ${opts.scope}` : ''} (${lines.length} lines)\n`);
       console.log(lines.slice(0, opts.maxLines).join('\n'));
-      if (lines.length > opts.maxLines) console.log(`... ${lines.length - opts.maxLines} more lines (use --scope or --max-lines)`);
+      if (lines.length > opts.maxLines)
+        console.log(`... ${lines.length - opts.maxLines} more lines (use --scope or --max-lines)`);
     }
   } finally {
     await browser.close();

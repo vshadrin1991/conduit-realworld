@@ -93,6 +93,7 @@ Link every `pages/<name>.md` from the task's **Pages and artifacts** section and
 ### Block 4 — Requirements
 
 Ask for:
+
 - **What the feature must do:** user story or acceptance criteria, business rules, validation and error messages (**exact texts**).
 - **API contract:** only what block 3A did not already cover — rules the spec does not express (ordering of validation errors, idempotency, rate limits).
 - **Data and environment:** users and roles, test data, environments, feature flags, browsers or viewport.
@@ -119,14 +120,14 @@ Show a compact summary: cases (ID, title, layer, priority, confirmed/draft), the
 
 ## Common mistakes
 
-| Mistake | Instead |
-|---|---|
-| Writing the task after block 1 with guessed cases | Every block answered or skipped; drafts confirmed in block 5 |
-| All questions at once in one long message | One block at a time, short numbered questions |
-| Page saved as "HTML only" or before the SPA rendered | Re-save as **Webpage, Complete** after the content is visible |
-| One saved page for every state | One file per state the tests act on or assert |
-| Locators or messages taken from memory of the live site | Page descriptions generated from the saved pages and texts from the requirements |
-| Inventing expected results or error texts | Mark as open question or **Draft — confirm** |
-| Asking for saved pages on an API-only task (or for a spec on a UI-only task) | Block 1 fixes the layer; block 3 runs only the branch that layer needs |
-| Statuses, field names or error payloads written from memory of the API | Taken from the OpenAPI spec or the examples in `api/`; otherwise an open question |
-| HAR or examples copied in with real tokens and cookies | Test account, secrets stripped before the file is copied |
+| Mistake                                                                      | Instead                                                                           |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Writing the task after block 1 with guessed cases                            | Every block answered or skipped; drafts confirmed in block 5                      |
+| All questions at once in one long message                                    | One block at a time, short numbered questions                                     |
+| Page saved as "HTML only" or before the SPA rendered                         | Re-save as **Webpage, Complete** after the content is visible                     |
+| One saved page for every state                                               | One file per state the tests act on or assert                                     |
+| Locators or messages taken from memory of the live site                      | Page descriptions generated from the saved pages and texts from the requirements  |
+| Inventing expected results or error texts                                    | Mark as open question or **Draft — confirm**                                      |
+| Asking for saved pages on an API-only task (or for a spec on a UI-only task) | Block 1 fixes the layer; block 3 runs only the branch that layer needs            |
+| Statuses, field names or error payloads written from memory of the API       | Taken from the OpenAPI spec or the examples in `api/`; otherwise an open question |
+| HAR or examples copied in with real tokens and cookies                       | Test account, secrets stripped before the file is copied                          |

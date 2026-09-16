@@ -4,21 +4,21 @@ Five feature requirements reconstructed on 2026-09-14 from the running applicati
 https://conduit-realworld-example-app.fly.dev and its source code. They describe **how the product behaves today**,
 so they can be reviewed, confirmed and used as the baseline for test design and automation.
 
-| ID | Requirement | Area | Priority |
-|---|---|---|---|
-| [REQ-01](REQ-01-registration-and-sign-in.md) | User registration, sign-in and session | Authentication | High |
-| [REQ-02](REQ-02-home-feed-tags-and-pagination.md) | Home page feeds, tag filter and pagination | Discovery | High |
-| [REQ-03](REQ-03-article-create-edit-delete.md) | Creating, editing and deleting articles | Content | High |
-| [REQ-04](REQ-04-article-page-and-comments.md) | Article page and comments | Content | Medium |
-| [REQ-05](REQ-05-profiles-follow-favorites-settings.md) | Profiles, following, favorites and user settings | Social / account | Medium |
+| ID                                                     | Requirement                                      | Area             | Priority |
+| ------------------------------------------------------ | ------------------------------------------------ | ---------------- | -------- |
+| [REQ-01](REQ-01-registration-and-sign-in.md)           | User registration, sign-in and session           | Authentication   | High     |
+| [REQ-02](REQ-02-home-feed-tags-and-pagination.md)      | Home page feeds, tag filter and pagination       | Discovery        | High     |
+| [REQ-03](REQ-03-article-create-edit-delete.md)         | Creating, editing and deleting articles          | Content          | High     |
+| [REQ-04](REQ-04-article-page-and-comments.md)          | Article page and comments                        | Content          | Medium   |
+| [REQ-05](REQ-05-profiles-follow-favorites-settings.md) | Profiles, following, favorites and user settings | Social / account | Medium   |
 
 ## How the requirements were derived
 
-| Evidence tag | Meaning |
-|---|---|
-| `observed` | Seen on the live application as a guest on 2026-09-14 (pages, texts, redirects, public API responses) |
-| `code` | Read in the application source, [TonyMckes/conduit-realworld-example-app](https://github.com/TonyMckes/conduit-realworld-example-app) (`backend/controllers`, `backend/helper`, `backend/middleware`, default branch) |
-| `tests` | Verified by the passing automated tests of this repository (`tests/api`, `tests/ui`) or recorded in `.claude/skills/playwright-ts-conduit-realworld/references/app-behaviour.md` |
+| Evidence tag | Meaning                                                                                                                                                                                                               |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `observed`   | Seen on the live application as a guest on 2026-09-14 (pages, texts, redirects, public API responses)                                                                                                                 |
+| `code`       | Read in the application source, [TonyMckes/conduit-realworld-example-app](https://github.com/TonyMckes/conduit-realworld-example-app) (`backend/controllers`, `backend/helper`, `backend/middleware`, default branch) |
+| `tests`      | Verified by the passing automated tests of this repository (`tests/api`, `tests/ui`) or recorded in `.claude/skills/playwright-ts-conduit-realworld/references/app-behaviour.md`                                      |
 
 - No account was created and no sign-in was performed in the browser during the walkthrough (auth requests are rate limited to about 5 per hour per IP). Behaviour that needs a signed-in user is taken from `code` and `tests` evidence.
 - The deployed build may differ from the default branch of the source repository. Where the two disagree, the statement is listed under **Open questions** instead of being presented as a requirement.

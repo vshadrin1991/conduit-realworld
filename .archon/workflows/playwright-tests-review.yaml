@@ -1,29 +1,36 @@
 name: playwright-tests-review
-worktree:
-  enabled: false
 description: >-
   Review Playwright UI/API test code of the Conduit framework: typecheck and lint, framework conventions,
   test design, reliability and rate-limit cost. Read-only; writes review.md with a verdict to the run artifacts.
   Input: files or folders to review (empty = changed files from git and framework files changed in the last 2 days).
 
 nodes:
-  # Deterministic: what to review.
+  # Deterministic: prepare the workspace, then decide what to review. The workspace is a fresh worktree, so it has no
+  # uncommitted changes and every file carries the checkout timestamp: both scans read the main checkout instead.
   - id: scope
     bash: |
-      cd "${PROJECT_PATH:-$PWD}"
-      echo "Project: $PWD"
+      set -e
+      bash .archon/scripts/workspace-setup.sh
       echo "Requested scope: $ARGUMENTS"
-      if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        echo "Changed files (git status):"
-        git status --porcelain --untracked-files=all -- tests src .claude/skills playwright.config.ts
+      main="${PROJECT_PATH:-}"
+      if [ -z "$main" ]; then
+        common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || common=""
+        [ -n "$common" ] && main=$(dirname "$common")
       fi
+      [ -n "$main" ] || main="$PWD"
+      echo "Changed files in $main (git status):"
+      git -C "$main" status --porcelain --untracked-files=all -- tests src .claude/skills playwright.config.ts
       echo "Framework files changed in the last 2 days:"
-      find tests src -type f -name '*.ts' -mtime -2 | sort
+      (cd "$main" && find tests src -type f -name '*.ts' -mtime -2 | sort)
+      if [ "$main" != "$PWD" ]; then
+        echo "NOTE: this workspace is an isolated worktree at HEAD. Files listed above that are uncommitted in the main"
+        echo "checkout are NOT present here — review them by passing explicit paths, or commit them first."
+      fi
 
   # Deterministic: compiler and linter results are evidence for the report, so failures do not stop the run.
   - id: static_checks
+    depends_on: [scope]
     bash: |
-      cd "${PROJECT_PATH:-$PWD}"
       out=$(npm run --silent typecheck 2>&1); code=$?
       echo "typecheck exit code: $code"
       echo "$out" | tail -40
@@ -82,9 +89,10 @@ nodes:
             required: [severity, file, rule, problem, fix]
       required: [verdict, findings]
 
-  # Deterministic: the review runs no tests — copy the Allure results of the last test run to the run artifacts and serve them.
+  # Deterministic: the review runs no tests — copy the report folder of the last test run to the run artifacts and open it.
   - id: allure
-    bash: bash "${PROJECT_PATH:-$PWD}/.archon/scripts/allure-serve.sh"
+    depends_on: [scope]
+    bash: bash .archon/scripts/allure-serve.sh
 
   - id: report
     model: '@general'

@@ -1,6 +1,6 @@
 ---
 description: Implement new Playwright tests end to end — asks for the test type (api or ui), gathers the input that type needs, agrees the case list, then writes the code
-argument-hint: "<api|ui> [what to cover]"
+argument-hint: '<api|ui> [what to cover]'
 ---
 
 # New tests implementation

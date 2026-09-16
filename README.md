@@ -49,21 +49,24 @@ All specs extend one base test and get collaborators through `get` (like `BaseTe
 import { expect, test } from '@/base/BaseTest';
 
 test('author deletes an article', async ({ get }) => {
-  const [article] = await get(APIClient).api.articles.create();               // arrange via API
-  const testUser = await getTestUser();                                    // shared user
-  await get(LoginPage, Route.login);                                      // sign in through the UI
+  const [article] = await get(APIClient).api.articles.create(); // arrange via API
+  const testUser = await getTestUser(); // shared user
+  await get(LoginPage, Route.login); // sign in through the UI
   await get(LoginPage).fillData('email', testUser.email);
   await get(LoginPage).fillData('password', testUser.password);
   await get(LoginPage).clickActionButton('login');
   await get(HomePage).waitUntilPageLoaded();
 
-  await get(ArticlePage, Route.article(article.slug));                     // navigate + wait
+  await get(ArticlePage, Route.article(article.slug)); // navigate + wait
   const dialog = get(ArticlePage).confirmation.answerNext('accept');
-  await get(ArticlePage).clickActionButton('deleteArticle');               // one step per await
+  await get(ArticlePage).clickActionButton('deleteArticle'); // one step per await
 
   expect(await dialog).toBe('Want to delete the article?');
-  await get(APIClient, { guest: true }).response({                 // verify via API
-    path: BasePath.ARTICLE, pathData: [article.slug], statusCode: 404,
+  await get(APIClient, { guest: true }).response({
+    // verify via API
+    path: BasePath.ARTICLE,
+    pathData: [article.slug],
+    statusCode: 404,
   });
 });
 ```
@@ -79,21 +82,23 @@ Full conventions: [.claude/skills/playwright-ts-conduit-realworld/SKILL.md](.cla
 
 ## Running
 
-| Command | What |
-|---|---|
-| `npm test` | all projects |
-| `npm run test:api` / `npm run test:ui` | a single project |
-| `npm run test:headed` / `npm run test:debug` / `npm run test:ui-mode` | debugging |
-| `npm run typecheck` | TypeScript check |
-| `npm run lint` | ESLint (also flags page calls without `await`) |
+| Command                                                               | What                                           |
+| --------------------------------------------------------------------- | ---------------------------------------------- |
+| `npm test`                                                            | all projects                                   |
+| `npm run test:api` / `npm run test:ui`                                | a single project                               |
+| `npm run test:headed` / `npm run test:debug` / `npm run test:ui-mode` | debugging                                      |
+| `npm run typecheck`                                                   | TypeScript check                               |
+| `npm run lint`                                                        | ESLint (also flags page calls without `await`) |
 
 ## Environment limits
 
 The demo server rate-limits by IP:
+
 - about **100 requests per 15 minutes** for the whole site (pages, assets, API);
 - about **5 requests per hour** for `/api/users` and `/api/users/login`.
 
 The framework is built around this:
+
 - the test user and its token are cached in `.auth/`;
 - static assets are cached per worker;
 - data is arranged through the API;
@@ -105,26 +110,26 @@ A 429 is logged as a warning in the test's `logs` attachment. Avoid running the 
 
 Settings are typed configs in `src/config/`, overridable with environment variables or `.env` / `.env.<TEST_ENV>` files (precedence: real env vars → `.env.<TEST_ENV>` → `.env` → defaults). Every variable is listed in `.env.example`.
 
-| Config | Variables | Defaults |
-|---|---|---|
-| `env.config.ts` | `TEST_ENV`, `BASE_URL`, `CI`, `AUTOMATION_KEY` | `demo`, demo site URL, —, `pwauto` |
-| `auth.config.ts` | `TEST_USER_EMAIL` / `TEST_USER_PASSWORD`, `AUTH_DIR`, `AUTH_LOCK_STALE_MS` | registered user, `.auth`, `60000` |
-| `framework.config.ts` | `BROWSER`, `HEADLESS`, `SLOW_MO`, `VIEWPORT_WIDTH` / `VIEWPORT_HEIGHT`, `LOCALE`, `TIMEZONE` | `chromium`, `true`, `0`, `1280×720`, `en-US`, `UTC` |
-| | `WORKERS`, `RETRIES`, `FULLY_PARALLEL` (api), `UI_FULLY_PARALLEL` (ui: `false` = tests of a file one by one, files in parallel), `UI_NEW_BROWSER_PER_TEST` (ui: `true` = new browser for every test) | Playwright default / `2` on CI, `0` / `1` on CI, `true`, `false`, `true` |
-| | `TEST_TIMEOUT`, `EXPECT_TIMEOUT`, `ACTION_TIMEOUT`, `NAVIGATION_TIMEOUT` | `30000`, `10000`, `10000`, `30000` |
-| | `TRACE`, `VIDEO`, `SCREENSHOT`, `LOG_LEVEL` | `retain-on-failure`, `retain-on-failure`, `only-on-failure`, `info` |
-| `report.config.ts` | `REPORTS_DIR`, `HTML_REPORT_OPEN`, `ALLURE`, `JUNIT` | `reports`, `never`, `true`, `true` on CI |
+| Config                | Variables                                                                                                                                                                                            | Defaults                                                                 |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `env.config.ts`       | `TEST_ENV`, `BASE_URL`, `CI`, `AUTOMATION_KEY`                                                                                                                                                       | `demo`, demo site URL, —, `pwauto`                                       |
+| `auth.config.ts`      | `TEST_USER_EMAIL` / `TEST_USER_PASSWORD`, `AUTH_DIR`, `AUTH_LOCK_STALE_MS`                                                                                                                           | registered user, `.auth`, `60000`                                        |
+| `framework.config.ts` | `BROWSER`, `HEADLESS`, `SLOW_MO`, `VIEWPORT_WIDTH` / `VIEWPORT_HEIGHT`, `LOCALE`, `TIMEZONE`                                                                                                         | `chromium`, `true`, `0`, `1280×720`, `en-US`, `UTC`                      |
+|                       | `WORKERS`, `RETRIES`, `FULLY_PARALLEL` (api), `UI_FULLY_PARALLEL` (ui: `false` = tests of a file one by one, files in parallel), `UI_NEW_BROWSER_PER_TEST` (ui: `true` = new browser for every test) | Playwright default / `2` on CI, `0` / `1` on CI, `true`, `false`, `true` |
+|                       | `TEST_TIMEOUT`, `EXPECT_TIMEOUT`, `ACTION_TIMEOUT`, `NAVIGATION_TIMEOUT`                                                                                                                             | `30000`, `10000`, `10000`, `30000`                                       |
+|                       | `TRACE`, `VIDEO`, `SCREENSHOT`, `LOG_LEVEL`                                                                                                                                                          | `retain-on-failure`, `retain-on-failure`, `only-on-failure`, `info`      |
+| `report.config.ts`    | `REPORTS_DIR`, `HTML_REPORT_OPEN`, `ALLURE`, `JUNIT`                                                                                                                                                 | `reports`, `never`, `true`, `true` on CI                                 |
 
 Example: `HEADLESS=false SLOW_MO=300 npx playwright test tests/ui/auth.ui.spec.ts`.
 
 ## Reports
 
-| Command | Report |
-|---|---|
-| `npm run report` | Playwright HTML (`reports/html`) |
-| `npm run allure:generate` then `npm run allure:open` | Allure (`reports/allure-report`) |
-| `npm run results` | text summary with failure categories (`reports/results.json`) |
+| Command                                              | Report                                                        |
+| ---------------------------------------------------- | ------------------------------------------------------------- |
+| `npm run report`                                     | Playwright HTML (`reports/html`)                              |
+| `npm run allure:generate` then `npm run allure:open` | Allure (`reports/allure-report`)                              |
+| `npm run results`                                    | text summary with failure categories (`reports/results.json`) |
 
 Every `npm test` / `npm run test:*` script clears `reports/allure-results` first (`npm run clean:results`), so the Allure report shows only the last run — for example no API tests after `npm run test:ui`. Runs started with `npx playwright test` or from an IDE do not clear it; run `npm run clean:results` before them.
 
-Each test has a `logs` attachment with API calls, navigation and page actions; API calls are also report steps. Failed tests keep a trace, screenshot and video in `test-results/`.
+Each test has a `logs` attachment with API calls, navigation and page actions; API calls are also report steps. Failed tests keep a trace, screenshot and video in `reports/test-results/`.

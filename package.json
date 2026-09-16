@@ -8,6 +8,7 @@
   },
   "scripts": {
     "clean:results": "rm -rf reports/allure-results",
+    "clean:reports": "rm -rf reports",
     "pretest": "npm run --silent clean:results",
     "test": "playwright test",
     "pretest:api": "npm run --silent clean:results",

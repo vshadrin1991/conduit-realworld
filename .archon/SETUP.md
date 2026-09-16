@@ -6,11 +6,11 @@ For what the workflows do and which inputs they take, see [`README.md`](README.m
 
 ## Prerequisites
 
-| Requirement | Why | Check |
-|---|---|---|
-| Node.js ≥ 20.12 | Playwright, Allure and the workflow scripts | `node -v` |
-| Git repository | Archon only runs inside one | `git status` |
-| Archon CLI | Runs the workflows | `archon version` |
+| Requirement                | Why                                                                     | Check                |
+| -------------------------- | ----------------------------------------------------------------------- | -------------------- |
+| Node.js ≥ 20.12            | Playwright, Allure and the workflow scripts                             | `node -v`            |
+| Git repository             | Archon only runs inside one; every run gets its own worktree            | `git status`         |
+| Archon CLI                 | Runs the workflows                                                      | `archon version`     |
 | Claude Code CLI, signed in | Every AI node (`plan`, `implement`, `verify`, reviews) shells out to it | `claude auth status` |
 
 No Java is needed — Allure 3 is installed from npm with the other dependencies.
@@ -66,7 +66,7 @@ claude auth status
 ```yaml
 assistants:
   claude:
-    claudeBinaryPath: /opt/homebrew/bin/claude   # output of `which claude`
+    claudeBinaryPath: /opt/homebrew/bin/claude # output of `which claude`
 ```
 
 ## 4. Verify the setup
@@ -113,20 +113,26 @@ archon workflow runs --limit 5
 
 ## Things that break runs
 
-| Symptom | Cause | Fix |
-|---|---|---|
-| `Cannot find package '@playwright/test'` in the `inputs` node | The run used an isolated git worktree, which has no `node_modules` | Already fixed: all three workflows set `worktree:\n  enabled: false`, so they run in the live checkout. Do not pass `--no-worktree` any more — it is redundant. |
-| `Input error: --artifacts: --cwd not found` | `--detach` appends Archon's own `--cwd` and `--conversation-id` to the workflow message, and they land inside the previous option's value | Do not use `--detach` with `--r` / `--tc` / `--a`. Run in the foreground, or start the run from the console. |
-| Options `--r`, `--tc`, `--a` are dropped | The Archon CLI claimed them as its own | Put `--` before them, as in the commands above. |
-| `implement` skipped, `plan` returned `BLOCKED` | Open questions in the requirements blocked the plan | Answer them, or let the plan drop the blocked cases — `.archon/commands/playwright-plan-tests.md` now reports `BLOCKED` only when no case at all can be planned. |
-| The run stops at an AI node with an authentication error | The Claude Code session expired | `claude auth login` |
+| Symptom                                                         | Cause                                                                                                                                     | Fix                                                                                                                                                                |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Cannot find package '@playwright/test'` in the first bash node | The worktree has no `node_modules`, because a worktree checks out tracked files only                                                      | `.archon/scripts/workspace-setup.sh` links it from `PROJECT_PATH`. Check that `PROJECT_PATH` in `.archon/.env` is right and that `npm install` has been run there. |
+| `Input error: --artifacts: --cwd not found`                     | `--detach` appends Archon's own `--cwd` and `--conversation-id` to the workflow message, and they land inside the previous option's value | Do not use `--detach` with `--r` / `--tc` / `--a`. Run in the foreground, or start the run from the console.                                                       |
+| Options `--r`, `--tc`, `--a` are dropped                        | The Archon CLI claimed them as its own                                                                                                    | Put `--` before them, as in the commands above.                                                                                                                    |
+| `implement` skipped, `plan` returned `BLOCKED`                  | Open questions in the requirements blocked the plan                                                                                       | Answer them, or let the plan drop the blocked cases — `.archon/commands/playwright-plan-tests.md` now reports `BLOCKED` only when no case at all can be planned.   |
+| The run stops at an AI node with an authentication error        | The Claude Code session expired                                                                                                           | `claude auth login`                                                                                                                                                |
 
 ## Reports
 
-Playwright tests write Allure results to `reports/allure-results`. The implementation workflow's `allure` node builds the report; open it yourself:
+Playwright tests write to `reports/` (`allure-results`, `html`, `test-results` with traces, `results.json`). A workflow runs in a throwaway git worktree, so its `allure` node copies the whole folder to the run's artifacts — `~/.archon/workspaces/<owner>/<repo>/artifacts/runs/<run-id>/reports` — and serves the Allure report from that copy, opening it in the browser. The URL is in the node output.
+
+Reopen the report of an old run:
+
+```bash
+npx allure serve ~/.archon/workspaces/<owner>/<repo>/artifacts/runs/<run-id>/reports/allure-results
+```
+
+Outside a workflow, from the checkout:
 
 ```bash
 npm run allure:serve
 ```
-
-`allure serve` and `allure open` need a real terminal — started from a workflow node they exit immediately without serving anything, which is why the node only builds the report.

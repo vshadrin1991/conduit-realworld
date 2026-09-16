@@ -240,7 +240,10 @@ export abstract class BasePage<
    * @param exist - `true` the element must be visible, `false` hidden or absent
    * @return promise resolved when the action has finished
    */
-  async verifyElementExist(element: FieldName | ButtonName | CheckboxName | RadioButtonName, exist: boolean): Promise<void> {
+  async verifyElementExist(
+    element: FieldName | ButtonName | CheckboxName | RadioButtonName,
+    exist: boolean,
+  ): Promise<void> {
     return this.step(`verifyElementExist(${element}, ${exist})`, async () => {
       const all = { ...this.fields, ...this.buttons, ...this.checkboxes, ...this.radioButtons } as Partial<
         Record<FieldName | ButtonName | CheckboxName | RadioButtonName, Locator>

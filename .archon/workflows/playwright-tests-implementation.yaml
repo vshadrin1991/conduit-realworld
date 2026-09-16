@@ -1,6 +1,4 @@
 name: playwright-tests-implementation
-worktree:
-  enabled: false
 description: >-
   Implement Playwright UI/API tests in the Conduit framework from a prepared task file (tasks/<KEY>/<KEY>.md from
   the playwright-ts-test-aqa-task skill) or a description: page descriptions from saved pages, plan, implementation,
@@ -10,11 +8,11 @@ description: >-
   --artifacts|--a <folder|page.html> with pages saved from the browser.
 
 nodes:
-  # Deterministic: named inputs → inputs.json, text values saved to files, --artifacts pages → page descriptions.
+  # Deterministic: prepare the workspace, then named inputs → inputs.json, text values saved to files, --artifacts pages → page descriptions.
   - id: inputs
     bash: |
-      cd "${PROJECT_PATH:-$PWD}"
-      echo "Project: $PWD"
+      set -e
+      bash .archon/scripts/workspace-setup.sh
       mkdir -p "$ARTIFACTS_DIR"
       printf '%s' "$ARGUMENTS" > "$ARTIFACTS_DIR/arguments.txt"
       node .archon/scripts/implementation-inputs.mjs "$ARTIFACTS_DIR/arguments.txt" "$ARTIFACTS_DIR"
@@ -23,7 +21,6 @@ nodes:
   - id: page_descriptions
     depends_on: [inputs]
     bash: |
-      cd "${PROJECT_PATH:-$PWD}"
       found=0
       for dir in tasks/*/pages; do
         [ -d "$dir" ] || continue
@@ -79,7 +76,7 @@ nodes:
         Never disable lint rules, add `any` or `@ts-ignore`, or delete tests to get a clean run.
         When both commands pass, output: <promise>CHECKS_PASS</promise>
       until: CHECKS_PASS
-      until_bash: cd "${PROJECT_PATH:-$PWD}" && npm run --silent typecheck && npm run --silent lint
+      until_bash: npm run --silent typecheck && npm run --silent lint
       max_iterations: 3
 
   - id: verify
@@ -104,12 +101,12 @@ nodes:
             required: [test, category, evidence, action]
       required: [status, summary, failures]
 
-  # Deterministic: copy the Allure results of the verification run to the run artifacts and serve the report from there.
+  # Deterministic: copy the report folder of the verification run to the run artifacts and open the Allure report.
   - id: allure
     depends_on: [verify]
     trigger_rule: all_done
     when: "$plan.output.status == 'READY'"
-    bash: bash "${PROJECT_PATH:-$PWD}/.archon/scripts/allure-serve.sh"
+    bash: bash .archon/scripts/allure-serve.sh
 
   # Review what was implemented, even when verification failed or was blocked by the environment.
   - id: scope

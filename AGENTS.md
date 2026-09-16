@@ -4,7 +4,7 @@ Guidance for AI coding agents working in this repository.
 
 ## Project
 
-Playwright + TypeScript UI and API tests for [Conduit RealWorld](https://conduit-realworld-example-app.fly.dev/), a public demo app (React SPA with hash routes, REST API under `/api`) shared with other users. The framework deliberately mirrors the team's Java automation framework (`BaseTest.get`, `BasePage`, `pageElements`, `rest/nora`, `utilities/tests`); keep new code in that style.
+Playwright + TypeScript UI and API tests for [Conduit RealWorld](https://conduit-realworld-example-app.fly.dev/), a public demo app (React SPA with hash routes, REST API under `/api`) shared with other users. The framework deliberately mirrors the team's Java automation framework (`BaseTest.get`, `BasePage`, `pageElements`, REST client layer, `utilities/tests`); keep new code in that style.
 
 ## Detailed instructions
 

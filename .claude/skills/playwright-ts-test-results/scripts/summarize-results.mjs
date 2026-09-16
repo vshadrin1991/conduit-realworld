@@ -33,7 +33,10 @@ const CATEGORY_RULES = [
     id: 'environment:network',
     test: ({ msg }) => /ECONNREFUSED|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|net::ERR_|socket hang up/i.test(msg),
   },
-  { id: 'product:server-error', test: ({ msg }) => /-> 5\d\d\b|got 5\d\d\b|Received: 5\d\d\b|status code => 5\d\d\b/.test(msg) },
+  {
+    id: 'product:server-error',
+    test: ({ msg }) => /-> 5\d\d\b|got 5\d\d\b|Received: 5\d\d\b|status code => 5\d\d\b/.test(msg),
+  },
   {
     id: 'test-code',
     test: ({ msg }) => /TypeError|ReferenceError|SyntaxError|is not a function|Cannot read properties of/.test(msg),
@@ -76,7 +79,9 @@ function fromPlaywrightJson(report, root = '.') {
     const errors = [last.error, ...(last.errors ?? [])].filter(Boolean);
     const msg = stripAnsi([...new Set(errors.map((e) => e.message ?? ''))].join('\n'));
     const annotations = [...(test.annotations ?? []), ...results.flatMap((r) => r.annotations ?? [])];
-    const attachments = (last.attachments ?? []).filter((a) => a.path).map((a) => ({ name: a.name, path: rel(rebaseArtifactPath(a.path, root)) }));
+    const attachments = (last.attachments ?? [])
+      .filter((a) => a.path)
+      .map((a) => ({ name: a.name, path: rel(rebaseArtifactPath(a.path, root)) }));
     const logs = (last.attachments ?? [])
       .filter((a) => a.name === 'logs' && a.body)
       .map((a) => Buffer.from(a.body, 'base64').toString())
@@ -115,7 +120,8 @@ function fromAllureResults(dir) {
   for (const f of files) {
     const r = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf-8'));
     const prev = latest.get(r.historyId);
-    if (!prev || (r.stop ?? 0) > (prev.stop ?? 0)) latest.set(r.historyId, { ...r, attempts: (prev?.attempts ?? 0) + 1 });
+    if (!prev || (r.stop ?? 0) > (prev.stop ?? 0))
+      latest.set(r.historyId, { ...r, attempts: (prev?.attempts ?? 0) + 1 });
   }
   const label = (r, name) => r.labels?.find((l) => l.name === name)?.value;
   const tests = [...latest.values()].map((r) => {
@@ -125,7 +131,8 @@ function fromAllureResults(dir) {
       file: label(r, 'package') ?? r.fullName ?? '',
       title: r.name,
       tags: (r.labels ?? []).filter((l) => l.name === 'tag').map((l) => l.value),
-      outcome: status === 'passed' ? (r.attempts > 1 ? 'flaky' : 'expected') : status === 'skipped' ? 'skipped' : 'unexpected',
+      outcome:
+        status === 'passed' ? (r.attempts > 1 ? 'flaky' : 'expected') : status === 'skipped' ? 'skipped' : 'unexpected',
       status,
       retries: r.attempts - 1,
       duration: (r.stop ?? 0) - (r.start ?? 0),
@@ -144,7 +151,9 @@ function load(p) {
   try {
     resolved = resolveResultsInput(p, { allowAllure: true });
   } catch (error) {
-    console.error(`${error.message}. Run the tests first (npm test) or pass a report file, a folder or a .zip archive.`);
+    console.error(
+      `${error.message}. Run the tests first (npm test) or pass a report file, a folder or a .zip archive.`,
+    );
     process.exit(2);
   }
   if (resolved.unpackedFrom) console.error(`Unpacked ${resolved.unpackedFrom} → ${resolved.root}`);
@@ -203,8 +212,10 @@ function printMarkdown(s) {
     out.push(`| ${project} | ${r.expected} | ${r.unexpected} | ${r.flaky} | ${r.skipped} |`);
   }
   out.push('');
-  if (s.rateLimitedTests) out.push(`> ${s.rateLimitedTests} test(s) received HTTP 429 (rate limit) during the run.`, '');
-  if (s.globalErrors.length) out.push('## Global errors', ...s.globalErrors.map((e) => `- ${firstLines(e, 2).join(' ')}`), '');
+  if (s.rateLimitedTests)
+    out.push(`> ${s.rateLimitedTests} test(s) received HTTP 429 (rate limit) during the run.`, '');
+  if (s.globalErrors.length)
+    out.push('## Global errors', ...s.globalErrors.map((e) => `- ${firstLines(e, 2).join(' ')}`), '');
 
   if (s.failures.length) {
     out.push('## Failures by category', '');

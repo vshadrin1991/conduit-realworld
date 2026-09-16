@@ -4,7 +4,7 @@ Part of the [playwright-ts-conduit-realworld](../SKILL.md) skill. Paths like `as
 
 Read when writing API tests or adding endpoints, paths, models, helpers or flows.
 
-## API client (mirrors the Java `rest/nora` layer)
+## API client (mirrors the Java REST client layer)
 
 - **Core** — `RestClient.response(request)` sends `{ path: BasePath, pathData, params, body, method, statusCode, headers, name }`: resolves `{dataN}` placeholders, adds headers from `RestClientFactory` (`headers` overrides them for one call), logs, reports 429s, wraps the call in a report step and verifies `statusCode` (default 200, `0` = no check, array = any of).
 - **Endpoint helpers** — `APIClient` exposes `get`, `post`, `put`, `delete`, each grouping domain classes (`get(APIClient).get.articles`, `.post.comments`). A `<Domain><Verb>API` extends `RestClient` with one method per endpoint (`with` for create/update, `by` for single item, `list`, ...) that passes the success status and returns the model.

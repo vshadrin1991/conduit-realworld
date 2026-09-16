@@ -34,26 +34,49 @@ function parse(text) {
  * @return {{ evidence: 'COLLECTED' | 'PARTIAL' | 'NONE', evidenceNote: string }} coverage of the evidence
  */
 function coverage(evidence, preflight) {
-  if (evidence?.status === 'COLLECTED') return { evidence: 'COLLECTED', evidenceNote: 'The planned checks were observed in the browser.' };
+  if (evidence?.status === 'COLLECTED')
+    return { evidence: 'COLLECTED', evidenceNote: 'The planned checks were observed in the browser.' };
   if (evidence?.status === 'PARTIAL') {
-    return { evidence: 'PARTIAL', evidenceNote: `Some checks were not observed: ${evidence.summary ?? 'see evidence.md'}` };
+    return {
+      evidence: 'PARTIAL',
+      evidenceNote: `Some checks were not observed: ${evidence.summary ?? 'see evidence.md'}`,
+    };
   }
   if (evidence?.status === 'ENV_BLOCKED') {
-    return { evidence: 'NONE', evidenceNote: `The browser check was blocked by the environment: ${evidence.summary ?? 'see evidence.md'}` };
+    return {
+      evidence: 'NONE',
+      evidenceNote: `The browser check was blocked by the environment: ${evidence.summary ?? 'see evidence.md'}`,
+    };
   }
-  if (!preflight) return { evidence: 'NONE', evidenceNote: 'The environment check did not run, so nothing was observed in the browser.' };
+  if (!preflight)
+    return {
+      evidence: 'NONE',
+      evidenceNote: 'The environment check did not run, so nothing was observed in the browser.',
+    };
   if (preflight.site !== 'UP') {
-    return { evidence: 'NONE', evidenceNote: `The application ${preflight.base_url} was not reachable (HTTP ${preflight.http_status}), so nothing was observed in the browser.` };
+    return {
+      evidence: 'NONE',
+      evidenceNote: `The application ${preflight.base_url} was not reachable (HTTP ${preflight.http_status}), so nothing was observed in the browser.`,
+    };
   }
   if (preflight.chrome !== 'yes') {
-    return { evidence: 'NONE', evidenceNote: 'Google Chrome is not installed, so nothing was observed in the browser.' };
+    return {
+      evidence: 'NONE',
+      evidenceNote: 'Google Chrome is not installed, so nothing was observed in the browser.',
+    };
   }
-  return { evidence: 'NONE', evidenceNote: 'The browser check did not complete, so the requirements were reviewed without evidence from the application.' };
+  return {
+    evidence: 'NONE',
+    evidenceNote:
+      'The browser check did not complete, so the requirements were reviewed without evidence from the application.',
+  };
 }
 
 const inputsFile = path.join(process.env.ARTIFACTS_DIR ?? '.', 'inputs.json');
 if (!fs.existsSync(inputsFile)) {
-  console.log(JSON.stringify({ verdict: 'NO_INPUT', reasons: ['The requirements file was not resolved.'], outputDir: null }));
+  console.log(
+    JSON.stringify({ verdict: 'NO_INPUT', reasons: ['The requirements file was not resolved.'], outputDir: null }),
+  );
   process.exit(0);
 }
 const { outputDir } = JSON.parse(fs.readFileSync(inputsFile, 'utf-8'));
@@ -61,7 +84,10 @@ const [review, evidence, preflight] = process.argv.slice(2, 5).map(parse);
 const reasons = [];
 
 if (!review) reasons.push('The requirements review did not complete.');
-else if (review.status === 'BLOCKED') reasons.push(`The requirements review is blocked: ${review.blockers} blocker finding(s) make test design impossible.`);
+else if (review.status === 'BLOCKED')
+  reasons.push(
+    `The requirements review is blocked: ${review.blockers} blocker finding(s) make test design impossible.`,
+  );
 
 console.log(
   JSON.stringify({

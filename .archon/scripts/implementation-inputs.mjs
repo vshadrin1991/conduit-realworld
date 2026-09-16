@@ -79,7 +79,9 @@ function groupByOption(tokens) {
   const groups = { task: [], requirements: [], testCases: [], artifacts: [] };
   let current = groups.task;
   for (const token of tokens) {
-    const [flag, inline] = token.includes('=') ? [token.slice(0, token.indexOf('=')), token.slice(token.indexOf('=') + 1)] : [token];
+    const [flag, inline] = token.includes('=')
+      ? [token.slice(0, token.indexOf('=')), token.slice(token.indexOf('=') + 1)]
+      : [token];
     const key = OPTIONS[flag];
     if (!key) {
       current.push(token);
@@ -132,7 +134,11 @@ function extract(key, input) {
     execFileSync('node', [EXTRACT, input, '--out', out], { stdio: 'pipe' });
     return out;
   } catch (error) {
-    return `extraction failed (${String(error.stderr ?? error.message).trim().split('\n')[0]}) — read the source directly`;
+    return `extraction failed (${
+      String(error.stderr ?? error.message)
+        .trim()
+        .split('\n')[0]
+    }) — read the source directly`;
   }
 }
 
@@ -148,7 +154,10 @@ function resolveArtifacts(groups) {
     for (const word of words) {
       if (!fs.existsSync(word)) throw new Error(`--artifacts: ${word} not found`);
       const htmlFiles = fs.statSync(word).isDirectory()
-        ? fs.readdirSync(word).filter((name) => /\.html?$/i.test(name)).map((name) => path.join(word, name))
+        ? fs
+            .readdirSync(word)
+            .filter((name) => /\.html?$/i.test(name))
+            .map((name) => path.join(word, name))
         : [word];
       const saved = htmlFiles.filter((file) => /\.html?$/i.test(file));
       if (!saved.length) throw new Error(`--artifacts: no saved HTML pages in ${word}`);
@@ -176,7 +185,10 @@ function summary(inputs) {
   const documents = (sources) =>
     sources.length
       ? sources
-          .map((s) => `  - ${s.type === 'text' ? 'text, saved to' : s.type} \`${s.path}\`${s.extracted ? ` (extracted text: \`${s.extracted}\`)` : ''}`)
+          .map(
+            (s) =>
+              `  - ${s.type === 'text' ? 'text, saved to' : s.type} \`${s.path}\`${s.extracted ? ` (extracted text: \`${s.extracted}\`)` : ''}`,
+          )
           .join('\n')
       : '  - none';
   const pages = inputs.artifacts.length

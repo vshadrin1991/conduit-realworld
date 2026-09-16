@@ -12,6 +12,7 @@ export const reportConfig = {
   htmlDir: path.join(dir, 'html'),
   htmlOpen: readEnum('HTML_REPORT_OPEN', ['never', 'always', 'on-failure'] as const, 'never'),
   jsonFile: path.join(dir, 'results.json'),
+  outputDir: path.join(dir, 'test-results'),
   allure: readBoolean('ALLURE', true),
   allureResultsDir: path.join(dir, 'allure-results'),
   junit: readBoolean('JUNIT', envConfig.isCI),

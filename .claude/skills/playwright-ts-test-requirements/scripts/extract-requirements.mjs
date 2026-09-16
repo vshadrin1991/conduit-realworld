@@ -33,14 +33,22 @@ const decode = (s) =>
     .replace(/&apos;/g, "'")
     .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
     .replace(/&amp;/g, '&');
-const cell = (value) => String(value ?? '').replace(/\|/g, '\\|').replace(/\r?\n/g, '<br>').trim();
+const cell = (value) =>
+  String(value ?? '')
+    .replace(/\|/g, '\\|')
+    .replace(/\r?\n/g, '<br>')
+    .trim();
 
 function markdownTable(rows) {
   const width = Math.max(0, ...rows.map((r) => r.length));
   if (!rows.length || !width) return '_(empty)_';
   const pad = (r) => [...r, ...Array(width - r.length).fill('')].map(cell);
   const [header, ...body] = rows;
-  return [`| ${pad(header).join(' | ')} |`, `|${' --- |'.repeat(width)}`, ...body.map((r) => `| ${pad(r).join(' | ')} |`)].join('\n');
+  return [
+    `| ${pad(header).join(' | ')} |`,
+    `|${' --- |'.repeat(width)}`,
+    ...body.map((r) => `| ${pad(r).join(' | ')} |`),
+  ].join('\n');
 }
 
 /** RFC 4180-style parser: quoted fields, escaped quotes, separators and newlines inside quotes. */
@@ -74,7 +82,8 @@ function parseDelimited(text, separator) {
 }
 
 const unzipList = (file) => execFileSync('unzip', ['-Z1', file], { encoding: 'utf8' }).split('\n').filter(Boolean);
-const unzipRead = (file, entry) => execFileSync('unzip', ['-p', file, entry], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+const unzipRead = (file, entry) =>
+  execFileSync('unzip', ['-p', file, entry], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 
 function xlsxToMarkdown(file) {
   const entries = unzipList(file);
@@ -85,8 +94,13 @@ function xlsxToMarkdown(file) {
     : [];
   const workbook = unzipRead(file, 'xl/workbook.xml');
   const rels = unzipRead(file, 'xl/_rels/workbook.xml.rels');
-  const targets = Object.fromEntries([...rels.matchAll(/<Relationship[^>]*Id="([^"]+)"[^>]*Target="([^"]+)"/g)].map((m) => [m[1], m[2]]));
-  const sheets = [...workbook.matchAll(/<sheet[^>]*name="([^"]+)"[^>]*r:id="([^"]+)"/g)].map((m) => ({ name: decode(m[1]), target: targets[m[2]] }));
+  const targets = Object.fromEntries(
+    [...rels.matchAll(/<Relationship[^>]*Id="([^"]+)"[^>]*Target="([^"]+)"/g)].map((m) => [m[1], m[2]]),
+  );
+  const sheets = [...workbook.matchAll(/<sheet[^>]*name="([^"]+)"[^>]*r:id="([^"]+)"/g)].map((m) => ({
+    name: decode(m[1]),
+    target: targets[m[2]],
+  }));
 
   return sheets
     .map(({ name, target }) => {
@@ -99,7 +113,8 @@ function xlsxToMarkdown(file) {
           const index = [...ref].reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0) - 1;
           const type = attrs.match(/t="(\w+)"/)?.[1];
           let value = '';
-          if (type === 'inlineStr') value = [...(body ?? '').matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map((m) => m[1]).join('');
+          if (type === 'inlineStr')
+            value = [...(body ?? '').matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map((m) => m[1]).join('');
           else {
             const raw = (body ?? '').match(/<v>([\s\S]*?)<\/v>/)?.[1] ?? '';
             value = type === 's' ? (shared[Number(raw)] ?? '') : raw;
@@ -114,7 +129,10 @@ function xlsxToMarkdown(file) {
 }
 
 function textutilToText(file) {
-  return execFileSync('textutil', ['-convert', 'txt', '-stdout', file], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  return execFileSync('textutil', ['-convert', 'txt', '-stdout', file], {
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  });
 }
 
 function docxXmlToText(file) {
@@ -161,7 +179,8 @@ function main() {
         .map((e) => path.join(input, e.name))
         .sort()
     : [input];
-  const outDir = outOption ?? path.join(path.dirname(isDir ? path.resolve(input) : path.dirname(path.resolve(input))), 'extracted');
+  const outDir =
+    outOption ?? path.join(path.dirname(isDir ? path.resolve(input) : path.dirname(path.resolve(input))), 'extracted');
   fs.mkdirSync(outDir, { recursive: true });
 
   const converted = [];
@@ -182,7 +201,9 @@ function main() {
       const target = path.join(outDir, `${path.basename(file)}.md`);
       const header = `<!-- Extracted from ${rel(file)} (${result.how}) on ${new Date().toISOString().slice(0, 10)}. Edit the source, not this file. -->\n\n# ${path.basename(file)}\n\n`;
       fs.writeFileSync(target, `${header}${result.body.trim()}\n`);
-      converted.push(`${rel(file)} → ${rel(target)} (${result.how}, ${result.body.split(/\s+/).filter(Boolean).length} words)`);
+      converted.push(
+        `${rel(file)} → ${rel(target)} (${result.how}, ${result.body.split(/\s+/).filter(Boolean).length} words)`,
+      );
     } catch (error) {
       failed.push(`${rel(file)} — ${String(error.message ?? error).split('\n')[0]}`);
     }
@@ -190,7 +211,10 @@ function main() {
 
   console.log(`# Requirement sources: ${files.length} file(s)\n`);
   if (converted.length) console.log(`## Converted\n${converted.map((l) => `- ${l}`).join('\n')}\n`);
-  if (manual.length) console.log(`## Read directly with the Read tool\n${manual.map((f) => `- ${rel(f)}${path.extname(f).toLowerCase() === '.pdf' ? ' (use pages ranges for more than 10 pages)' : ''}`).join('\n')}\n`);
+  if (manual.length)
+    console.log(
+      `## Read directly with the Read tool\n${manual.map((f) => `- ${rel(f)}${path.extname(f).toLowerCase() === '.pdf' ? ' (use pages ranges for more than 10 pages)' : ''}`).join('\n')}\n`,
+    );
   if (failed.length) console.log(`## Not converted\n${failed.map((l) => `- ${l}`).join('\n')}\n`);
 }
 

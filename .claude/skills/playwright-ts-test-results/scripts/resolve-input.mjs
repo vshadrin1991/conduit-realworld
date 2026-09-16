@@ -65,7 +65,8 @@ function unpack(archive, destination) {
     execFileSync('unzip', ['-q', '-o', archive, '-d', destination], { stdio: 'pipe' });
   } catch (error) {
     // No unzip binary (Windows): bsdtar reads zip archives too.
-    if (error.code !== 'ENOENT') throw new Error(`Cannot unpack ${archive}: ${String(error.stderr ?? error.message).trim()}`);
+    if (error.code !== 'ENOENT')
+      throw new Error(`Cannot unpack ${archive}: ${String(error.stderr ?? error.message).trim()}`);
     execFileSync('tar', ['-xf', archive, '-C', destination], { stdio: 'pipe' });
   }
 }
@@ -101,7 +102,9 @@ function isPlaywrightReport(file) {
 /** The shallowest `results.json` wins; any other Playwright JSON report is the fallback. */
 function findPlaywrightReport(root) {
   const candidates = [...walk(root)]
-    .filter((e) => !e.dir && e.full.endsWith('.json') && !/-(result|container)\.json$|package(-lock)?\.json$/.test(e.full))
+    .filter(
+      (e) => !e.dir && e.full.endsWith('.json') && !/-(result|container)\.json$|package(-lock)?\.json$/.test(e.full),
+    )
     .map((e) => e.full)
     .sort((a, b) => a.split(path.sep).length - b.split(path.sep).length);
   const named = candidates.filter((file) => path.basename(file) === 'results.json');

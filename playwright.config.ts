@@ -46,6 +46,7 @@ if (reportConfig.artifacts) {
 
 export default defineConfig<BaseOptions>({
   testDir: './tests',
+  outputDir: reportConfig.outputDir,
   fullyParallel: frameworkConfig.fullyParallel,
   forbidOnly: envConfig.isCI,
   retries: frameworkConfig.retries,

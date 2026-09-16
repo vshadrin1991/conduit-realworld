@@ -26,10 +26,10 @@ Where the expected status or error text is not in a contract or the requirements
 
 Every row carries a **Status code**, because a status that is only implied is a check nobody wrote:
 
-| # | Check | Request | Status code | Response body | Priority | Notes |
-|---|---|---|---|---|---|---|
-| 1 | All fields valid | `POST /articles` full body | 201 | `toMatchSchema(Schema.ARTICLE)` | P1 | |
-| 2 | Required field missing | `POST /articles` no `title` | 422 | `errors.body` contains `<exact text>` | P1 | text: source |
+| #   | Check                  | Request                     | Status code | Response body                         | Priority | Notes        |
+| --- | ---------------------- | --------------------------- | ----------- | ------------------------------------- | -------- | ------------ |
+| 1   | All fields valid       | `POST /articles` full body  | 201         | `toMatchSchema(Schema.ARTICLE)`       | P1       |              |
+| 2   | Required field missing | `POST /articles` no `title` | 422         | `errors.body` contains `<exact text>` | P1       | text: source |
 
 `Response body` names the schema for success rows and the exact expected message for error rows. `<exact text>` stays a placeholder until the source is known.
 
@@ -42,57 +42,57 @@ Every row carries a **Status code**, because a status that is only implied is a 
 
 ## POST
 
-| Item | Note for this API |
-|---|---|
-| All fields filled with valid data | The happy path; assert the schema and that the response echoes the input |
-| Only required fields filled | Confirms optional fields are truly optional |
-| Not all required fields filled | One case per required field — this is what finds per-field validation gaps |
-| No field filled | `{ user: {} }` / `{ article: {} }` — checks the whole required set at once |
-| Empty JSON | `{}` — no resource wrapper at all; often a different code path from the case above |
+| Item                                | Note for this API                                                                            |
+| ----------------------------------- | -------------------------------------------------------------------------------------------- |
+| All fields filled with valid data   | The happy path; assert the schema and that the response echoes the input                     |
+| Only required fields filled         | Confirms optional fields are truly optional                                                  |
+| Not all required fields filled      | One case per required field — this is what finds per-field validation gaps                   |
+| No field filled                     | `{ user: {} }` / `{ article: {} }` — checks the whole required set at once                   |
+| Empty JSON                          | `{}` — no resource wrapper at all; often a different code path from the case above           |
 | Field validation, valid and invalid | Per field: type, format, boundaries, empty string, whitespace only, very long value, unicode |
-| Uniqueness | A second create with a value that must be unique (email, slug) |
-| Creation date | `createdAt` is set and plausible |
+| Uniqueness                          | A second create with a value that must be unique (email, slug)                               |
+| Creation date                       | `createdAt` is set and plausible                                                             |
 
 ## GET
 
-| Item | Note for this API |
-|---|---|
-| Empty list | On a shared server the resource is never empty — get an empty list through a filter that matches nothing (a generated `tag`), not by deleting data |
-| Populated list | Arrange via an API flow so the test owns its data |
-| Pagination — `limit` / `offset` | `ArticleQuery` carries `limit` and `offset`; assert page size, and that pages do not overlap |
-| Limit on the number of entries | Includes the server's own cap and its default page size |
-| Invalid parameter value | `limit=-1`, `limit=abc`, `offset=-1` — assert the documented status and the error body, not just "not 200" |
-| Sorting | Conduit's list has no sort parameter: assert the **default order** (newest first) instead |
-| Filtering | `tag`, `author`, `favorited` — a match, a non-match, and a combination |
-| Get by valid ID | Returns exactly the created entity |
-| Non-existent ID, valid format | A generated slug that was never created |
-| Invalid ID | Empty, wrong shape, path-breaking characters — `buildPath` encodes them, so this tests the server |
-| Deleted entity | Reading after delete — see DELETE |
+| Item                            | Note for this API                                                                                                                                  |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Empty list                      | On a shared server the resource is never empty — get an empty list through a filter that matches nothing (a generated `tag`), not by deleting data |
+| Populated list                  | Arrange via an API flow so the test owns its data                                                                                                  |
+| Pagination — `limit` / `offset` | `ArticleQuery` carries `limit` and `offset`; assert page size, and that pages do not overlap                                                       |
+| Limit on the number of entries  | Includes the server's own cap and its default page size                                                                                            |
+| Invalid parameter value         | `limit=-1`, `limit=abc`, `offset=-1` — assert the documented status and the error body, not just "not 200"                                         |
+| Sorting                         | Conduit's list has no sort parameter: assert the **default order** (newest first) instead                                                          |
+| Filtering                       | `tag`, `author`, `favorited` — a match, a non-match, and a combination                                                                             |
+| Get by valid ID                 | Returns exactly the created entity                                                                                                                 |
+| Non-existent ID, valid format   | A generated slug that was never created                                                                                                            |
+| Invalid ID                      | Empty, wrong shape, path-breaking characters — `buildPath` encodes them, so this tests the server                                                  |
+| Deleted entity                  | Reading after delete — see DELETE                                                                                                                  |
 
 ## PUT / PATCH
 
 Conduit has no `PATCH`: `PUT /articles/{slug}` accepts a partial body, so partial update is tested through `PUT`.
 
-| Item | Note for this API |
-|---|---|
-| Update with valid data | Assert the schema, the changed fields, and that untouched fields kept their values |
-| Partial update | Only one field in the body — the rest must not be reset |
-| Non-existent ID | Valid format, never created |
-| Invalid ID | As in GET |
-| Field validation | The same per-field matrix as POST |
+| Item                          | Note for this API                                                                               |
+| ----------------------------- | ----------------------------------------------------------------------------------------------- |
+| Update with valid data        | Assert the schema, the changed fields, and that untouched fields kept their values              |
+| Partial update                | Only one field in the body — the rest must not be reset                                         |
+| Non-existent ID               | Valid format, never created                                                                     |
+| Invalid ID                    | As in GET                                                                                       |
+| Field validation              | The same per-field matrix as POST                                                               |
 | Update changes derived fields | A slug derived from the title changes when the title changes — and the old slug stops resolving |
-| No-op update | Sending the current values again |
+| No-op update                  | Sending the current values again                                                                |
 
 ## DELETE
 
-| Item | Note for this API |
-|---|---|
-| Delete an existing object | Then confirm it is gone with a GET — the delete status alone proves little |
+| Item                             | Note for this API                                                                                           |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Delete an existing object        | Then confirm it is gone with a GET — the delete status alone proves little                                  |
 | Delete an already deleted object | Second call; `ArticlesDeleteAPI` accepts `[200, 404]`, so a case that pins the real status is worth writing |
-| Non-existent ID | Valid format, never created |
-| Invalid ID | As in GET |
-| Re-create after delete | Matters where a field is unique: does the freed slug/email become reusable |
-| Cascade | Deleting a parent — what happens to its comments and favorites |
+| Non-existent ID                  | Valid format, never created                                                                                 |
+| Invalid ID                       | As in GET                                                                                                   |
+| Re-create after delete           | Matters where a field is unique: does the freed slug/email become reusable                                  |
+| Cascade                          | Deleting a parent — what happens to its comments and favorites                                              |
 
 ## Cross-cutting — every operation
 
@@ -132,13 +132,13 @@ A full walk of this checklist generates far more cases than the environment can 
 
 ## Common mistakes
 
-| Mistake | Instead |
-|---|---|
+| Mistake                                                            | Instead                                                                                              |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
 | Copying the whole checklist into the task as if every item applies | One decision per item: covered, already covered (name the test), or not applicable (name the reason) |
-| A row without a status code | Every row carries the expected status — including the success rows |
-| Asserting only the status on a negative case | Assert the error payload shape and the exact message too |
-| Inventing a status or an error text the contract does not state | An open question in the task |
-| "Empty list" tested by deleting other tests' data | An empty list through a filter that matches nothing |
-| Delete proved by its own status code | Confirm with a follow-up GET |
-| Only the owner's token exercised | Guest and another user's token as well |
-| One test per validated field, on a rate-limited server | One table-driven test, unless error ordering is the requirement |
+| A row without a status code                                        | Every row carries the expected status — including the success rows                                   |
+| Asserting only the status on a negative case                       | Assert the error payload shape and the exact message too                                             |
+| Inventing a status or an error text the contract does not state    | An open question in the task                                                                         |
+| "Empty list" tested by deleting other tests' data                  | An empty list through a filter that matches nothing                                                  |
+| Delete proved by its own status code                               | Confirm with a follow-up GET                                                                         |
+| Only the owner's token exercised                                   | Guest and another user's token as well                                                               |
+| One test per validated field, on a rate-limited server             | One table-driven test, unless error ordering is the requirement                                      |

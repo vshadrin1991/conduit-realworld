@@ -1,6 +1,14 @@
 {
   "playwright": {
     "command": "npx",
-    "args": ["-y", "@playwright/mcp@0.0.81", "--browser", "chrome", "--isolated", "--output-dir", "reports/requirements-mcp"]
+    "args": [
+      "-y",
+      "@playwright/mcp@0.0.81",
+      "--browser",
+      "chrome",
+      "--isolated",
+      "--output-dir",
+      "reports/requirements-mcp"
+    ]
   }
 }

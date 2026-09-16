@@ -24,4 +24,5 @@ Read when using or adding page components — element components (`get(Page).inp
 - `get(Interceptor).mock(url, { status, json })` replaces server responses. BaseTest starts the capture when every test starts — `network()` (browser calls under `/api/`: method, url, status, duration, bodies with passwords and tokens masked) and `console()` (console messages and uncaught page errors) — and attaches it to a failed test as the `interceptor` attachment and the `network` / `console` keys of `reports/artifacts.json`.
 
   Modes: `INTERCEPTOR_NETWORK=off|failed|all` (default `failed`), `INTERCEPTOR_CONSOLE=off|errors|all` (default `errors`: errors and warnings), `INTERCEPTOR_BODY_MAX`.
+
 - Never log passwords or tokens (`fillData` and `Input.enter` mask password values).

@@ -25,7 +25,7 @@ The run is blocked: the requirements review did not finish, or it found blocker 
 2. **Blocking findings** — every blocker finding of `$ARTIFACTS_DIR/requirements-review.md`: the quoted requirement text, why test design cannot continue, and the question or decision needed from the author.
 3. **What the application shows** — when `$ARTIFACTS_DIR/evidence.md` exists: only the rows that help answer those blockers.
 4. **Environment** — the **Environment** result and any Chrome, MCP or rate-limit problem, plus steps that did not run.
-5. **Next steps** — what to answer or fix, then: `archon workflow run playwright-requirements-testing --no-worktree -- --r <file>`.
+5. **Next steps** — what to answer or fix, then: `archon workflow run playwright-requirements-testing -- --r <file>`.
 
 Do not write test cases. Leave `requirements-testing-result.md` and `test-cases.md` from an earlier run untouched, and say in the report that they are older than these requirements. Do not edit other project files.
 

@@ -59,13 +59,16 @@ const API_STEP = /^API :: (\w+) :: (.+)$/;
 function* walkSuites(suites, titles = []) {
   for (const suite of suites ?? []) {
     const suiteTitles = suite.title && !suite.file?.endsWith(suite.title) ? [...titles, suite.title] : titles;
-    for (const spec of suite.specs ?? []) for (const test of spec.tests ?? []) yield { spec, test, titles: suiteTitles };
+    for (const spec of suite.specs ?? [])
+      for (const test of spec.tests ?? []) yield { spec, test, titles: suiteTitles };
     yield* walkSuites(suite.suites, suiteTitles);
   }
 }
 
 const messageOf = (result) =>
-  stripAnsi([...new Set([result.error, ...(result.errors ?? [])].filter(Boolean).map((e) => e.message ?? ''))].join('\n'));
+  stripAnsi(
+    [...new Set([result.error, ...(result.errors ?? [])].filter(Boolean).map((e) => e.message ?? ''))].join('\n'),
+  );
 
 const logsOf = (result) =>
   (result.attachments ?? [])
@@ -100,14 +103,21 @@ function classify({ outcome, result, results, message, logs }) {
   if (outcome === 'flaky') add('flaky', 90, 'failed first and passed on retry');
   // A 429 or network error explains the missing element or timeout that follows it, so those are not extra evidence.
   const environment = RATE_LIMIT.test(message) || RATE_LIMIT_LOG.test(logs) || NETWORK.test(message);
-  if (RATE_LIMIT.test(message) || RATE_LIMIT_LOG.test(logs)) add('flaky', 85, 'the shared demo server answered HTTP 429 (rate limit)');
+  if (RATE_LIMIT.test(message) || RATE_LIMIT_LOG.test(logs))
+    add('flaky', 85, 'the shared demo server answered HTTP 429 (rate limit)');
   if (NETWORK.test(message)) add('flaky', 75, 'network error while talking to the server');
   if (snapshotIsBlank(result)) add('flaky', 40, 'the page did not render (blank page snapshot)');
-  if (results.filter((r) => r.status !== 'passed').map(messageOf).filter((m, i, all) => all.indexOf(m) === i).length > 1) {
+  if (
+    results
+      .filter((r) => r.status !== 'passed')
+      .map(messageOf)
+      .filter((m, i, all) => all.indexOf(m) === i).length > 1
+  ) {
     add('flaky', 30, 'retries failed with different errors');
   }
 
-  if (MISSING_NAME.test(message)) add('automation', 95, 'the page object does not declare the element used by the test');
+  if (MISSING_NAME.test(message))
+    add('automation', 95, 'the page object does not declare the element used by the test');
   else if (TEST_CODE.test(message)) add('automation', 85, 'script error in the test or framework code');
 
   const apiStatus = message.match(API_STATUS);
@@ -137,7 +147,8 @@ function classify({ outcome, result, results, message, logs }) {
     add('automation', 35, 'the expected value in the test may be outdated');
     add('flaky', 10, 'data created by parallel tests may interfere');
   }
-  if (KNOWN_PRODUCT_BEHAVIOUR.test(message)) add('automation', 50, 'known demo-app behaviour that tests should not treat as a new defect');
+  if (KNOWN_PRODUCT_BEHAVIOUR.test(message))
+    add('automation', 50, 'known demo-app behaviour that tests should not treat as a new defect');
 
   const total = score.defect + score.automation + score.flaky;
   const percent = { defect: 0, automation: 0, flaky: 0 };
@@ -179,7 +190,8 @@ const CLASS_PAGES = {
   ProfilePage: 'Profile page',
 };
 const pageName = (className) => CLASS_PAGES[className] ?? `${label(className.replace(/Page$/, ''))} page`;
-const joinList = (items) => (items.length > 1 ? `${items.slice(0, -1).join(', ')} and ${items.at(-1)}` : (items[0] ?? ''));
+const joinList = (items) =>
+  items.length > 1 ? `${items.slice(0, -1).join(', ')} and ${items.at(-1)}` : (items[0] ?? '');
 const quotedLabels = (names) => joinList(names.map((name) => `"${label(name)}"`));
 
 /** Hash routes of the app: the page a user opens and the page object that shows it. */
@@ -235,9 +247,24 @@ const ROLE_NOUNS = {
   listitem: 'list item',
   dialog: 'dialog',
 };
-const ROLE_AREAS = { navigation: 'in the header', banner: 'in the header', main: 'in the main area', form: 'in the form' };
-const TAG_NOUNS = { h1: 'heading', h2: 'heading', li: 'item', a: 'link', button: 'button', input: 'field', textarea: 'field', img: 'image' };
-const LOCATOR_CALL = /(getByRole|getByPlaceholder|getByLabel|getByText|getByTestId|locator)\(((?:[^()'"`]|'[^']*'|"[^"]*"|`[^`]*`|\([^()]*\))*)\)/g;
+const ROLE_AREAS = {
+  navigation: 'in the header',
+  banner: 'in the header',
+  main: 'in the main area',
+  form: 'in the form',
+};
+const TAG_NOUNS = {
+  h1: 'heading',
+  h2: 'heading',
+  li: 'item',
+  a: 'link',
+  button: 'button',
+  input: 'field',
+  textarea: 'field',
+  img: 'image',
+};
+const LOCATOR_CALL =
+  /(getByRole|getByPlaceholder|getByLabel|getByText|getByTestId|locator)\(((?:[^()'"`]|'[^']*'|"[^"]*"|`[^`]*`|\([^()]*\))*)\)/g;
 
 /** Splits an argument list at top-level commas; commas inside quotes, brackets and braces stay in their argument. */
 function splitArgs(raw = '') {
@@ -271,7 +298,10 @@ function describeLocatorCall(kind, args) {
   const value = first.replace(/^['"`]|['"`]$/g, '');
   const name =
     options.match(/name:\s*(['"`])(.*?)\1/)?.[2] ??
-    options.match(/name:\s*\/(.*?)\/\w*/)?.[1]?.replace(/[\\^$()]/g, '').split('|')[0];
+    options
+      .match(/name:\s*\/(.*?)\/\w*/)?.[1]
+      ?.replace(/[\\^$()]/g, '')
+      .split('|')[0];
   switch (kind) {
     case 'getByRole':
       if (ROLE_AREAS[value] && !name) return { area: ROLE_AREAS[value] };
@@ -299,9 +329,15 @@ function describeLocatorCall(kind, args) {
 function describeElements(locators) {
   const targets = locators.map((locator) => {
     const calls = [...String(locator).matchAll(LOCATOR_CALL)].map(([, kind, args]) => describeLocatorCall(kind, args));
-    const index = calls.findLastIndex((call) => call.noun && !(call.css && calls.slice(calls.indexOf(call) + 1).some((c) => c.noun)));
+    const index = calls.findLastIndex(
+      (call) => call.noun && !(call.css && calls.slice(calls.indexOf(call) + 1).some((c) => c.noun)),
+    );
     const target = calls[index] ?? {};
-    const area = calls.slice(0, Math.max(index, 0)).map((call) => call.area).filter(Boolean).at(-1);
+    const area = calls
+      .slice(0, Math.max(index, 0))
+      .map((call) => call.area)
+      .filter(Boolean)
+      .at(-1);
     return { ...target, area };
   });
   if (!targets.length || targets.every((target) => !target.noun)) return 'the expected element';
@@ -311,7 +347,10 @@ function describeElements(locators) {
     return `the ${joinList(targets.map((target) => `"${target.name}"`))} ${first.noun}s${first.area ? ` ${first.area}` : ''}`;
   }
   return joinList(
-    targets.map((target) => `the ${target.name ? `"${target.name}" ` : ''}${target.noun ?? 'element'}${target.area ? ` ${target.area}` : ''}`),
+    targets.map(
+      (target) =>
+        `the ${target.name ? `"${target.name}" ` : ''}${target.noun ?? 'element'}${target.area ? ` ${target.area}` : ''}`,
+    ),
   );
 }
 
@@ -340,23 +379,41 @@ function describeStep(title) {
       const route = ROUTE_PAGES.find(([pattern]) => pattern.test(rawArgs));
       const target = route?.[1] ?? page;
       const redirected = route && route[2] !== className;
-      return { action: `Open the ${target}`, expected: redirected ? `the ${page} is shown instead` : `the ${target} opens` };
+      return {
+        action: `Open the ${target}`,
+        expected: redirected ? `the ${page} is shown instead` : `the ${target} opens`,
+      };
     }
     case 'waitUntilPageLoaded':
     case 'expectLoaded':
       return { action: `Wait for the ${page} to open`, expected: `the ${page} opens` };
     case 'fillData': {
       const value = /password/i.test(name) ? 'a password' : /email/i.test(name) ? 'an email address' : 'a value';
-      return { action: `On the ${page}, enter ${value} into ${field}`, expected: `${field} is available and accepts the value` };
+      return {
+        action: `On the ${page}, enter ${value} into ${field}`,
+        expected: `${field} is available and accepts the value`,
+      };
     }
     case 'clickActionButton':
-      return { action: `On the ${page}, click "${label(name)}"`, expected: `"${label(name)}" is available and can be clicked` };
+      return {
+        action: `On the ${page}, click "${label(name)}"`,
+        expected: `"${label(name)}" is available and can be clicked`,
+      };
     case 'checkCheckbox':
-      return { action: `On the ${page}, select the "${label(name)}" checkbox`, expected: `the "${label(name)}" checkbox is selected` };
+      return {
+        action: `On the ${page}, select the "${label(name)}" checkbox`,
+        expected: `the "${label(name)}" checkbox is selected`,
+      };
     case 'uncheckCheckbox':
-      return { action: `On the ${page}, clear the "${label(name)}" checkbox`, expected: `the "${label(name)}" checkbox is cleared` };
+      return {
+        action: `On the ${page}, clear the "${label(name)}" checkbox`,
+        expected: `the "${label(name)}" checkbox is cleared`,
+      };
     case 'clickRadioButton':
-      return { action: `On the ${page}, choose the "${label(name)}" option`, expected: `the "${label(name)}" option is chosen` };
+      return {
+        action: `On the ${page}, choose the "${label(name)}" option`,
+        expected: `the "${label(name)}" option is chosen`,
+      };
     case 'verifyFieldData':
       return check(`${field} shows the entered value`);
     case 'verifyFieldAttribute':
@@ -408,18 +465,25 @@ function actualResult(message, result, logs) {
   const missing = message.match(MISSING_NAME);
   const rateLimitedMeanwhile = !RATE_LIMIT.test(message) && RATE_LIMIT_LOG.test(logs);
   const note = rateLimitedMeanwhile ? '; at that time the server was refusing requests because of its rate limit' : '';
-  if (RATE_LIMIT.test(message)) return 'the server refused the request because too many requests were sent in a short time (rate limit, status 429)';
+  if (RATE_LIMIT.test(message))
+    return 'the server refused the request because too many requests were sent in a short time (rate limit, status 429)';
   if (NETWORK.test(message)) return 'the application could not be reached (network error)';
   if (missing) return `the test refers to "${label(missing[2])}", which is not described for this page`;
-  if (FRAMEWORK_CLOSED.test(message)) return 'the test stopped with a technical error in the test framework: the browser page was closed while a file was still loading';
-  if (STRICT.test(message)) return `${element} matches several elements on the page, so the test cannot tell which one to use`;
+  if (FRAMEWORK_CLOSED.test(message))
+    return 'the test stopped with a technical error in the test framework: the browser page was closed while a file was still loading';
+  if (STRICT.test(message))
+    return `${element} matches several elements on the page, so the test cannot tell which one to use`;
   if (apiStatus) return `the server answered with status ${apiStatus[1]}`;
   if (EXPECT_HIDDEN.test(message) && element) return `${element} is still shown${note}`;
-  if (element && (NOT_FOUND.test(message) || EXPECT_VISIBLE.test(message))) return `${element} did not appear on the page${note}`;
+  if (element && (NOT_FOUND.test(message) || EXPECT_VISIBLE.test(message)))
+    return `${element} did not appear on the page${note}`;
   if (received) return `${element ? `${element} shows` : 'the application returned'} ${received}${note}`;
   if (result.status === 'timedOut') return `the scenario did not finish within the time limit${note}`;
   if (TEST_CODE.test(message)) return 'the test stopped because of an error in the test code';
-  const first = message.split('\n').map((line) => line.trim()).find(Boolean);
+  const first = message
+    .split('\n')
+    .map((line) => line.trim())
+    .find(Boolean);
   return `${first ? first.replace(/^Error:\s*/, '') : 'the test failed'}${note}`;
 }
 
@@ -427,11 +491,13 @@ function expectedResult(message, stepExpected) {
   const element = failingElement(message);
   const apiStatus = message.match(API_STATUS);
   const expected = message.match(/^\s*Expected(?: string| value| pattern)?:\s*(.+)$/m)?.[1]?.trim();
-  if (FRAMEWORK_CLOSED.test(message)) return `${stepExpected ?? 'the scenario finishes'}, and the test finishes without a technical error`;
+  if (FRAMEWORK_CLOSED.test(message))
+    return `${stepExpected ?? 'the scenario finishes'}, and the test finishes without a technical error`;
   if (apiStatus) return `the server accepts the request (status ${apiStatus[2].trim()})`;
   if (element && EXPECT_HIDDEN.test(message)) return `${element} is not shown`;
   if (element && (NOT_FOUND.test(message) || EXPECT_VISIBLE.test(message))) return `${element} is shown`;
-  if (expected && !/^(visible|hidden)$/.test(expected)) return `${element ? `${element} shows` : 'the application returns'} ${expected}`;
+  if (expected && !/^(visible|hidden)$/.test(expected))
+    return `${element ? `${element} shows` : 'the application returns'} ${expected}`;
   return stepExpected ?? 'the scenario completes without errors';
 }
 
@@ -469,7 +535,14 @@ function stepsToReproduce(result, logs, message) {
     const described = describeStep(step.title);
     if (!described || lines.at(-1) === described.action) continue;
     const createdArticle = lines.some((line) => /^Create an article through the API$/.test(line));
-    lines.push(createdArticle ? described.action.replace(/^Open the (Article page|article editor)$/, 'Open the $1 of the article created through the API') : described.action);
+    lines.push(
+      createdArticle
+        ? described.action.replace(
+            /^Open the (Article page|article editor)$/,
+            'Open the $1 of the article created through the API',
+          )
+        : described.action,
+    );
     stepExpected = described.expected;
   }
   return [
@@ -487,13 +560,15 @@ function buildRows(report) {
     if (test.status !== 'unexpected' && test.status !== 'flaky') continue;
     const results = test.results ?? [];
     // A flaky test's last attempt passed: describe the attempt that failed.
-    const result = [...results].reverse().find((r) => r.status !== 'passed' && r.status !== 'skipped') ?? results.at(-1) ?? {};
+    const result =
+      [...results].reverse().find((r) => r.status !== 'passed' && r.status !== 'skipped') ?? results.at(-1) ?? {};
     const message = messageOf(result);
     const logs = logsOf(result);
     const { status, percent, reasons } = classify({ outcome: test.status, result, results, message, logs });
 
     const chain = failedStepChain(result.steps);
-    const deepestNamed = [...chain].reverse().find((step) => PAGE_STEP.test(step.title) || API_STEP.test(step.title)) ?? chain.at(-1);
+    const deepestNamed =
+      [...chain].reverse().find((step) => PAGE_STEP.test(step.title) || API_STEP.test(step.title)) ?? chain.at(-1);
     const location = [result.error, ...(result.errors ?? [])].find((e) => e?.location)?.location;
     const specFile = report.config?.rootDir ? rel(path.join(report.config.rootDir, spec.file)) : spec.file;
     const where = location ? `${rel(location.file)}:${location.line}` : `${specFile}:${spec.line}`;
@@ -534,13 +609,17 @@ function applyOverrides(rows, file) {
       continue;
     }
     if (change.status && !Object.values(STATUSES).includes(change.status)) {
-      throw new Error(`Override "${key}": unknown status "${change.status}" (use ${Object.values(STATUSES).join(', ')})`);
+      throw new Error(
+        `Override "${key}": unknown status "${change.status}" (use ${Object.values(STATUSES).join(', ')})`,
+      );
     }
     const given = Object.values(PERCENT_FIELDS).filter((field) => change[field] !== undefined);
     if (given.length) {
       const valid = given.length === 3 && given.every((field) => Number.isInteger(change[field]) && change[field] >= 0);
       if (!valid || given.reduce((sum, field) => sum + change[field], 0) !== 100) {
-        throw new Error(`Override "${key}": give defectPercent, automationBugPercent and flakyPercent as whole numbers that add up to 100`);
+        throw new Error(
+          `Override "${key}": give defectPercent, automationBugPercent and flakyPercent as whole numbers that add up to 100`,
+        );
       }
       const bucket = Object.keys(STATUSES).find((name) => STATUSES[name] === (change.status ?? row.status));
       if (PERCENT_FIELDS[bucket] && given.some((field) => change[field] > change[PERCENT_FIELDS[bucket]])) {
@@ -648,7 +727,15 @@ const column = (index) => {
 };
 
 /** Cell style ids from styles.xml. */
-const STYLE = { header: 1, text: 2, percent: 3, [STATUSES.automation]: 4, [STATUSES.defect]: 5, [STATUSES.flaky]: 6, [STATUSES.review]: 7 };
+const STYLE = {
+  header: 1,
+  text: 2,
+  percent: 3,
+  [STATUSES.automation]: 4,
+  [STATUSES.defect]: 5,
+  [STATUSES.flaky]: 6,
+  [STATUSES.review]: 7,
+};
 
 function sheet(columns, rows, { filter = true } = {}) {
   const cell = (ref, value, style) =>
@@ -657,7 +744,10 @@ function sheet(columns, rows, { filter = true } = {}) {
       : `<c r="${ref}" s="${style}" t="inlineStr"><is><t xml:space="preserve">${xml(value)}</t></is></c>`;
   const header = `<row r="1">${columns.map((c, i) => cell(`${column(i)}1`, c.header, STYLE.header)).join('')}</row>`;
   const body = rows
-    .map((row, r) => `<row r="${r + 2}">${columns.map((c, i) => cell(`${column(i)}${r + 2}`, row[c.key], c.style(row))).join('')}</row>`)
+    .map(
+      (row, r) =>
+        `<row r="${r + 2}">${columns.map((c, i) => cell(`${column(i)}${r + 2}`, row[c.key], c.style(row))).join('')}</row>`,
+    )
     .join('');
   const range = `A1:${column(columns.length - 1)}${rows.length + 1}`;
   return (
@@ -686,7 +776,8 @@ function workbook(rows, summary) {
     { header: 'Item', key: 'item', width: 28, style: () => STYLE.text },
     { header: 'Value', key: 'value', width: 60, style: () => STYLE.text },
   ];
-  const fill = (rgb) => `<fill><patternFill patternType="solid"><fgColor rgb="${rgb}"/><bgColor indexed="64"/></patternFill></fill>`;
+  const fill = (rgb) =>
+    `<fill><patternFill patternType="solid"><fgColor rgb="${rgb}"/><bgColor indexed="64"/></patternFill></fill>`;
   const wrapTop = '<alignment vertical="top" wrapText="1"/>';
   const lastRow = rows.length + 1;
 
@@ -748,10 +839,13 @@ let resolved;
 try {
   resolved = resolveResultsInput(input);
 } catch (error) {
-  console.error(`${error.message}. Pass reports/results.json, a folder that contains it, or a .zip archive of that folder.`);
+  console.error(
+    `${error.message}. Pass reports/results.json, a folder that contains it, or a .zip archive of that folder.`,
+  );
   process.exit(2);
 }
-if (resolved.unpackedFrom) console.log(`Unpacked ${rel(path.resolve(resolved.unpackedFrom))} → ${rel(path.resolve(resolved.root))}`);
+if (resolved.unpackedFrom)
+  console.log(`Unpacked ${rel(path.resolve(resolved.unpackedFrom))} → ${rel(path.resolve(resolved.root))}`);
 const artifactsRoot = resolved.root;
 const report = JSON.parse(fs.readFileSync(resolved.path, 'utf-8'));
 const rows = buildRows(report);
@@ -772,7 +866,12 @@ const run = {
   generatedAt: new Date().toISOString(),
   startTime: stats.startTime,
   durationMs: stats.duration,
-  totals: { passed: stats.expected ?? 0, failed: stats.unexpected ?? 0, flaky: stats.flaky ?? 0, skipped: stats.skipped ?? 0 },
+  totals: {
+    passed: stats.expected ?? 0,
+    failed: stats.unexpected ?? 0,
+    flaky: stats.flaky ?? 0,
+    skipped: stats.skipped ?? 0,
+  },
   byStatus: Object.fromEntries(Object.values(STATUSES).map((status) => [status, count(status)])),
   statusRule: `highest likelihood when it reaches ${STATUS_THRESHOLD}%, otherwise "${STATUSES.review}"`,
   overrides: overridesFile ? rel(path.resolve(overridesFile)) : null,
@@ -789,15 +888,23 @@ const summary = [
   { item: 'Generated at', value: run.generatedAt },
   { item: 'Run started', value: run.startTime ?? 'n/a' },
   { item: 'Duration', value: run.durationMs == null ? 'n/a' : `${(run.durationMs / 1000).toFixed(1)}s` },
-  { item: 'Passed / failed / flaky / skipped', value: `${run.totals.passed} / ${run.totals.failed} / ${run.totals.flaky} / ${run.totals.skipped}` },
+  {
+    item: 'Passed / failed / flaky / skipped',
+    value: `${run.totals.passed} / ${run.totals.failed} / ${run.totals.flaky} / ${run.totals.skipped}`,
+  },
   ...Object.entries(run.byStatus).map(([status, n]) => ({ item: `Status: ${status}`, value: String(n) })),
   { item: 'Status rule', value: run.statusRule },
   { item: 'Reviewed rows', value: run.overrides ? `${run.reviewed} (from ${run.overrides})` : 'none' },
 ];
 fs.writeFileSync(xlsxFile, workbook(rows, summary));
 
-console.log(`Triage: ${rows.length} test(s) — ${Object.entries(run.byStatus).map(([s, n]) => `${n} ${s}`).join(', ')}`);
+console.log(
+  `Triage: ${rows.length} test(s) — ${Object.entries(run.byStatus)
+    .map(([s, n]) => `${n} ${s}`)
+    .join(', ')}`,
+);
 console.log(`JSON: ${rel(path.resolve(jsonFile))}`);
 console.log(`XLSX: ${rel(path.resolve(xlsxFile))}`);
 if (run.overrides) console.log(`Reviewed rows: ${run.reviewed} from ${run.overrides}`);
-if (unmatchedOverrides.length) console.log(`Overrides without a matching failed test: ${unmatchedOverrides.join(', ')}`);
+if (unmatchedOverrides.length)
+  console.log(`Overrides without a matching failed test: ${unmatchedOverrides.join(', ')}`);

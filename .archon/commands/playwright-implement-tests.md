@@ -34,6 +34,7 @@ Implement exactly the plan, following the `playwright-ts-conduit-realworld` skil
 ## Output
 
 Return JSON with:
+
 - `summary` — what was implemented, at most 8 lines
 - `files` — created or changed files
 - `specs` — spec locations of the new or changed tests, e.g. `tests/ui/settings.ui.spec.ts:12`

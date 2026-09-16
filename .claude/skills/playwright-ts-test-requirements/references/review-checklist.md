@@ -6,18 +6,18 @@ Check every requirement, then the set as a whole. Each problem becomes a finding
 
 ## Categories
 
-| Category | Look for |
-|---|---|
-| Completeness | Missing error handling, empty and loading states, limits (length, size, count), defaults, required vs optional fields, roles and permissions, what happens to existing data, notifications, audit/history, undo |
-| Ambiguity | Vague words (see below), undefined terms, "and/or", pronouns without a clear subject, missing units or formats (dates, time zones, currency) |
-| Consistency | Contradictions inside the document, with other documents, with designs, or with the current application |
-| Testability | No observable outcome, no measurable criterion, results that depend on unstated data or timing |
-| Correctness and feasibility | Rules that cannot hold together, impossible performance targets, dependencies on things that do not exist |
-| Uniqueness and traceability | Duplicated requirements, missing IDs, one statement that mixes several behaviours |
-| UI | Exact texts of labels and messages, when validation happens (typing, leaving the field, submit), disabled states, navigation after an action, responsive or browser scope |
-| API | Endpoint, method, auth, request fields with types and limits, success status and body, every error status with its body |
-| Security and privacy | Who may see or change what, authorization of every action, data exposed in URLs or logs, rate limiting |
-| Non-functional | Performance targets with numbers, accessibility level, supported browsers and devices, localization |
+| Category                    | Look for                                                                                                                                                                                                        |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Completeness                | Missing error handling, empty and loading states, limits (length, size, count), defaults, required vs optional fields, roles and permissions, what happens to existing data, notifications, audit/history, undo |
+| Ambiguity                   | Vague words (see below), undefined terms, "and/or", pronouns without a clear subject, missing units or formats (dates, time zones, currency)                                                                    |
+| Consistency                 | Contradictions inside the document, with other documents, with designs, or with the current application                                                                                                         |
+| Testability                 | No observable outcome, no measurable criterion, results that depend on unstated data or timing                                                                                                                  |
+| Correctness and feasibility | Rules that cannot hold together, impossible performance targets, dependencies on things that do not exist                                                                                                       |
+| Uniqueness and traceability | Duplicated requirements, missing IDs, one statement that mixes several behaviours                                                                                                                               |
+| UI                          | Exact texts of labels and messages, when validation happens (typing, leaving the field, submit), disabled states, navigation after an action, responsive or browser scope                                       |
+| API                         | Endpoint, method, auth, request fields with types and limits, success status and body, every error status with its body                                                                                         |
+| Security and privacy        | Who may see or change what, authorization of every action, data exposed in URLs or logs, rate limiting                                                                                                          |
+| Non-functional              | Performance targets with numbers, accessibility level, supported browsers and devices, localization                                                                                                             |
 
 ## Vague words to question
 
@@ -27,11 +27,11 @@ Ask for the concrete meaning: a number, a list, a rule or an observable result.
 
 ## Severity
 
-| Severity | Meaning |
-|---|---|
-| blocker | The behaviour cannot be designed or implemented without an answer (missing rule, contradiction on a core flow) |
-| major | Likely to produce a defect, rework or a wrong test (missing error case, undefined limit, ambiguous rule) |
-| minor | Wording, naming or formatting that does not change behaviour |
+| Severity | Meaning                                                                                                        |
+| -------- | -------------------------------------------------------------------------------------------------------------- |
+| blocker  | The behaviour cannot be designed or implemented without an answer (missing rule, contradiction on a core flow) |
+| major    | Likely to produce a defect, rework or a wrong test (missing error case, undefined limit, ambiguous rule)       |
+| minor    | Wording, naming or formatting that does not change behaviour                                                   |
 
 ## Conduit context
 

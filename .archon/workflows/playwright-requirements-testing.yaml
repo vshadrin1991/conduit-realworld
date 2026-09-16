@@ -1,6 +1,4 @@
 name: playwright-requirements-testing
-worktree:
-  enabled: false
 description: >-
   Test the requirements of the Conduit application from one requirements file: review them with the
   playwright-ts-test-requirements skill (gaps, ambiguity, contradictions, testability), collect evidence from the
@@ -10,11 +8,11 @@ description: >-
   (tasks/<KEY>/requirements/requirements-testing-blocked.md). Input: --requirements|--r <file>.
 
 nodes:
-  # Deterministic: --r <file> → inputs.json, a source copy in tasks/<KEY>/requirements/source/, extracted text.
+  # Deterministic: prepare the workspace, then --r <file> → inputs.json, a source copy in tasks/<KEY>/requirements/source/, extracted text.
   - id: inputs
     bash: |
-      cd "${PROJECT_PATH:-$PWD}"
-      echo "Project: $PWD"
+      set -e
+      bash .archon/scripts/workspace-setup.sh
       mkdir -p "$ARTIFACTS_DIR"
       printf '%s' "$ARGUMENTS" > "$ARTIFACTS_DIR/arguments.txt"
       node .archon/scripts/requirements-inputs.mjs "$ARTIFACTS_DIR/arguments.txt" "$ARTIFACTS_DIR"
@@ -23,7 +21,6 @@ nodes:
   - id: preflight
     depends_on: [inputs]
     bash: |
-      cd "${PROJECT_PATH:-$PWD}"
       base="${BASE_URL:-$(grep -E '^BASE_URL=' .env 2>/dev/null | tail -1 | cut -d= -f2-)}"
       base="${base:-https://conduit-realworld-example-app.fly.dev}"
       code=$(curl -s -o /dev/null -m 20 -w '%{http_code}' "$base/" || true)
@@ -76,7 +73,6 @@ nodes:
     depends_on: [review, evidence, preflight]
     trigger_rule: all_done
     bash: |
-      cd "${PROJECT_PATH:-$PWD}"
       node .archon/scripts/requirements-gate.mjs $review.output $evidence.output $preflight.output
 
   - id: result_report
@@ -97,12 +93,12 @@ nodes:
     skills: [playwright-ts-test-requirements]
     allowed_tools: [Read, Write, Glob, Grep, Bash]
 
-  # Deterministic: list the files the run produced.
+  # Deterministic: list the files the run produced and copy tasks/ to the run artifacts — it is gitignored, so it
+  # would disappear with the worktree.
   - id: outputs
     depends_on: [result_report, blocked_report]
     trigger_rule: one_success
     bash: |
-      cd "${PROJECT_PATH:-$PWD}"
       dir=$(node -e 'console.log(require(process.argv[1]).outputDir)' "$ARTIFACTS_DIR/inputs.json")
       echo "Result files in $dir (copies in $ARTIFACTS_DIR):"
       found=0
@@ -110,4 +106,10 @@ nodes:
         [ -f "$file" ] && { echo "$file"; found=1; }
       done
       [ "$found" = 1 ] || echo "(no result files were written)"
+      if [ -d tasks ]; then
+        rm -rf "$ARTIFACTS_DIR/tasks"
+        mkdir -p "$ARTIFACTS_DIR/tasks"
+        cp -R tasks/. "$ARTIFACTS_DIR/tasks/"
+        echo "tasks/ copied to $ARTIFACTS_DIR/tasks"
+      fi
       exit 0

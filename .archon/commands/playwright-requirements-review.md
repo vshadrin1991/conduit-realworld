@@ -31,6 +31,7 @@ Follow the `playwright-ts-test-requirements` skill (normalize and review, steps 
 ## Output
 
 Return JSON with:
+
 - `status` — `READY` or `BLOCKED`
 - `summary` — at most 5 lines
 - `requirements`, `blockers`, `majors`, `minors`, `live_checks` — counts

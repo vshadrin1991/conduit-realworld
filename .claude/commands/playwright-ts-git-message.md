@@ -1,6 +1,6 @@
 ---
 description: Write a copy-ready git commit message (feat / fix) for the current changes of this Playwright + TS project
-argument-hint: "[staged|all] [copy]"
+argument-hint: '[staged|all] [copy]'
 allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git ls-files:*), Bash(pbcopy:*)
 ---
 
@@ -38,9 +38,9 @@ Start from the stat, then read the diff of the files that carry the purpose (`gi
 
 ### 3. Type — exactly one
 
-| Type | Use when |
-|---|---|
-| `fix` | The change corrects wrong behaviour: a bug in framework code, a broken or flaky test, an outdated locator, a wrong expectation or test data, a config or reporting error |
+| Type   | Use when                                                                                                                                                                      |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fix`  | The change corrects wrong behaviour: a bug in framework code, a broken or flaky test, an outdated locator, a wrong expectation or test data, a config or reporting error      |
 | `feat` | Everything else: new or extended tests, page objects, components, API endpoints and flows, utilities, config options, reporters, skills, commands, documentation, refactoring |
 
 Mixed changes take the type of the main purpose; the other changes go to the body.

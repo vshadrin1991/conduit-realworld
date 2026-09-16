@@ -30,5 +30,6 @@ Report every problem with `file:line`, the risk (how it fails or what it misses)
 ## Output
 
 Return JSON with:
+
 - `verdict` — `APPROVE` or `CHANGES_REQUESTED`
 - `findings` — list of `{ severity: blocker | major | minor, file, line, rule, problem, fix }`

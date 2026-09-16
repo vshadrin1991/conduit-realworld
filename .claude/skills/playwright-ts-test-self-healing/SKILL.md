@@ -15,32 +15,32 @@ A heal is only as good as its evidence: every new locator must be backed by the 
 
 Healing edits framework code, so it follows the project conventions skill [playwright-ts-conduit-realworld](../playwright-ts-conduit-realworld/SKILL.md). Open the reference for what the heal touches — the whole skill is rarely needed for a locator repair:
 
-| Healing touches | Conventions to apply |
-|---|---|
-| A locator declaration | [page-objects](../playwright-ts-conduit-realworld/references/page-objects.md): locator priority (role → placeholder / label / text → semantic CSS, no XPath), locators only, named maps with type unions, `root` present only when the page is rendered |
-| A shared fragment or component (`Header`, element components) | [components](../playwright-ts-conduit-realworld/references/components.md): `BaseComponent` is for page components only; element components are called from the page |
-| Code around the declaration | [code-conventions](../playwright-ts-conduit-realworld/references/code-conventions.md): no `//` or one-line comments, JSDoc only in the required format |
-| A failure in sign-in steps (`LoginPage` steps in `beforeEach`) | [test-data-and-auth](../playwright-ts-conduit-realworld/references/test-data-and-auth.md): UI tests sign in through the login form and spend the auth quota — heal the `LoginPage` locator, never replace the steps with a session shortcut |
-| Probes and verification runs | [execution-and-config](../playwright-ts-conduit-realworld/references/execution-and-config.md): rate limits, smallest scope |
-| App quirks behind a "broken" locator (feed paging, async re-render, native dialogs) | [app-behaviour](../playwright-ts-conduit-realworld/references/app-behaviour.md) |
+| Healing touches                                                                     | Conventions to apply                                                                                                                                                                                                                                    |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A locator declaration                                                               | [page-objects](../playwright-ts-conduit-realworld/references/page-objects.md): locator priority (role → placeholder / label / text → semantic CSS, no XPath), locators only, named maps with type unions, `root` present only when the page is rendered |
+| A shared fragment or component (`Header`, element components)                       | [components](../playwright-ts-conduit-realworld/references/components.md): `BaseComponent` is for page components only; element components are called from the page                                                                                     |
+| Code around the declaration                                                         | [code-conventions](../playwright-ts-conduit-realworld/references/code-conventions.md): no `//` or one-line comments, JSDoc only in the required format                                                                                                  |
+| A failure in sign-in steps (`LoginPage` steps in `beforeEach`)                      | [test-data-and-auth](../playwright-ts-conduit-realworld/references/test-data-and-auth.md): UI tests sign in through the login form and spend the auth quota — heal the `LoginPage` locator, never replace the steps with a session shortcut             |
+| Probes and verification runs                                                        | [execution-and-config](../playwright-ts-conduit-realworld/references/execution-and-config.md): rate limits, smallest scope                                                                                                                              |
+| App quirks behind a "broken" locator (feed paging, async re-render, native dialogs) | [app-behaviour](../playwright-ts-conduit-realworld/references/app-behaviour.md)                                                                                                                                                                         |
 
 A heal is done only when it also meets the Definition of done of the conventions skill for a page-object change: typecheck and lint pass, and the healed test passes when run alone.
 
 ## When not to heal
 
-| Symptom | Category | Do instead |
-|---|---|---|
-| `-> 429` in the test's `logs`, blank or near-empty page snapshot | environment | Wait for `retry-after` and re-run; locators are fine |
-| `ArticlePage has no button named "x"` | test code | Fix the name in the spec or the page's type union |
-| Locator found, but `toHaveText` / `toHaveValue` / `toContainText` got another value | product change or bug | Report to the user; never edit expected values |
-| Step `API :: ...` failed | API | `playwright-ts-test-results` skill |
-| Element is gone or the feature moved to another page | product change | Report; the test needs a human decision |
+| Symptom                                                                             | Category              | Do instead                                           |
+| ----------------------------------------------------------------------------------- | --------------------- | ---------------------------------------------------- |
+| `-> 429` in the test's `logs`, blank or near-empty page snapshot                    | environment           | Wait for `retry-after` and re-run; locators are fine |
+| `ArticlePage has no button named "x"`                                               | test code             | Fix the name in the spec or the page's type union    |
+| Locator found, but `toHaveText` / `toHaveValue` / `toContainText` got another value | product change or bug | Report to the user; never edit expected values       |
+| Step `API :: ...` failed                                                            | API                   | `playwright-ts-test-results` skill                   |
+| Element is gone or the feature moved to another page                                | product change        | Report; the test needs a human decision              |
 
 ## Workflow
 
 1. **Triage the run** — `npm run results -- --failures-only`. Only `locator-or-timing` failures go further; everything else follows the [playwright-ts-test-results](../playwright-ts-test-results/SKILL.md) skill.
 2. **Map failures to declarations** — `node .claude/skills/playwright-ts-test-self-healing/scripts/find-broken-locators.mjs` (reads `reports/results.json`; `--json` for machine output). Per failure it prints the verdict, broken locator, failing page step (`ArticlePage.clickActionButton(postComment)`), the declaration `file:line` and the artifacts. `navigate` / `waitUntilPageLoaded` steps point at the page's `root`.
-3. **Read offline evidence first (free)** — in `test-results/<test>/error-context.md` the `# Page snapshot` section is the ARIA tree at the moment of failure: the main source for the new locator. Then `test-failed-1.png`, and `npx playwright show-trace test-results/<test>/trace.zip` for the steps before. A missing or near-empty snapshot means the page did not render → environment, stop.
+3. **Read offline evidence first (free)** — in `reports/test-results/<test>/error-context.md` the `# Page snapshot` section is the ARIA tree at the moment of failure: the main source for the new locator. Then `test-failed-1.png`, and `npx playwright show-trace reports/test-results/<test>/trace.zip` for the steps before. A missing or near-empty snapshot means the page did not render → environment, stop.
 4. **Choose the replacement** — find the element by what the test means (element name, step, test title), then write the locator by the priority in [page-objects](../playwright-ts-conduit-realworld/references/page-objects.md) of the conventions skill: `getByRole` + name → `getByPlaceholder` / `getByLabel` / `getByText` → semantic CSS. Keep the original scoping (`this.root.getBy...`).
 5. **Probe live only when offline evidence is not enough** — it spends rate-limit budget (the SPA, its assets and API calls per run), so check all candidates in one run:
    `node .claude/skills/playwright-ts-test-self-healing/scripts/probe-locators.mjs --route /settings --login --try "getByPlaceholder('Email')" --try "getByRole('button', { name: 'Update Settings' })"`
@@ -51,22 +51,22 @@ A heal is done only when it also meets the Definition of done of the conventions
 
 ## Healing rules
 
-| Never | Why |
-|---|---|
-| Change assertions, expected texts, test steps or specs | Hides product changes; healing is page-object only |
-| Add `.first()` / `nth()` just to silence a strict mode violation | Acts on an arbitrary element — narrow by `root`, container, `filter({ hasText })` or exact name |
-| XPath, generated/hashed class names, `nth-child` chains | Break on the next change |
-| `force: true`, `clickViaJs`, bigger timeouts, `waitForTimeout`, retries | Mask a missing, hidden or covered element |
-| Fallback chains (`a.or(b)`), try/catch alternatives, runtime auto-healing code | A test that cannot fail on the broken UI proves nothing |
-| A new locator without snapshot, screenshot or probe evidence | A guessed locator can pass against the wrong element |
+| Never                                                                          | Why                                                                                             |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| Change assertions, expected texts, test steps or specs                         | Hides product changes; healing is page-object only                                              |
+| Add `.first()` / `nth()` just to silence a strict mode violation               | Acts on an arbitrary element — narrow by `root`, container, `filter({ hasText })` or exact name |
+| XPath, generated/hashed class names, `nth-child` chains                        | Break on the next change                                                                        |
+| `force: true`, `clickViaJs`, bigger timeouts, `waitForTimeout`, retries        | Mask a missing, hidden or covered element                                                       |
+| Fallback chains (`a.or(b)`), try/catch alternatives, runtime auto-healing code | A test that cannot fail on the broken UI proves nothing                                         |
+| A new locator without snapshot, screenshot or probe evidence                   | A guessed locator can pass against the wrong element                                            |
 
 ## Common UI changes
 
-| What changed | Heal |
-|---|---|
-| Button/link text renamed (`Sign in` → `Log in`) | Update the accessible name; if a test also asserts that text, report it as a product change |
-| Role changed (button → link) | Update the role, keep the name |
-| Placeholder changed or a label was added | Prefer the label; otherwise the new placeholder |
-| Element duplicated (strict mode violation) | Scope to `root` or a container, or filter; `.first()` only with a stable reason stated in the report |
-| Page heading changed, every step on the page times out | Heal `root`, re-run, then handle what is still failing |
-| Wrapper markup changed, semantic class gone | Move up the priority list to role / text instead of chasing new CSS |
+| What changed                                           | Heal                                                                                                 |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| Button/link text renamed (`Sign in` → `Log in`)        | Update the accessible name; if a test also asserts that text, report it as a product change          |
+| Role changed (button → link)                           | Update the role, keep the name                                                                       |
+| Placeholder changed or a label was added               | Prefer the label; otherwise the new placeholder                                                      |
+| Element duplicated (strict mode violation)             | Scope to `root` or a container, or filter; `.first()` only with a stable reason stated in the report |
+| Page heading changed, every step on the page times out | Heal `root`, re-run, then handle what is still failing                                               |
+| Wrapper markup changed, semantic class gone            | Move up the priority list to role / text instead of chasing new CSS                                  |

@@ -28,6 +28,7 @@ The server allows about 100 requests per 15 minutes and 5 auth requests per hour
 ## Output
 
 Return JSON with:
+
 - `status` — `PASSED`, `FAILED` or `ENV_BLOCKED`
 - `summary` — at most 5 lines
 - `failures` — one entry per remaining failure: test, category, evidence, action taken or needed

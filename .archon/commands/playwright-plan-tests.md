@@ -36,6 +36,7 @@ Status is **READY** when every case left in scope has steps and expected results
 ## Output
 
 Return JSON with:
+
 - `status` — `READY` or `BLOCKED`
 - `summary` — at most 5 lines
 - `specs` — spec files to create or change

@@ -6,7 +6,7 @@ description: Project conventions and testing strategies of this Conduit Playwrig
 # Playwright + TS project conventions (Conduit)
 
 Target app: https://conduit-realworld-example-app.fly.dev (React SPA with hash routes + REST API under `/api`).
-The framework mirrors the team's Java framework (`BaseTest.get`, `BasePage`, `pageElements`, `rest/nora`, `utilities/tests`) and exists to keep tests **fast, isolated, readable and cheap on a heavily rate-limited environment**. When a situation is not covered below, choose what best preserves those goals.
+The framework mirrors the team's Java framework (`BaseTest.get`, `BasePage`, `pageElements`, REST client layer, `utilities/tests`) and exists to keep tests **fast, isolated, readable and cheap on a heavily rate-limited environment**. When a situation is not covered below, choose what best preserves those goals.
 
 **Good examples:** [assets](assets/README.md) holds complete, type-checked example files (API spec, hybrid UI spec, mocked UI spec, page object, component, endpoint helper, API flow) — open the matching one before writing new code and copy its shape. [references/templates.md](references/templates.md) lists the registration steps for each kind of addition.
 
@@ -59,13 +59,13 @@ import { test, expect } from '@/base/BaseTest';
 Get collaborators through `get` (mirrors the Java `BaseTest.get(Class)`):
 
 ```ts
-get(APIClient).post.articles.with(a)          // REST client authenticated as the shared test user
-get(APIClient, { guest: true })               // REST client without a token
-get(APIClient).api.articles.create({ count: 2 }) // multi-call API flows (created data is deleted after the test)
-get(ArticlePage)                                      // page object bound to the current page (cached per test)
-await get(ArticlePage, Route.article(slug))           // opens the page at the route; later calls use get(ArticlePage)
-get(Interceptor)                                      // network mocks (utility, not a component)
-get(LocalStorage)                                     // page component without an element to act on
+get(APIClient).post.articles.with(a); // REST client authenticated as the shared test user
+get(APIClient, { guest: true }); // REST client without a token
+get(APIClient).api.articles.create({ count: 2 }); // multi-call API flows (created data is deleted after the test)
+get(ArticlePage); // page object bound to the current page (cached per test)
+await get(ArticlePage, Route.article(slug)); // opens the page at the route; later calls use get(ArticlePage)
+get(Interceptor); // network mocks (utility, not a component)
+get(LocalStorage); // page component without an element to act on
 ```
 
 **Every API call in a test starts with `get(APIClient)`** — endpoint helpers (`.get/.post/.put/.delete`), flows (`.api`) and raw calls (`.response`). Do not store the client in a local variable and do not import `ConduitAPI` in specs.
@@ -130,18 +130,18 @@ Structure each test as Arrange / Act / Assert separated by blank lines, one beha
 
 Open the reference that matches the work before writing code:
 
-| Reference | Read when |
-|---|---|
-| [page-objects.md](references/page-objects.md) | Adding or changing a page object, choosing locators, turning a saved page (Ctrl/Cmd+S) into a page description |
-| [components.md](references/components.md) | Using or adding page components (`BaseComponent`) or `Interceptor` |
-| [api-client.md](references/api-client.md) | API tests, new endpoints, paths, models, helpers or flows |
-| [playwright-ts-api-checklist](../playwright-ts-api-checklist/SKILL.md) | Deciding **what** to cover for an endpoint before writing the cases |
-| [test-data-and-auth.md](references/test-data-and-auth.md) | Generating and cleaning up data, the shared test user, signing in through the UI, auth quota |
-| [execution-and-config.md](references/execution-and-config.md) | Parallel workers and browsers, rate-limit budget, config variables, reports and logs |
-| [app-behaviour.md](references/app-behaviour.md) | Tests touching feeds, the editor, article deletion, slugs or users |
-| [code-conventions.md](references/code-conventions.md) | Adding public methods, or before writing any comment (comments are not allowed in code) |
-| [templates.md](references/templates.md) | Where each kind of code goes and what to register |
-| [assets/README.md](assets/README.md) | Full example files to copy |
+| Reference                                                              | Read when                                                                                                      |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| [page-objects.md](references/page-objects.md)                          | Adding or changing a page object, choosing locators, turning a saved page (Ctrl/Cmd+S) into a page description |
+| [components.md](references/components.md)                              | Using or adding page components (`BaseComponent`) or `Interceptor`                                             |
+| [api-client.md](references/api-client.md)                              | API tests, new endpoints, paths, models, helpers or flows                                                      |
+| [playwright-ts-api-checklist](../playwright-ts-api-checklist/SKILL.md) | Deciding **what** to cover for an endpoint before writing the cases                                            |
+| [test-data-and-auth.md](references/test-data-and-auth.md)              | Generating and cleaning up data, the shared test user, signing in through the UI, auth quota                   |
+| [execution-and-config.md](references/execution-and-config.md)          | Parallel workers and browsers, rate-limit budget, config variables, reports and logs                           |
+| [app-behaviour.md](references/app-behaviour.md)                        | Tests touching feeds, the editor, article deletion, slugs or users                                             |
+| [code-conventions.md](references/code-conventions.md)                  | Adding public methods, or before writing any comment (comments are not allowed in code)                        |
+| [templates.md](references/templates.md)                                | Where each kind of code goes and what to register                                                              |
+| [assets/README.md](assets/README.md)                                   | Full example files to copy                                                                                     |
 
 ## Definition of done for a new or changed test
 

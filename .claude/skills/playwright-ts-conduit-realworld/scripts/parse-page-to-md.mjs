@@ -75,11 +75,30 @@ const GROUPS = [
 const NON_SEMANTIC_CLASS =
   /^(btn(-.*)?|form-.*|col(-.*)?|row|pull-.*|text-.*|[mp][trblxy]?-\d+|d-.*|nav|nav-(item|link)|navbar(-.*)?|container.*|active|disabled|hidden|show|fade|ion-.*|clearfix|card(-.*)?|list-.*|float-.*|w-\d+|h-\d+)$/;
 /** BasePage members a generated read-only locator must not shadow. */
-const RESERVED = new Set(['page', 'header', 'log', 'input', 'button', 'checkbox', 'radioButton', 'text', 'root', 'fields', 'errors', 'buttons', 'checkboxes', 'radioButtons', 'then']);
+const RESERVED = new Set([
+  'page',
+  'header',
+  'log',
+  'input',
+  'button',
+  'checkbox',
+  'radioButton',
+  'text',
+  'root',
+  'fields',
+  'errors',
+  'buttons',
+  'checkboxes',
+  'radioButtons',
+  'then',
+]);
 
 const rel = (p) => path.relative(process.cwd(), p);
 const quote = (text) => `'${text.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
-const cell = (value) => String(value ?? '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
+const cell = (value) =>
+  String(value ?? '')
+    .replace(/\|/g, '\\|')
+    .replace(/\n/g, ' ');
 
 function camel(text) {
   const words = (text ?? '')
@@ -159,7 +178,8 @@ function inputFiles(input) {
 function outputPath(file, opts, multiple) {
   const mdName = path.basename(file).replace(/\.html?$/i, '.md');
   if (!opts.out) return file.replace(/\.html?$/i, '.md');
-  const isDir = multiple || !opts.out.endsWith('.md') || (fs.existsSync(opts.out) && fs.statSync(opts.out).isDirectory());
+  const isDir =
+    multiple || !opts.out.endsWith('.md') || (fs.existsSync(opts.out) && fs.statSync(opts.out).isDirectory());
   return isDir ? path.join(opts.out, mdName) : opts.out;
 }
 
@@ -201,13 +221,19 @@ function collectDom({ selector, errorSelector, mark, nonSemantic }) {
       isError: el.matches(errorSelector),
       form: forms.indexOf(el.closest('form')),
       // Elements inside repeated items (feed previews, comments) are reached through the item's locator method.
-      inRepeated: repeatedSelector ? ([...el.parentElement.closest(repeatedSelector)?.classList ?? []].find((c) => repeated.some((r) => r.cls === c)) ?? undefined) : undefined,
+      inRepeated: repeatedSelector
+        ? ([...(el.parentElement.closest(repeatedSelector)?.classList ?? [])].find((c) =>
+            repeated.some((r) => r.cls === c),
+          ) ?? undefined)
+        : undefined,
       // Navigation belongs to the Header component, not to the page object.
       inNavigation: !!el.closest('nav, header, [role=navigation], [role=banner]'),
     };
   });
 
-  const containers = [...byClass].filter(([cls, els]) => els.length === 1 && /-page$|^page-|-view$/.test(cls)).map(([cls]) => cls);
+  const containers = [...byClass]
+    .filter(([cls, els]) => els.length === 1 && /-page$|^page-|-view$/.test(cls))
+    .map(([cls]) => cls);
 
   return {
     elements,
@@ -222,14 +248,21 @@ function collectDom({ selector, errorSelector, mark, nonSemantic }) {
 
 async function bestLocator(page, info, group, role, name, semanticClass) {
   const candidates = [];
-  const byPlaceholder = info.placeholder && { code: `getByPlaceholder(${quote(info.placeholder)})`, locator: page.getByPlaceholder(info.placeholder) };
-  const byRole = role && name && { code: `getByRole('${role}', { name: ${quote(name)} })`, locator: page.getByRole(role, { name }) };
+  const byPlaceholder = info.placeholder && {
+    code: `getByPlaceholder(${quote(info.placeholder)})`,
+    locator: page.getByPlaceholder(info.placeholder),
+  };
+  const byRole = role &&
+    name && { code: `getByRole('${role}', { name: ${quote(name)} })`, locator: page.getByRole(role, { name }) };
   // Conduit inputs have no labels: when the accessible name is the placeholder, the placeholder locator is preferred.
-  if (group === 'fields' && byPlaceholder && (!name || name === info.placeholder)) candidates.push(byPlaceholder, byRole);
+  if (group === 'fields' && byPlaceholder && (!name || name === info.placeholder))
+    candidates.push(byPlaceholder, byRole);
   else candidates.push(byRole, byPlaceholder);
   if (info.label) candidates.push({ code: `getByLabel(${quote(info.label)})`, locator: page.getByLabel(info.label) });
-  if (info.testId) candidates.push({ code: `getByTestId(${quote(info.testId)})`, locator: page.getByTestId(info.testId) });
-  if (semanticClass) candidates.push({ code: `locator('.${semanticClass}')`, locator: page.locator(`.${semanticClass}`) });
+  if (info.testId)
+    candidates.push({ code: `getByTestId(${quote(info.testId)})`, locator: page.getByTestId(info.testId) });
+  if (semanticClass)
+    candidates.push({ code: `locator('.${semanticClass}')`, locator: page.locator(`.${semanticClass}`) });
 
   let best;
   for (const candidate of candidates.filter(Boolean)) {
@@ -307,7 +340,8 @@ async function parsePage(context, file, opts, pageObjectFiles, counter) {
 
     const used = new Map();
     for (const row of rows) {
-      let base = row.group === 'content' ? ({ h1: 'title', h2: 'subtitle' }[row.tag] ?? camel(row.text)) : camel(row.nameSource);
+      let base =
+        row.group === 'content' ? ({ h1: 'title', h2: 'subtitle' }[row.tag] ?? camel(row.text)) : camel(row.nameSource);
       base ||= row.tag;
       if (['errors', 'content'].includes(row.group) && RESERVED.has(base)) base = `${base}Element`;
       const count = (used.get(`${row.group}:${base}`) ?? 0) + 1;
@@ -316,7 +350,10 @@ async function parsePage(context, file, opts, pageObjectFiles, counter) {
     }
 
     const rootCandidates = [
-      ...dom.containers.map((cls) => ({ locator: `locator('.${cls}')`, reason: 'page container that exists only once' })),
+      ...dom.containers.map((cls) => ({
+        locator: `locator('.${cls}')`,
+        reason: 'page container that exists only once',
+      })),
       ...rows
         .filter((r) => r.visible && r.matches === 1 && r.role === 'heading')
         .map((r) => ({ locator: r.locator, reason: 'unique heading — its text must not be test data', heading: true })),
@@ -330,11 +367,19 @@ async function parsePage(context, file, opts, pageObjectFiles, counter) {
     }
     const [existingPage, existingCount] = [...perPage].sort((a, b) => b[1] - a[1])[0] ?? [];
     const segment = route === undefined ? undefined : (route.split('/').filter(Boolean)[0] ?? 'home');
-    const className = opts.name ?? (existingPage ? path.basename(existingPage, '.ts') : `${pascal(segment ?? title) ?? 'Saved'}Page`);
+    const className =
+      opts.name ?? (existingPage ? path.basename(existingPage, '.ts') : `${pascal(segment ?? title) ?? 'Saved'}Page`);
 
     const forms = dom.forms.map((form) => ({
       ...form,
-      rows: [...new Set(dom.elements.filter((e) => e.form === form.index).map((e) => rowByIndex.get(e.index)).filter(Boolean))],
+      rows: [
+        ...new Set(
+          dom.elements
+            .filter((e) => e.form === form.index)
+            .map((e) => rowByIndex.get(e.index))
+            .filter(Boolean),
+        ),
+      ],
     }));
 
     const model = {
@@ -365,15 +410,28 @@ function openDecisions(model) {
   const decisions = [];
   const root = model.rootCandidates[0];
   if (!model.resources) {
-    decisions.push('No `_files` folder next to the HTML: the page may have been saved as "HTML only", so styles and visibility can be wrong. Re-save as **Webpage, Complete** if elements are missing.');
+    decisions.push(
+      'No `_files` folder next to the HTML: the page may have been saved as "HTML only", so styles and visibility can be wrong. Re-save as **Webpage, Complete** if elements are missing.',
+    );
   }
-  if (model.rows.length < 3) decisions.push('Very few elements: the page was probably saved before it rendered — re-save it once the content is visible.');
+  if (model.rows.length < 3)
+    decisions.push(
+      'Very few elements: the page was probably saved before it rendered — re-save it once the content is visible.',
+    );
   if (!root) decisions.push('No root candidate: choose an element that exists only on this page.');
-  else if (root.heading) decisions.push(`Root \`${root.locator}\` relies on visible text — if the text is test data (article title, username), use a page container instead.`);
+  else if (root.heading)
+    decisions.push(
+      `Root \`${root.locator}\` relies on visible text — if the text is test data (article title, username), use a page container instead.`,
+    );
   for (const row of model.rows) {
-    if (!row.locator) decisions.push(`\`${row.name}\` (${row.group}): no stable locator for <${row.tag}>${row.text ? ` "${row.text}"` : ''} — needs a decision.`);
+    if (!row.locator)
+      decisions.push(
+        `\`${row.name}\` (${row.group}): no stable locator for <${row.tag}>${row.text ? ` "${row.text}"` : ''} — needs a decision.`,
+      );
     else if (row.matches > 1) {
-      decisions.push(`\`${row.name}\` (${row.group}): \`${row.locator}\` matches ${row.matches} elements — scope it to a container or filter it; \`.first()\` only with a stable reason stated in the task or pull request (no code comment).`);
+      decisions.push(
+        `\`${row.name}\` (${row.group}): \`${row.locator}\` matches ${row.matches} elements — scope it to a container or filter it; \`.first()\` only with a stable reason stated in the task or pull request (no code comment).`,
+      );
     }
   }
   const headerRows = model.rows.filter((r) => r.header);
@@ -383,30 +441,42 @@ function openDecisions(model) {
     );
   }
   if (model.rows.some((r) => r.group === 'errors') && model.rows.some((r) => r.group === 'fields')) {
-    decisions.push('Map error locators to field names in `errors` for `verifyErrorField` (the draft keeps them as read-only locators).');
+    decisions.push(
+      'Map error locators to field names in `errors` for `verifyErrorField` (the draft keeps them as read-only locators).',
+    );
   }
   if (model.rows.some((r) => r.group === 'content' && r.locator?.includes("name: '"))) {
-    decisions.push('Content locators use visible text; replace any that show test data with a container locator or a parametrised method.');
+    decisions.push(
+      'Content locators use visible text; replace any that show test data with a container locator or a parametrised method.',
+    );
   }
   return decisions;
 }
 
 function renderDraft(model) {
   const inDraft = (r) => r.visible && !r.header && r.locator;
-  const groups = GROUPS.slice(0, 4).map((g) => ({ ...g, rows: model.rows.filter((r) => r.group === g.key && inDraft(r)) }));
+  const groups = GROUPS.slice(0, 4).map((g) => ({
+    ...g,
+    rows: model.rows.filter((r) => r.group === g.key && inDraft(r)),
+  }));
   const lastUsed = groups.map((g) => g.rows.length > 0).lastIndexOf(true);
   const typeArgs = groups.slice(0, lastUsed + 1).map((g) => (g.rows.length ? g.typeName : 'never'));
   const todo = (r, indent) => (r.matches > 1 ? [`${indent}// TODO: ${r.matches} matches — scope or filter`] : []);
   const root = model.rootCandidates[0];
 
   const lines = ["import type { Locator } from '@playwright/test';", "import { BasePage } from '@/base/BasePage';", ''];
-  for (const g of groups) if (g.rows.length) lines.push(`type ${g.typeName} = ${g.rows.map((r) => `'${r.name}'`).join(' | ')};`);
+  for (const g of groups)
+    if (g.rows.length) lines.push(`type ${g.typeName} = ${g.rows.map((r) => `'${r.name}'`).join(' | ')};`);
   lines.push(
     '',
     `export class ${model.className} extends BasePage${typeArgs.length ? `<${typeArgs.join(', ')}>` : ''} {`,
   );
   if (root) lines.push(`  protected readonly root = this.page.${root.locator};`);
-  else lines.push('  // TODO: choose an element that exists only on this page', "  protected readonly root = this.page.locator('body');");
+  else
+    lines.push(
+      '  // TODO: choose an element that exists only on this page',
+      "  protected readonly root = this.page.locator('body');",
+    );
 
   for (const g of groups) {
     if (!g.rows.length) continue;
@@ -451,8 +521,12 @@ function renderMarkdown(model, opts) {
   out.push(`| Title | ${cell(model.title) || '—'} |`);
   out.push(`| Source URL | ${model.sourceUrl ? cell(model.sourceUrl) : 'unknown (no "saved from url" comment)'} |`);
   out.push(`| Route | ${model.route ? `\`#${model.route}\`` : '—'} |`);
-  out.push(`| Saved resources | ${model.resources ? `\`${rel(model.resources)}/\`` : '**missing** — save as "Webpage, Complete"'} |`);
-  out.push(`| Elements | ${model.rows.filter((r) => r.visible).length} visible${model.hidden ? `, ${model.hidden} hidden ${opts.all ? 'included' : 'skipped'}` : ''} |`);
+  out.push(
+    `| Saved resources | ${model.resources ? `\`${rel(model.resources)}/\`` : '**missing** — save as "Webpage, Complete"'} |`,
+  );
+  out.push(
+    `| Elements | ${model.rows.filter((r) => r.visible).length} visible${model.hidden ? `, ${model.hidden} hidden ${opts.all ? 'included' : 'skipped'}` : ''} |`,
+  );
   out.push(
     `| Existing page object | ${model.existingPage ? `\`${model.existingPage}\` — ${model.existingCount} locator(s) already declared: extend it` : 'none found — new page object'} |`,
   );
@@ -467,7 +541,12 @@ function renderMarkdown(model, opts) {
   for (const g of GROUPS) {
     const rows = model.rows.filter((r) => r.group === g.key);
     if (!rows.length) continue;
-    out.push(`### ${g.title}${g.typeName ? ` (\`${g.key}\`)` : ''}`, '', '| Name | Role | Locator | Matches | Details | In src/pageObject |', '|---|---|---|---|---|---|');
+    out.push(
+      `### ${g.title}${g.typeName ? ` (\`${g.key}\`)` : ''}`,
+      '',
+      '| Name | Role | Locator | Matches | Details | In src/pageObject |',
+      '|---|---|---|---|---|---|',
+    );
     for (const r of rows) {
       const details = [
         r.placeholder && `placeholder "${r.placeholder}"`,
@@ -478,9 +557,16 @@ function renderMarkdown(model, opts) {
       ]
         .filter(Boolean)
         .join('; ');
-      const existing = r.existing.length ? r.existing.slice(0, 2).map((u) => `${u.file}:${u.line}`).join(', ') : '—';
+      const existing = r.existing.length
+        ? r.existing
+            .slice(0, 2)
+            .map((u) => `${u.file}:${u.line}`)
+            .join(', ')
+        : '—';
       const matches = r.matches === 1 ? '1' : `**${r.matches}**`;
-      out.push(`| \`${r.name}\` | ${r.role} | ${r.locator ? `\`${cell(r.locator)}\`` : '—'} | ${matches} | ${cell(details) || '—'} | ${existing} |`);
+      out.push(
+        `| \`${r.name}\` | ${r.role} | ${r.locator ? `\`${cell(r.locator)}\`` : '—'} | ${matches} | ${cell(details) || '—'} | ${existing} |`,
+      );
     }
     out.push('');
   }
@@ -488,28 +574,51 @@ function renderMarkdown(model, opts) {
   if (model.forms.length) {
     out.push('## Forms', '');
     for (const form of model.forms) {
-      const names = (key) => form.rows.filter((r) => r.group === key).map((r) => `\`${r.name}\``).join(', ') || '—';
+      const names = (key) =>
+        form.rows
+          .filter((r) => r.group === key)
+          .map((r) => `\`${r.name}\``)
+          .join(', ') || '—';
       out.push(`### ${form.label}`, '', `- Fields: ${names('fields')}`, `- Buttons: ${names('buttons')}`);
       if (form.rows.some((r) => r.group === 'checkboxes')) out.push(`- Checkboxes: ${names('checkboxes')}`);
       if (form.rows.some((r) => r.group === 'radioButtons')) out.push(`- Radio buttons: ${names('radioButtons')}`);
       const fields = form.rows.filter((r) => r.group === 'fields' && !r.header);
       const submit = form.rows.find((r) => r.group === 'buttons');
       if (fields.length && submit) {
-        out.push('', 'Steps in a spec:', '', '```ts', `await get(${model.className}${model.route ? ', Route.<route>' : ''})`);
-        out.push(...fields.map((r) => `  .fillData('${r.name}', data.${r.name})`), `  .clickActionButton('${submit.name}');`, '```');
+        out.push(
+          '',
+          'Steps in a spec:',
+          '',
+          '```ts',
+          `await get(${model.className}${model.route ? ', Route.<route>' : ''})`,
+        );
+        out.push(
+          ...fields.map((r) => `  .fillData('${r.name}', data.${r.name})`),
+          `  .clickActionButton('${submit.name}');`,
+          '```',
+        );
       }
       out.push('');
     }
   }
 
   if (model.repeated.length) {
-    out.push('## Repeated items', '', '| Class | Count | Elements inside (skipped) | Sample text | Suggested locator |', '|---|---|---|---|---|');
+    out.push(
+      '## Repeated items',
+      '',
+      '| Class | Count | Elements inside (skipped) | Sample text | Suggested locator |',
+      '|---|---|---|---|---|',
+    );
     for (const item of model.repeated) {
       out.push(
         `| \`.${item.cls}\` | ${item.count} | ${item.inner ?? 0} | ${cell(item.sample)} | \`this.page.locator('.${item.cls}').filter({ hasText: text })\` |`,
       );
     }
-    out.push('', 'Elements inside repeated items show test data, so they are not named in the maps: reach them through the item, e.g. `homePage.button.click(homePage.articlePreview(title).getByRole(\'link\'))`.', '');
+    out.push(
+      '',
+      "Elements inside repeated items show test data, so they are not named in the maps: reach them through the item, e.g. `homePage.button.click(homePage.articlePreview(title).getByRole('link'))`.",
+      '',
+    );
   }
 
   out.push('## Open decisions', '');
@@ -517,7 +626,17 @@ function renderMarkdown(model, opts) {
   else out.push('None.');
 
   out.push('', '## Page object draft', '', '```ts', renderDraft(model), '```', '');
-  if (model.snapshot) out.push('<details><summary>ARIA snapshot of the saved page</summary>', '', '```yaml', model.snapshot, '```', '', '</details>', '');
+  if (model.snapshot)
+    out.push(
+      '<details><summary>ARIA snapshot of the saved page</summary>',
+      '',
+      '```yaml',
+      model.snapshot,
+      '```',
+      '',
+      '</details>',
+      '',
+    );
   return out.join('\n');
 }
 
@@ -553,7 +672,9 @@ async function main() {
       const target = outputPath(file, opts, files.length > 1);
       fs.mkdirSync(path.dirname(target), { recursive: true });
       fs.writeFileSync(target, markdown);
-      console.log(`${rel(target)} — ${model.className}: ${model.rows.length} element(s), ${model.decisions.length} open decision(s)`);
+      console.log(
+        `${rel(target)} — ${model.className}: ${model.rows.length} element(s), ${model.decisions.length} open decision(s)`,
+      );
     }
   } finally {
     await browser.close();

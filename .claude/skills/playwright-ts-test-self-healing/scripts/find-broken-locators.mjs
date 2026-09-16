@@ -19,7 +19,8 @@ const PAGE_OBJECT_DIR = 'src/pageObject';
 const stripAnsi = (s = '') => s.replace(/\[[0-9;]*m/g, '');
 const rel = (p) => (p ? path.relative(process.cwd(), p) : p);
 
-const LOCATOR_ERROR = /element\(s\) not found|strict mode violation|resolved to \d+ elements|waiting for (locator|getBy)|^Locator: /im;
+const LOCATOR_ERROR =
+  /element\(s\) not found|strict mode violation|resolved to \d+ elements|waiting for (locator|getBy)|^Locator: /im;
 const MISSING_NAME = /has no (field|button|checkbox|radio button|error|element) named/;
 const RATE_LIMIT_LOG = /-> 429\b/;
 /** Report step title written by BasePage.enqueue: `ArticlePage.clickActionButton(postComment)`. */
@@ -55,7 +56,11 @@ function listFiles(dir) {
 }
 
 function extractLocator(message) {
-  const patterns = [/^Locator: (.+)$/m, /strict mode violation: (.+?) resolved to/, /waiting for ((?:locator|getBy)\S.*)$/m];
+  const patterns = [
+    /^Locator: (.+)$/m,
+    /strict mode violation: (.+?) resolved to/,
+    /waiting for ((?:locator|getBy)\S.*)$/m,
+  ];
   for (const pattern of patterns) {
     const match = message.match(pattern);
     if (match) return match[1].trim();
@@ -68,7 +73,10 @@ function failedPageStep(steps, found) {
   for (const step of steps ?? []) {
     if (!step.error) continue;
     const match = step.title.match(PAGE_STEP);
-    return failedPageStep(step.steps, match ? { title: step.title, className: match[1], method: match[2], arg: match[3] } : found);
+    return failedPageStep(
+      step.steps,
+      match ? { title: step.title, className: match[1], method: match[2], arg: match[3] } : found,
+    );
   }
   return found;
 }
@@ -104,7 +112,8 @@ function findByLiterals(files, locator) {
     fs.readFileSync(file, 'utf-8')
       .split('\n')
       .forEach((line, index) => {
-        if (literals.every((literal) => line.includes(literal))) found.push({ file: rel(file), line: index + 1, code: line.trim() });
+        if (literals.every((literal) => line.includes(literal)))
+          found.push({ file: rel(file), line: index + 1, code: line.trim() });
       });
   }
   return found;
@@ -116,7 +125,9 @@ function snapshotInfo(errorContextPath) {
   const snapshot = text.match(/# Page snapshot\s*```(?:yaml)?\n([\s\S]*?)```/);
   if (!snapshot) return 'no page snapshot (page may not have rendered — check the screenshot)';
   const lines = snapshot[1].split('\n').filter((line) => line.trim()).length;
-  return lines < 5 ? `near-empty page snapshot (${lines} lines) — likely blank page / rate limit` : `page snapshot: ${lines} lines`;
+  return lines < 5
+    ? `near-empty page snapshot (${lines} lines) — likely blank page / rate limit`
+    : `page snapshot: ${lines} lines`;
 }
 
 function analyze(report) {
@@ -136,7 +147,8 @@ function analyze(report) {
     const errorContext = attachment(/error-context/);
 
     let verdict;
-    if (RATE_LIMIT_LOG.test(logs) || /\b429\b|rate limited/i.test(message)) verdict = 'environment: rate limited — do not heal';
+    if (RATE_LIMIT_LOG.test(logs) || /\b429\b|rate limited/i.test(message))
+      verdict = 'environment: rate limited — do not heal';
     else if (MISSING_NAME.test(message)) verdict = 'test code: element name is not declared — do not heal';
     else if (LOCATOR_ERROR.test(message)) verdict = 'locator: candidate for healing';
     else verdict = 'not a locator failure';
@@ -156,7 +168,8 @@ function analyze(report) {
         }
       }
     }
-    if (!declarations.length) declarations = findByLiterals(pageObjectFiles, locator).map((d) => ({ element: '?', ...d }));
+    if (!declarations.length)
+      declarations = findByLiterals(pageObjectFiles, locator).map((d) => ({ element: '?', ...d }));
 
     results.push({
       test: `${spec.file}:${spec.line} › ${spec.title}`,
@@ -191,7 +204,8 @@ function printMarkdown(results) {
     if (r.errorLocation) out.push(`- Spec line: ${rel(r.errorLocation.file)}:${r.errorLocation.line}`);
     if (r.declarations.length) {
       out.push('- Declaration(s):');
-      for (const d of r.declarations) out.push(`  - ${d.file}:${d.line} [${d.element}${d.section ? ` in ${d.section}` : ''}] \`${d.code}\``);
+      for (const d of r.declarations)
+        out.push(`  - ${d.file}:${d.line} [${d.element}${d.section ? ` in ${d.section}` : ''}] \`${d.code}\``);
     } else {
       out.push('- Declaration: not found in src/pageObject (locator may be built in a method or used in the spec)');
     }

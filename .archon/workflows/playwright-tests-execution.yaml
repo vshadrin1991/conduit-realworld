@@ -1,19 +1,16 @@
 name: playwright-tests-execution
-worktree:
-  enabled: false
 description: >-
   Run Playwright tests of the Conduit project and make sense of the result: preflight (dependencies, typecheck),
   the run, triage of failures by category, healing of locators broken by UI changes (page objects only) and an
-  execution report. Input: Playwright CLI arguments — spec files, file:line, --project=ui|api, --grep
+  execution report. Input: --test/--t <spec file or file:line> and --project/--p <ui|api>, both optional
   (empty = the full suite). The demo server is rate limited: run the smallest scope.
 
 nodes:
+  # Deterministic: link the gitignored files the worktree does not have (node_modules, .env, .auth), then check the setup.
   - id: preflight
     bash: |
       set -e
-      cd "${PROJECT_PATH:-$PWD}"
-      echo "Project: $PWD"
-      [ -d node_modules ] || npm ci
+      bash .archon/scripts/workspace-setup.sh
       echo "Playwright $(npx playwright --version)"
       npm run --silent typecheck
       echo "Preflight OK"
@@ -23,12 +20,27 @@ nodes:
     depends_on: [preflight]
     timeout: 1800000
     bash: |
-      cd "${PROJECT_PATH:-$PWD}"
+      # Only two named flags are accepted; anything else in $ARGUMENTS is ignored (rather than falling
+      # through to Playwright's own file/grep filters), so a stray unrecognized word can never widen the
+      # scope like a bare "test" token used to (it matched every spec file by substring, since they all
+      # live under tests/).
       eval "set -- $ARGUMENTS"
+      TEST_PATH=""
+      PROJECT_NAME=""
+      while [ $# -gt 0 ]; do
+        case "$1" in
+          --test|--t) TEST_PATH="$2"; shift 2 ;;
+          --project|--p) PROJECT_NAME="$2"; shift 2 ;;
+          *) shift ;;
+        esac
+      done
+      set --
+      [ -n "$TEST_PATH" ] && set -- "$@" "$TEST_PATH"
+      [ -n "$PROJECT_NAME" ] && set -- "$@" "--project=$PROJECT_NAME"
       : "${HEADLESS:=true}"
       export HEADLESS
       echo "Command: HEADLESS=$HEADLESS npx playwright test $*"
-      rm -rf reports/allure-results
+      rm -rf reports/
       npx playwright test "$@" > $ARTIFACTS_DIR/playwright-output.txt 2>&1
       code=$?
       tail -60 $ARTIFACTS_DIR/playwright-output.txt
@@ -58,11 +70,11 @@ nodes:
     when: "$triage.output.locator_failures == 'YES'"
     skills: [playwright-ts-test-self-healing, playwright-ts-conduit-realworld, playwright-ts-test-results]
 
-  # Deterministic: copy the Allure results (the run and healed re-runs) to the run artifacts and serve the report from there.
+  # Deterministic: copy the report folder (the run and healed re-runs) to the run artifacts and open the Allure report.
   - id: allure
     depends_on: [run, heal]
     trigger_rule: all_done
-    bash: bash "${PROJECT_PATH:-$PWD}/.archon/scripts/allure-serve.sh"
+    bash: bash .archon/scripts/allure-serve.sh
 
   - id: report
     model: '@general'

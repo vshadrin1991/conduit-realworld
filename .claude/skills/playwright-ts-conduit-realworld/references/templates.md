@@ -3,6 +3,7 @@
 Full example files live in [../assets](../assets/README.md) (they compile against the current framework). This file lists where each kind of code goes and what must be registered. Imports use the `@/` alias for `src/`.
 
 ## Contents
+
 - API spec
 - UI spec
 - Page object

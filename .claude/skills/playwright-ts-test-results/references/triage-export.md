@@ -13,16 +13,16 @@ node .claude/skills/playwright-ts-test-results/scripts/triage-report.mjs <report
 
 One row per failed or flaky test (passed tests are left out):
 
-| JSON key | XLSX column | Content |
-|---|---|---|
-| `status` | Status | `automation bug`, `defect` or `flaky` — the category whose likelihood reaches 60%; otherwise `need to review` |
-| `testName` | Test name | `[project] Suite › title (spec file:line)` |
-| `testMethod` | Test method | The step that failed (`ArticlePage.clickActionButton(postComment)`, `API :: PUT :: update current user`) with the error location; only the location when the failure happened outside a step |
-| `defectPercent` | Defect % | Likelihood that the application misbehaves (5xx, wrong values, missing elements) |
-| `automationBugPercent` | Automation bug % | Likelihood that the test, page object or framework is wrong (script errors, ambiguous or outdated locators) |
-| `flakyPercent` | Flaky % | Likelihood of environment or timing noise (429, network, passed on retry, blank page) |
-| `stepsToReproduce` | Steps to reproduce | Numbered plain-language steps up to the failing one, then `Actual result:` and `Expected result:` lines |
-| `reason` | Reason | The evidence behind the percentages |
+| JSON key               | XLSX column        | Content                                                                                                                                                                                      |
+| ---------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `status`               | Status             | `automation bug`, `defect` or `flaky` — the category whose likelihood reaches 60%; otherwise `need to review`                                                                                |
+| `testName`             | Test name          | `[project] Suite › title (spec file:line)`                                                                                                                                                   |
+| `testMethod`           | Test method        | The step that failed (`ArticlePage.clickActionButton(postComment)`, `API :: PUT :: update current user`) with the error location; only the location when the failure happened outside a step |
+| `defectPercent`        | Defect %           | Likelihood that the application misbehaves (5xx, wrong values, missing elements)                                                                                                             |
+| `automationBugPercent` | Automation bug %   | Likelihood that the test, page object or framework is wrong (script errors, ambiguous or outdated locators)                                                                                  |
+| `flakyPercent`         | Flaky %            | Likelihood of environment or timing noise (429, network, passed on retry, blank page)                                                                                                        |
+| `stepsToReproduce`     | Steps to reproduce | Numbered plain-language steps up to the failing one, then `Actual result:` and `Expected result:` lines                                                                                      |
+| `reason`               | Reason             | The evidence behind the percentages                                                                                                                                                          |
 
 The three percentages always add up to 100. The XLSX has a **Triage** sheet (filters, frozen header, colored status) and a **Summary** sheet; the JSON adds a `run` object with totals, counts by status and the number of reviewed rows.
 
