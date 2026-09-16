@@ -5,7 +5,7 @@ description: >-
   Run Playwright tests of the Conduit project and make sense of the result: preflight (dependencies, typecheck),
   the run, triage of failures by category, healing of locators broken by UI changes (page objects only) and an
   execution report. Input: Playwright CLI arguments — spec files, file:line, --project=ui|api, --grep
-  (empty = the quick suite without @auth-quota tests). The demo server is rate limited: run the smallest scope.
+  (empty = the full suite). The demo server is rate limited: run the smallest scope.
 
 nodes:
   - id: preflight
@@ -25,7 +25,6 @@ nodes:
     bash: |
       cd "${PROJECT_PATH:-$PWD}"
       eval "set -- $ARGUMENTS"
-      if [ "$#" -eq 0 ]; then set -- --grep-invert @auth-quota; fi
       : "${HEADLESS:=true}"
       export HEADLESS
       echo "Command: HEADLESS=$HEADLESS npx playwright test $*"

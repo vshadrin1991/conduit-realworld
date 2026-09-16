@@ -6,7 +6,7 @@ description: Project conventions of this Conduit Playwright + TypeScript framewo
 # Playwright + TS project conventions (Conduit)
 
 Target app: https://conduit-realworld-example-app.fly.dev (React SPA with hash routes + REST API under `/api`).
-The framework mirrors the team's Java framework (`BaseTest.get`, `BasePage`/`FunctionalPage`, `pageElements`, `rest/nora`, `utilities/tests`) and exists to keep tests **fast, isolated, readable and cheap on a heavily rate-limited environment**. When a situation is not covered below, choose what best preserves those goals.
+The framework mirrors the team's Java framework (`BaseTest.get`, `BasePage`, `pageElements`, `rest/nora`, `utilities/tests`) and exists to keep tests **fast, isolated, readable and cheap on a heavily rate-limited environment**. When a situation is not covered below, choose what best preserves those goals.
 
 **Good examples:** [assets](assets/README.md) holds complete, type-checked example files (API spec, hybrid UI spec, mocked UI spec, page object, component, endpoint helper, API flow) — open the matching one before writing new code and copy its shape. [references/templates.md](references/templates.md) lists the registration steps for each kind of addition.
 
@@ -18,9 +18,9 @@ The framework mirrors the team's Java framework (`BaseTest.get`, `BasePage`/`Fun
 
 ```
 src/
-  base/                   BaseTest (get + automatic logs/dataCleaner), BasePage (implements FunctionalPage), FunctionalPage, BaseComponent
+  base/                   BaseTest (get + automatic logs/dataCleaner), BasePage
   pageObject/pages/       page objects — locators only
-  pageObject/components/  page components (extend BaseComponent): element components on every page (Input, Button, Checkbox, RadioButton, Text, Confirmation), Header, LocalStorage
+  pageObject/components/  page components (BaseComponent): element components on every page (Input, Button, Checkbox, RadioButton, Text, Confirmation), Navigation, Header, LocalStorage
   pageObject/pagePath/    Routes.ts — hash routes: Route.article(slug) etc.
   api/client/             RestClient (core `response(request)`), APIClient (get/post/put/delete helpers + api flows)
   api/client/helpers/     RestApi{Get,Post,Put,Delete}Helper + <domain>/<Domain><Verb>API endpoint classes
@@ -31,12 +31,12 @@ src/
   api/schemas/            JSON schemas of the responses by domain + Schema storage (expect(...).toMatchSchema)
   utilities/logger/       logger (console + per-test `logs` attachment)
   utilities/interceptor/  Interceptor — get(Interceptor): mock + API and console capture started for every test
-  utilities/reporter/     ArtifactsReporter (reports/artifacts.json for failed and flaky tests)
+  utilities/reporter/     ArtifactsReporter (reports/artifacts.json for failed and flaky tests), Step (inStep — report step reported at the spec line)
   utilities/tests/        TestDataGenerator (faker-based data, automation key), TestDataStorage (per-test storage)
   config/                 loader (.env + .env.<TEST_ENV>), env.config, auth.config, framework.config (browser, headless, timeouts, ...), report.config
 tests/
   api/*.api.spec.ts       "api" project — fully parallel
-  ui/*.ui.spec.ts         "ui" project — files in parallel, tests of a file one by one, new browser per test, guest by default — sign in through LoginPage steps (AUTH_QUOTA)
+  ui/*.ui.spec.ts         "ui" project — files in parallel, tests of a file one by one, new browser per test, guest by default — sign in through LoginPage steps
 ```
 
 ## Choosing the test layer
@@ -53,7 +53,7 @@ Follow the test pyramid: verify logic at the lowest layer that can observe it.
 Every spec imports from the single base test — never from `@playwright/test` directly:
 
 ```ts
-import { test, expect, AUTH_QUOTA } from '@/base/BaseTest';
+import { test, expect } from '@/base/BaseTest';
 ```
 
 Get collaborators through `get` (mirrors the Java `BaseTest.get(Class)`):
@@ -63,41 +63,51 @@ get(APIClient).post.articles.with(a)          // REST client authenticated as th
 get(APIClient, { guest: true })               // REST client without a token
 get(APIClient).api.articles.create({ count: 2 }) // multi-call API flows (created data is deleted after the test)
 get(ArticlePage)                                      // page object bound to the current page (cached per test)
-get(ArticlePage, Route.article(slug))                 // same page with navigation queued — chain steps, await once
+await get(ArticlePage, Route.article(slug))           // opens the page at the route; later calls use get(ArticlePage)
 get(Interceptor)                                      // network mocks (utility, not a component)
 get(LocalStorage)                                     // page component without an element to act on
 ```
 
 **Every API call in a test starts with `get(APIClient)`** — endpoint helpers (`.get/.post/.put/.delete`), flows (`.api`) and raw calls (`.response`). Do not store the client in a local variable and do not import `ConduitAPI` in specs.
 
-**Element components are called from the page, never through `get`.** Every page exposes `input`, `button`, `checkbox`, `radioButton`, `text`, `confirmation` (and `header`, `log`). Use them for locators that are not in the page's named maps and for native dialogs (`articlePage.confirmation.answerNext('accept')` before the action that opens the dialog) — `get(Input | Button | Checkbox | RadioButton | Text | Confirmation)` does not appear in specs:
+**Everything a page offers is reached through `get(PageClass)` — `get(PageClass).<component>.<action>()`.** Specs do not keep page objects in local variables: `get(PageClass)` returns the same cached instance for the whole test, so every line names the page it acts on and stays readable on its own.
+
+Every page exposes the components `input`, `button`, `checkbox`, `radioButton`, `text`, `confirmation`, `navigation` (and `header`, `log`). Use them for locators that are not in the page's named maps and for native dialogs — `get(Input | Button | Checkbox | RadioButton | Text | Confirmation)` never appears in a spec:
 
 ```ts
-const homePage = get(HomePage);
-await homePage.button.click(homePage.header.userMenu);
-await homePage.button.click(homePage.articleLink(article.title));
+await get(HomePage).button.click(get(HomePage).header.userMenu);
+await get(HomePage).button.click(get(HomePage).articleLink(article.title));
 
-const articlePage = get(ArticlePage);
-expect((await articlePage.text.getTexts(articlePage.tags)).toSorted()).toEqual(data.tagList!.toSorted());
+const tagTexts = await get(ArticlePage).text.getTexts(get(ArticlePage).tags);
+expect(tagTexts.toSorted()).toEqual(data.tagList!.toSorted());
+
+const dialog = get(ArticlePage).confirmation.answerNext('accept');
+await get(ArticlePage).clickActionButton('deleteArticle');
 ```
+
+| Bad | Good |
+|---|---|
+| `const homePage = get(HomePage); await homePage.button.click(x)` | `await get(HomePage).button.click(x)` |
+| `get(Button).click(locator)` | `get(HomePage).button.click(locator)` |
+| `new Input(page).enter(locator, 'x')` | `get(SettingsPage).input.enter(locator, 'x')` |
 
 Tests describe the flow step by step — pages have no multi-step business methods, so every user action is visible in the spec:
 
 ```ts
 const [article] = await get(APIClient).api.articles.create();
 
-await get(ArticlePage, Route.article(article.slug))
-  .fillData('comment', text)
-  .clickActionButton('postComment');
+await get(ArticlePage, Route.article(article.slug));
+await get(ArticlePage).fillData('comment', text);
+await get(ArticlePage).clickActionButton('postComment');
 
 await expect(get(ArticlePage).comment(text)).toBeVisible();
 ```
 
-Page calls are fluent (like the Java `FunctionalPage<P>`): `navigate`, `waitUntilPageLoaded` and every `FunctionalPage` method queue their action and return the page; `await` on the chain runs the actions in order, each shown as a report step (`ArticlePage.fillData(comment)`) located at the spec line.
+Every page call is a separate `await` and is one named step (like the Java `FunctionalPage<P>`): `navigate`, `waitUntilPageLoaded`, `fillData`, `clickActionButton` and the `verify*` methods run on their own and are shown as a report step (`ArticlePage.fillData(comment)`) reported at the spec line that called them.
 
-- Always `await` the chain — an un-awaited chain does nothing visible.
-- Awaiting resolves to `void`, not to the page. To read locators, take the cached instance again: `const articlePage = get(ArticlePage); await articlePage.waitUntilPageLoaded(); await expect(articlePage.title)...`.
-- Element components (`page.button`, `page.text`, `page.confirmation`, ...), `get(Interceptor)`, `get(LocalStorage)` and API clients are not chainable; await their calls individually.
+- Always `await` every page call — lint's `no-floating-promises` catches a missing one.
+- `get(PageClass, route)` returns a promise, so it is awaited on its own line: `await get(ArticlePage, Route.article(slug));`. Everything after it goes through `get(ArticlePage)` — the same cached instance, no local variable.
+- `navigate` already waits for the page, so `waitUntilPageLoaded` after `get(PageClass, route)` is redundant; use it after an action that navigates: `await get(HomePage).button.click(...)` then `await get(ArticlePage).waitUntilPageLoaded()`.
 
 Test functions receive only `{ get }` — no other fixtures (`page`, `request`, ... are not used in specs). The shared user comes from `await getTestUser()` (`@/api/client/session/auth/User`), a signed-in browser from the login form steps (see **Browser** below), browser storage from `get(LocalStorage)`, network mocks from `get(Interceptor).mock(url, response)` (its API/console capture is attached to failed tests automatically). Logging and data cleanup run automatically as auto fixtures inside `BaseTest` (`dataCleaner` is declared after `logs`, so its teardown is logged). `get` depends on `page`, so API specs also get a never-navigated browser page (startup time, no server requests).
 
@@ -111,11 +121,11 @@ Structure each test as Arrange / Act / Assert separated by blank lines, one beha
 
 ## Rules for every change
 
-- **Rate limits** — ~100 requests / 15 min per IP and ~5 auth requests / hour: arrange and verify through the API, run the smallest scope, tag auth calls `AUTH_QUOTA`. Details: [execution-and-config](references/execution-and-config.md).
+- **Rate limits** — ~100 requests / 15 min per IP and ~5 auth requests / hour: arrange and verify through the API, run the smallest scope, keep sign-in and registration tests few. Details: [execution-and-config](references/execution-and-config.md).
 - **Test data** — generate it with `TestDataGenerator`, create prerequisites with API flows, track anything created another way. Details: [test-data-and-auth](references/test-data-and-auth.md).
-- **Browser** — every UI test runs in its own new browser and starts as a guest. A test that needs a user signs in through the login form — `getTestUser()` credentials, then `get(LoginPage, Route.login).fillData('email', …).fillData('password', …).clickActionButton('login')` and `get(HomePage).waitUntilPageLoaded()` — in `beforeEach` or the test, never in `beforeAll`, and is tagged `AUTH_QUOTA` (each sign-in spends the ~5 requests / hour auth quota). Details: [execution-and-config](references/execution-and-config.md), [test-data-and-auth](references/test-data-and-auth.md).
+- **Browser** — every UI test runs in its own new browser and starts as a guest. A test that needs a user signs in through the login form — `getTestUser()` credentials, then `get(LoginPage, Route.login).fillData('email', …).fillData('password', …).clickActionButton('login')` and `get(HomePage).waitUntilPageLoaded()` — in `beforeEach` or the test, never in `beforeAll`. Each sign-in spends the ~5 requests / hour auth quota, so keep such tests few. Details: [execution-and-config](references/execution-and-config.md), [test-data-and-auth](references/test-data-and-auth.md).
 - **Page objects** — locators only; priority role → placeholder/label/text → semantic CSS; no XPath. Details: [page-objects](references/page-objects.md).
-- **Components** — `BaseComponent` is for page components only (element components, `Header`, `Confirmation`, `LocalStorage` in `src/pageObject/components/`); `Interceptor` is a utility and does not extend it. Element components and `confirmation` are called from the page; `get()` only for `Interceptor` and `LocalStorage`. Details: [components](references/components.md).
+- **Components** — `BaseComponent` (`src/pageObject/components/`) is for page components only (element components, `Header`, `Confirmation`, `LocalStorage`); `Interceptor` is a utility and does not extend it. Element components and `confirmation` are called from the page; `get()` only for `Interceptor` and `LocalStorage`. Details: [components](references/components.md).
 - **API** — every call starts with `get(APIClient)`; paths in `BasePath`, models by domain; validate the response shape with `expect(model).toMatchSchema(Schema.X)`. Details: [api-client](references/api-client.md).
 - **Configuration** — never read `process.env` outside `src/config`. Details: [execution-and-config](references/execution-and-config.md).
 - **Comments** — no `//` or one-line `/** */` comments in code; a multi-line JSDoc block (one sentence, `@param` for every parameter, `@return` unless `void`) on every function and method in base classes, utilities, page objects, helpers, flows and components; no class-level comments on page objects and utility classes. Details: [code-conventions](references/code-conventions.md).
@@ -138,10 +148,9 @@ Open the reference that matches the work before writing code:
 
 ## Definition of done for a new or changed test
 
-1. `npm run typecheck` and `npm run lint` pass (lint's `no-floating-promises` catches page chains without `await`).
+1. `npm run typecheck` and `npm run lint` pass (lint's `no-floating-promises` catches page calls without `await`).
 2. The test passes when run alone, and again with `--repeat-each=2` if budget allows — this catches data coupling.
 3. It fails for the right reason: temporarily break the expectation and check the message is clear.
 4. Created data is registered for cleanup (API flows or `api.articles.track`).
-5. Quota-consuming tests are tagged `AUTH_QUOTA`.
 6. Every API call starts with `get(APIClient)`; element components (`input`, `button`, `checkbox`, `radioButton`, `text`) are called from the page.
 7. Triage any failure with the [playwright-ts-test-results](../playwright-ts-test-results/SKILL.md) skill before changing expectations; heal locators broken by a UI change with the [playwright-ts-test-self-healing](../playwright-ts-test-self-healing/SKILL.md) skill.

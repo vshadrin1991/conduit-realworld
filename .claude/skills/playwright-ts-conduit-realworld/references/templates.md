@@ -18,15 +18,14 @@ Example: `assets/tests/api/articles.api.spec.ts`.
 - Arrange with `get(APIClient).api.<domain>.create()`, act with an endpoint helper, assert the returned model with `toMatchObject`.
 - Negative case: `get(APIClient, { guest: true }).response({ name, path, pathData, method, body, statusCode })`, then assert `(await response.json()) as ErrorResponse`.
 - A new slug/id created outside a flow: `get(APIClient).api.articles.track(slug)`.
-- Calls to `/api/users*` → `{ tag: AUTH_QUOTA }`.
 
 ## UI spec — `tests/ui/<feature>.ui.spec.ts`
 
 Examples: `assets/tests/ui/articles.ui.spec.ts` (hybrid), `assets/tests/ui/auth.ui.spec.ts` (mocked response, header menu, localStorage).
 
-- Signed-in browser: sign in through the form — `const testUser = await getTestUser()`, then `await get(LoginPage, Route.login).fillData('email', testUser.email).fillData('password', testUser.password).clickActionButton('login')` and `await get(HomePage).waitUntilPageLoaded()` (in `test.beforeEach` for the whole describe) — and tag the test or describe `AUTH_QUOTA`. Guest scenarios skip it.
+- Signed-in browser: sign in through the form — `const testUser = await getTestUser()`, then `await get(LoginPage, Route.login).fillData('email', testUser.email).fillData('password', testUser.password).clickActionButton('login')` and `await get(HomePage).waitUntilPageLoaded()` (in `test.beforeEach` for the whole describe). Guest scenarios skip it.
 - Steps: `await get(Page, Route.x).fillData(...).clickActionButton(...)`; after navigation `await get(NextPage).waitUntilPageLoaded()`.
-- Locators outside the named maps: call element components from the page — `page.button.click(locator)`, `page.input.enter(locator, text)`, `page.text.getTexts(locator)`.
+- Locators outside the named maps: call element components through the page — `get(HomePage).button.click(locator)`, `get(SettingsPage).input.enter(locator, text)`, `get(ArticlePage).text.getTexts(locator)`.
 - Mock only what the backend cannot produce on demand: `await get(Interceptor).mock(url, { status, json })` before the action; state the reason in the task or pull request (no code comment).
 - Tests of a file run one by one, each in its own new browser: log in and arrange in `beforeEach` (never `beforeAll`), with no dependency between tests.
 
@@ -46,7 +45,7 @@ Example: `assets/src/pageObject/components/Selector.ts`.
 
 `BaseComponent` is only for page components. A class about the API, test data or capture (like `Interceptor` in `src/utilities/`) does not extend it: it takes `page` in its constructor, creates its own logger and gets an overload plus a branch in the `get` fixture of `BaseTest` ([components](components.md#basecomponent-is-for-page-components-only)).
 
-- Element component (acts on a locator passed to each call): extend `BaseComponent`, log at `debug`. Always add `readonly selector: Selector;` to `BasePage` and create it in the constructor — tests then call `somePage.selector.select(locator, 'x')`.
+- Element component (acts on a locator passed to each call): extend `BaseComponent`, log at `debug`. Always add `readonly selector: Selector;` to `BasePage` and create it in the constructor — tests then call `get(SomePage).selector.select(locator, 'x')`.
 - Page component without an element (like `LocalStorage`): extend `BaseComponent`, use it with `get(Name)`.
 - Page fragment shared by pages (like `Header`): readonly locators + locator-returning methods, exposed from `BasePage` through composition.
 

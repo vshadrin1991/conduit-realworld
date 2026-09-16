@@ -1,5 +1,5 @@
 import { expect, type Locator } from '@playwright/test';
-import { BaseComponent } from '@/base/BaseComponent';
+import { BaseComponent } from './BaseComponent';
 
 export class Input extends BaseComponent {
   /**

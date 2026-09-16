@@ -26,7 +26,6 @@ Produce an implementation plan that follows the `playwright-ts-conduit-realworld
    - spec file and test title;
    - page objects to add or extend, with element names from the page descriptions;
    - routes, paths, models, endpoint helpers, flows, test data generators;
-   - tags (`AUTH_QUOTA` for registration/login calls).
 4. Collect open questions: open questions of the task, open decisions of page descriptions that affect the cases, missing steps, expected results or exact messages. Never invent expected texts.
 5. Write the plan to `$ARTIFACTS_DIR/plan.md`: cases → layer → files table, traceability (requirement / test case ID → spec and test title), file-by-file changes, open questions.
 

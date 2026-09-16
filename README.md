@@ -8,7 +8,7 @@ UI and API tests for [Conduit RealWorld](https://conduit-realworld-example-app.f
 npm install
 npx playwright install chromium
 cp .env.example .env   # optional
-npm run test:quick     # everything except tests that spend the auth quota
+npm test               # all projects
 ```
 
 Requires Node.js ≥ 20.12.
@@ -19,9 +19,9 @@ The repeatable Archon workflows (test implementation, review, execution, require
 
 ```
 src/
-  base/                   BaseTest (get + automatic logs/dataCleaner), FunctionalPage, BasePage, BaseComponent
+  base/                   BaseTest (get + automatic logs/dataCleaner), BasePage
   pageObject/pages/       page objects — locators only (extend BasePage)
-  pageObject/components/  page components (extend BaseComponent): Input, Button, Checkbox, RadioButton, Text, Confirmation, Header, LocalStorage
+  pageObject/components/  page components (BaseComponent + Input, Button, Checkbox, RadioButton, Text, Confirmation, Navigation, Header, LocalStorage)
   pageObject/pagePath/    Routes.ts — hash routes
   api/client/             RestClient (core request/response), APIClient (get/post/put/delete helpers)
   api/client/helpers/     RestApi{Verb}Helper + <domain>/<Domain><Verb>API endpoint classes
@@ -32,7 +32,7 @@ src/
   api/responses/          response models by domain
   utilities/logger/       logger
   utilities/interceptor/  Interceptor — network mocks + API and console error capture for every test
-  utilities/reporter/     ArtifactsReporter — reports/artifacts.json for failed tests
+  utilities/reporter/     ArtifactsReporter — reports/artifacts.json for failed tests; Step — inStep (report step located at the spec line)
   utilities/tests/        TestDataGenerator (faker-based test data), TestDataStorage (per-test storage)
   config/                 env, auth, framework (browser, headless, timeouts, ...) and report configs
 tests/
@@ -51,15 +51,15 @@ import { expect, test } from '@/base/BaseTest';
 test('author deletes an article', async ({ get }) => {
   const [article] = await get(APIClient).api.articles.create();               // arrange via API
   const testUser = await getTestUser();                                    // shared user
-  await get(LoginPage, Route.login)                                        // sign in through the UI
-    .fillData('email', testUser.email)
-    .fillData('password', testUser.password)
-    .clickActionButton('login');
+  await get(LoginPage, Route.login);                                      // sign in through the UI
+  await get(LoginPage).fillData('email', testUser.email);
+  await get(LoginPage).fillData('password', testUser.password);
+  await get(LoginPage).clickActionButton('login');
   await get(HomePage).waitUntilPageLoaded();
 
+  await get(ArticlePage, Route.article(article.slug));                     // navigate + wait
   const dialog = get(ArticlePage).confirmation.answerNext('accept');
-  await get(ArticlePage, Route.article(article.slug))                      // navigate + wait,
-    .clickActionButton('deleteArticle');                                   // chained page steps
+  await get(ArticlePage).clickActionButton('deleteArticle');               // one step per await
 
   expect(await dialog).toBe('Want to delete the article?');
   await get(APIClient, { guest: true }).response({                 // verify via API
@@ -70,10 +70,10 @@ test('author deletes an article', async ({ get }) => {
 
 - Every spec imports `test` from `@/base/BaseTest`; test functions receive only `{ get }` (test user: `await getTestUser()`, localStorage: `get(LocalStorage)`, network mocks: `get(Interceptor)`).
 - `get(APIClient)` is authenticated as the test user (`{ guest: true }` for no token): `client.post.articles.with(article)`, `client.get.comments.list(slug)`. Negative cases: `client.response({ path, method, body, statusCode: 401 })`. Multi-call flows: `get(APIClient).api.articles.create({ count: 2 })`. Every API call in a test starts with `get(APIClient)`.
-- `get(PageClass)` returns the page object; `get(PageClass, route)` also queues navigation. Page calls chain and run when awaited: `await get(LoginPage, Route.login).fillData('email', email).clickActionButton('login')` (the await resolves to `void`; use `get(PageClass)` again to read locators). Pages hold locators only.
-- Element helpers are used from the page: `homePage.button.click(homePage.header.userMenu)` (`page.input`, `page.button`, `page.checkbox`, `page.radioButton`, `page.text`), and so are native dialogs: `articlePage.confirmation.answerNext('accept')`. `get(Interceptor)` (utility) and `get(LocalStorage)` (page component) come from `get`.
+- `get(PageClass)` returns the page object (same cached instance for the whole test); `get(PageClass, route)` navigates first and returns a promise, so it is awaited on its own line: `await get(LoginPage, Route.login)`. Everything after that goes through `get(PageClass)` instead of a local variable. Every page call is its own `await` and shows up as a report step: `await get(LoginPage).fillData('email', email)`. Pages hold locators only.
+- Components are always reached through the page as `get(PageClass).<component>.<action>()`: `await get(HomePage).button.click(get(HomePage).header.userMenu)` (`input`, `button`, `checkbox`, `radioButton`, `text`, `confirmation`, `navigation`, `header`), native dialogs included: `get(ArticlePage).confirmation.answerNext('accept')`. `get(Interceptor)` (utility) and `get(LocalStorage)` (page component) come from `get` directly.
 - Test data comes from `TestDataGenerator` (`generateArticle()`, `generateUser()`, `generateTestsName('Article')`); every name contains `AUTOMATION_KEY`. Articles created by API flows are deleted after each test; register others with `get(APIClient).api.articles.track(slug)`.
-- Nothing is set up globally: tests decide whether they need a user. Authenticated clients resolve the shared user lazily; UI tests start as guests and sign in through the login form (`LoginPage` steps, tagged `@auth-quota`) when they need a signed-in browser.
+- Nothing is set up globally: tests decide whether they need a user. Authenticated clients resolve the shared user lazily; UI tests start as guests and sign in through the login form (`LoginPage` steps) when they need a signed-in browser.
 
 Full conventions: [.claude/skills/playwright-ts-conduit-realworld/SKILL.md](.claude/skills/playwright-ts-conduit-realworld/SKILL.md).
 
@@ -82,11 +82,10 @@ Full conventions: [.claude/skills/playwright-ts-conduit-realworld/SKILL.md](.cla
 | Command | What |
 |---|---|
 | `npm test` | all projects |
-| `npm run test:quick` | skip `@auth-quota` tests |
 | `npm run test:api` / `npm run test:ui` | a single project |
 | `npm run test:headed` / `npm run test:debug` / `npm run test:ui-mode` | debugging |
 | `npm run typecheck` | TypeScript check |
-| `npm run lint` | ESLint (also flags page chains without `await`) |
+| `npm run lint` | ESLint (also flags page calls without `await`) |
 
 ## Environment limits
 
@@ -98,7 +97,7 @@ The framework is built around this:
 - the test user and its token are cached in `.auth/`;
 - static assets are cached per worker;
 - data is arranged through the API;
-- tests that spend auth calls are tagged `@auth-quota`.
+- sign-in and registration through the UI are kept to a minimum.
 
 A 429 is logged as a warning in the test's `logs` attachment. Avoid running the full suite twice within 15 minutes.
 

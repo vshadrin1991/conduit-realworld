@@ -4,12 +4,12 @@ import {getTestUser} from '@/api/client/session/auth/User';
 import type {ErrorResponse} from '@/api/responses/errors/ErrorResponse';
 import type {UserResponse} from '@/api/responses/users/User';
 import {Schema} from '@/api/schemas/Schema';
-import {AUTH_QUOTA, expect, test} from '@/base/BaseTest';
+import {expect, test} from '@/base/BaseTest';
 import {generateEmail, generateUser} from '@/utilities/tests/TestDataGenerator';
 
 test.describe('Users API', () => {
     test.describe('sign-up', () => {
-        test('registers a new user and returns the user with a token', {tag: AUTH_QUOTA}, async ({get}) => {
+        test('registers a new user and returns the user with a token', async ({get}) => {
             const newUser = generateUser();
 
             const user = await get(APIClient, {guest: true}).post.users.with(newUser);
@@ -21,7 +21,7 @@ test.describe('Users API', () => {
             expect(user).toHaveProperty('image');
         });
 
-        test('rejects sign-up without a username and creates no account', {tag: AUTH_QUOTA}, async ({get}) => {
+        test('rejects sign-up without a username and creates no account', async ({get}) => {
             const newUser = generateUser();
 
             const response = await get(APIClient, {guest: true}).response({
@@ -45,7 +45,7 @@ test.describe('Users API', () => {
             expect(((await login.json()) as ErrorResponse).errors.body).toContain('Email not found sign in first');
         });
 
-        test('rejects sign-up without an email', {tag: AUTH_QUOTA}, async ({get}) => {
+        test('rejects sign-up without an email', async ({get}) => {
             const newUser = generateUser();
 
             const response = await get(APIClient, {guest: true}).response({
@@ -59,7 +59,7 @@ test.describe('Users API', () => {
             expect(((await response.json()) as ErrorResponse).errors.body).toContain('An email is required');
         });
 
-        test('rejects sign-up without a password and creates no account', {tag: AUTH_QUOTA}, async ({get}) => {
+        test('rejects sign-up without a password and creates no account', async ({get}) => {
             const newUser = generateUser();
 
             const response = await get(APIClient, {guest: true}).response({
@@ -81,34 +81,30 @@ test.describe('Users API', () => {
             expect(((await login.json()) as ErrorResponse).errors.body).toContain('Email not found sign in first');
         });
 
-        test(
-            'checks the required sign-up fields in order username, email, password',
-            {tag: AUTH_QUOTA},
-            async ({get}) => {
-                const newUser = generateUser();
-                const rows = [
-                    {name: 'no fields', user: {}, message: 'A username is required'},
-                    {name: 'a password only', user: {password: newUser.password}, message: 'A username is required'},
-                    {name: 'an email only', user: {email: newUser.email}, message: 'A username is required'},
-                    {name: 'a username only', user: {username: newUser.username}, message: 'An email is required'},
-                ];
+        test('checks the required sign-up fields in order username, email, password', async ({get}) => {
+            const newUser = generateUser();
+            const rows = [
+                {name: 'no fields', user: {}, message: 'A username is required'},
+                {name: 'a password only', user: {password: newUser.password}, message: 'A username is required'},
+                {name: 'an email only', user: {email: newUser.email}, message: 'A username is required'},
+                {name: 'a username only', user: {username: newUser.username}, message: 'An email is required'},
+            ];
 
-                for (const row of rows) {
-                    const response = await get(APIClient, {guest: true}).response({
-                        name: `register with ${row.name}`,
-                        path: BasePath.USERS,
-                        method: 'POST',
-                        body: {user: row.user},
-                        statusCode: 422,
-                    });
+            for (const row of rows) {
+                const response = await get(APIClient, {guest: true}).response({
+                    name: `register with ${row.name}`,
+                    path: BasePath.USERS,
+                    method: 'POST',
+                    body: {user: row.user},
+                    statusCode: 422,
+                });
 
-                    const {errors} = (await response.json()) as ErrorResponse;
-                    expect(errors.body, `register with ${row.name}`).toContain(row.message);
-                }
-            },
-        );
+                const {errors} = (await response.json()) as ErrorResponse;
+                expect(errors.body, `register with ${row.name}`).toContain(row.message);
+            }
+        });
 
-        test('rejects sign-up with an email that already exists', {tag: AUTH_QUOTA}, async ({get}) => {
+        test('rejects sign-up with an email that already exists', async ({get}) => {
             const existing = await getTestUser();
             const duplicate = generateUser({email: existing.email});
 
@@ -131,7 +127,7 @@ test.describe('Users API', () => {
             expect(((await login.json()) as ErrorResponse).errors.body).toContain('Wrong email/password combination');
         });
 
-        test('accepts sign-up with an existing username', {tag: AUTH_QUOTA}, async ({get}) => {
+        test('accepts sign-up with an existing username', async ({get}) => {
             const accountA = generateUser();
             await get(APIClient, {guest: true}).post.users.with(accountA);
             const accountB = generateUser({username: accountA.username});
@@ -147,7 +143,7 @@ test.describe('Users API', () => {
     });
 
     test.describe('sign-in', () => {
-        test('returns a token for valid credentials', {tag: AUTH_QUOTA}, async ({get}) => {
+        test('returns a token for valid credentials', async ({get}) => {
             const testUser = await getTestUser();
 
             const user = await get(APIClient, {guest: true}).post.users.login(testUser);
@@ -157,7 +153,7 @@ test.describe('Users API', () => {
             expect(user.token).toBeTruthy();
         });
 
-        test('rejects login for an unknown email', {tag: AUTH_QUOTA}, async ({get}) => {
+        test('rejects login for an unknown email', async ({get}) => {
             const response = await get(APIClient, {guest: true}).response({
                 name: 'login with unknown email',
                 path: BasePath.USERS_LOGIN,
@@ -170,7 +166,7 @@ test.describe('Users API', () => {
             expect(errors.body).toContain('Email not found sign in first');
         });
 
-        test('rejects login with a wrong password', {tag: AUTH_QUOTA}, async ({get}) => {
+        test('rejects login with a wrong password', async ({get}) => {
             const testUser = await getTestUser();
 
             const response = await get(APIClient, {guest: true}).response({
@@ -186,7 +182,7 @@ test.describe('Users API', () => {
             expect(body.user).toBeUndefined();
         });
 
-        test('new account can log in and read itself', {tag: AUTH_QUOTA}, async ({get}) => {
+        test('new account can log in and read itself', async ({get}) => {
             const newUser = generateUser();
             await get(APIClient, {guest: true}).post.users.with(newUser);
 
@@ -201,7 +197,7 @@ test.describe('Users API', () => {
     });
 
     test.describe('session', () => {
-        test('returns the user that owns the token', {tag: AUTH_QUOTA}, async ({get}) => {
+        test('returns the user that owns the token', async ({get}) => {
             const accountA = await getTestUser();
             const accountB = generateUser();
             const registeredB = await get(APIClient, {guest: true}).post.users.with(accountB);

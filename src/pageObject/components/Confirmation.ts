@@ -1,4 +1,4 @@
-import { BaseComponent } from '@/base/BaseComponent';
+import { BaseComponent } from './BaseComponent';
 
 type ConfirmationButton = 'accept' | 'dismiss';
 

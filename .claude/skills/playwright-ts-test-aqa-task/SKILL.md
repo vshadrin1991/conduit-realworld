@@ -41,7 +41,7 @@ No cases yet, only requirements? Review the requirements and write the cases fir
 Ask for the cases to implement in any form: Qase suite/IDs (read them with the `qase-api` skill when available), a file (csv, xlsx, md), pasted text or a list of titles. Capture per case: ID, title, preconditions, steps, expected result, priority, layer, test data, tags.
 
 - Only titles given → draft steps and expected results from the requirements and saved pages, mark each **Draft — confirm**, and get confirmation before writing the task.
-- Cases that register or log in a user → tag `AUTH_QUOTA` (~5 auth requests/hour).
+- Cases that register or log in a user spend the auth quota (~5 auth requests/hour) — keep them few.
 - Point out cases better covered by API than UI, and cases that cannot be automated as stated (and why).
 
 ### Block 3 — Pages saved in full format

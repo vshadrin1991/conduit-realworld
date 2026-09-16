@@ -1,5 +1,5 @@
 import { expect, type Locator } from '@playwright/test';
-import { BaseComponent } from '@/base/BaseComponent';
+import { BaseComponent } from '@/pageObject/components/BaseComponent';
 
 export class Selector extends BaseComponent {
   /**

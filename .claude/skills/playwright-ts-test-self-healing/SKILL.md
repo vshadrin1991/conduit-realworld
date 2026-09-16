@@ -1,6 +1,6 @@
 ---
 name: playwright-ts-test-self-healing
-description: Use when UI tests in this Conduit Playwright + TypeScript project fail because a locator no longer matches the page — "element(s) not found", "strict mode violation ... resolved to N elements", timeouts in navigate / waitUntilPageLoaded or in a FunctionalPage step (fillData, clickActionButton, verify*) after a front-end change — or when the user asks to heal, repair, update or stabilise broken locators or page objects. Healing follows the project conventions of the playwright-ts-conduit-realworld skill.
+description: Use when UI tests in this Conduit Playwright + TypeScript project fail because a locator no longer matches the page — "element(s) not found", "strict mode violation ... resolved to N elements", timeouts in navigate / waitUntilPageLoaded or in a BasePage step (fillData, clickActionButton, verify*) after a front-end change — or when the user asks to heal, repair, update or stabilise broken locators or page objects. Healing follows the project conventions of the playwright-ts-conduit-realworld skill.
 ---
 
 # Self-healing locators (Conduit)
@@ -21,7 +21,7 @@ Healing edits framework code, so it follows the project conventions skill [playw
 | A shared fragment or component (`Header`, element components) | [components](../playwright-ts-conduit-realworld/references/components.md): `BaseComponent` is for page components only; element components are called from the page |
 | Code around the declaration | [code-conventions](../playwright-ts-conduit-realworld/references/code-conventions.md): no `//` or one-line comments, JSDoc only in the required format |
 | A failure in sign-in steps (`LoginPage` steps in `beforeEach`) | [test-data-and-auth](../playwright-ts-conduit-realworld/references/test-data-and-auth.md): UI tests sign in through the login form and spend the auth quota — heal the `LoginPage` locator, never replace the steps with a session shortcut |
-| Probes and verification runs | [execution-and-config](../playwright-ts-conduit-realworld/references/execution-and-config.md): rate limits, smallest scope, `AUTH_QUOTA` |
+| Probes and verification runs | [execution-and-config](../playwright-ts-conduit-realworld/references/execution-and-config.md): rate limits, smallest scope |
 | App quirks behind a "broken" locator (feed paging, async re-render, native dialogs) | [app-behaviour](../playwright-ts-conduit-realworld/references/app-behaviour.md) |
 
 A heal is done only when it also meets the Definition of done of the conventions skill for a page-object change: typecheck and lint pass, and the healed test passes when run alone.

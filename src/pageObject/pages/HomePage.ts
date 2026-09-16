@@ -94,7 +94,6 @@ export class HomePage extends BasePage<never, ButtonName> {
    * @return locator of the visible article preview
    */
   async findArticleInFeed(title: string, { maxPages = 3, timeout = 5_000 } = {}): Promise<Locator> {
-    await this;
     const preview = this.articlePreview(title);
     for (let pageNumber = 1; ; pageNumber++) {
       const found = await preview.waitFor({ state: 'visible', timeout }).then(

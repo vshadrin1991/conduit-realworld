@@ -21,7 +21,7 @@ Check:
 2. **Assertions** — verify the user-visible outcome and persistence through the API; negative API cases assert the `ErrorResponse` body; no assertions on implementation details.
 3. **Isolation** — no dependency on test order, other tests' data or existing server data; tests of one UI file run one by one in separate browsers; feeds are searched with `findArticleInFeed`.
 4. **Flakiness** — reads that do not retry right after an action (`getTexts`, `allInnerTexts`, `isVisible`, `count` without `expect` / `expect.poll`); exact counts on a shared server; races with native dialogs (answer before the click).
-5. **Rate-limit cost** — data arranged through the UI instead of the API, extra navigations, retries or conditions that repeat requests, auth calls without `AUTH_QUOTA`.
+5. **Rate-limit cost** — data arranged through the UI instead of the API, extra navigations, retries or conditions that repeat requests, avoidable sign-ins.
 6. **Mocks** — only the boundary under test.
 7. **Coverage** — cases of the task, test cases or requirements that are missing or only partially asserted.
 

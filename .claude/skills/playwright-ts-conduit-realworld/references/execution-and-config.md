@@ -19,7 +19,7 @@ The server allows about **100 requests per 15 minutes per IP for everything** (H
 
 - Prefer API arrange and verification over extra UI navigation.
 - Static assets are served from a per-worker cache by the extended `page` fixture — do not remove it (one worker per UI file also means one warm cache per file).
-- Tag tests that call `/api/users` or `/api/users/login` with `{ tag: AUTH_QUOTA }`; `npm run test:quick` excludes them.
+- Keep tests that call `/api/users` or `/api/users/login` few; while iterating, exclude them by running a narrower scope (a single file or `-g`).
 - Retries are 0 locally / 1 on CI; do not raise them to hide failures.
 - A 429 is logged as a warning (`-> 429` in the test's `logs` attachment) — triage with the [playwright-ts-test-results](../../playwright-ts-test-results/SKILL.md) skill.
 - While iterating, run a single spec or test (`npx playwright test tests/ui/articles.ui.spec.ts:12`).

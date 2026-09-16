@@ -1,5 +1,5 @@
 import type { Locator } from '@playwright/test';
-import { BaseComponent } from '@/base/BaseComponent';
+import { BaseComponent } from './BaseComponent';
 
 export class Header extends BaseComponent {
   readonly root: Locator = this.page.getByRole('navigation').first();

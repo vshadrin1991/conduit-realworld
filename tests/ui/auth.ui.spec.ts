@@ -1,5 +1,5 @@
 import {getTestUser} from '@/api/client/session/auth/User';
-import {AUTH_QUOTA, expect, test} from '@/base/BaseTest';
+import {expect, test} from '@/base/BaseTest';
 import {Interceptor} from '@/utilities/interceptor/Interceptor';
 import {LocalStorage} from '@/pageObject/components/LocalStorage';
 import {HomePage} from '@/pageObject/pages/HomePage';
@@ -12,103 +12,104 @@ test.describe('Authentication UI', () => {
     test('sign-up page shows the heading, the sign-in link, the fields and the button', async ({get}) => {
         const user = generateUser();
 
-        await get(RegisterPage, Route.register)
-            .verifyElementExist('signIn', true)
-            .verifyElementExist('username', true)
-            .verifyElementExist('email', true)
-            .verifyElementExist('password', true)
-            .verifyElementExist('signUp', true)
-            .verifyFieldAttribute('email', 'type', 'email')
-            .fillData('password', user.password)
-            .verifyFieldAttribute('password', 'type', 'password');
+        await get(RegisterPage, Route.register);
+
+        await get(RegisterPage).verifyElementExist('signIn', true);
+        await get(RegisterPage).verifyElementExist('username', true);
+        await get(RegisterPage).verifyElementExist('email', true);
+        await get(RegisterPage).verifyElementExist('password', true);
+        await get(RegisterPage).verifyElementExist('signUp', true);
+        await get(RegisterPage).verifyFieldAttribute('email', 'type', 'email');
+        await get(RegisterPage).fillData('password', user.password);
+        await get(RegisterPage).verifyFieldAttribute('password', 'type', 'password');
     });
 
     test('"Sign in to your account" opens the sign-in page', async ({get}) => {
-        await get(RegisterPage, Route.register).clickActionButton('signIn');
+        await get(RegisterPage, Route.register);
 
-        const loginPage = get(LoginPage);
-        await loginPage.waitUntilPageLoaded();
-        await expect(loginPage.page).toHaveURL(/#\/login$/);
+        await get(RegisterPage).clickActionButton('signIn');
+
+        await get(LoginPage).waitUntilPageLoaded();
+        await expect(get(LoginPage).page).toHaveURL(/#\/login$/);
     });
 
-    test('user can sign up', {tag: AUTH_QUOTA}, async ({get}) => {
+    test('user can sign up', async ({get}) => {
         const user = generateUser();
 
-        await get(RegisterPage, Route.register)
-            .fillData('username', user.username)
-            .fillData('email', user.email)
-            .fillData('password', user.password)
-            .clickActionButton('signUp');
+        await get(RegisterPage, Route.register);
+        await get(RegisterPage).fillData('username', user.username);
+        await get(RegisterPage).fillData('email', user.email);
+        await get(RegisterPage).fillData('password', user.password);
+        await get(RegisterPage).clickActionButton('signUp');
 
-        const homePage = get(HomePage);
-        await homePage.waitUntilPageLoaded();
+        await get(HomePage).waitUntilPageLoaded();
         await expect(get(RegisterPage).errorMessages).toBeHidden();
-        await expect(homePage.header.newArticleLink).toBeVisible();
-        await expect(homePage.header.userAvatar(user.username)).toBeVisible();
-        await homePage.button.click(homePage.header.userMenu);
-        await expect(homePage.header.menuItem('Profile')).toBeVisible();
-        await expect(homePage.header.menuItem('Settings')).toBeVisible();
-        await expect(homePage.header.menuItem('Logout')).toBeVisible();
+        await expect(get(HomePage).header.newArticleLink).toBeVisible();
+        await expect(get(HomePage).header.userAvatar(user.username)).toBeVisible();
+        await get(HomePage).button.click(get(HomePage).header.userMenu);
+        await expect(get(HomePage).header.menuItem('Profile')).toBeVisible();
+        await expect(get(HomePage).header.menuItem('Settings')).toBeVisible();
+        await expect(get(HomePage).header.menuItem('Logout')).toBeVisible();
     });
 
-    test('sign-up form shows the duplicate email error', {tag: AUTH_QUOTA}, async ({get}) => {
+    test('sign-up form shows the duplicate email error', async ({get}) => {
         const existing = await getTestUser();
         const user = generateUser({email: existing.email});
 
-        await get(RegisterPage, Route.register)
-            .fillData('username', user.username)
-            .fillData('email', user.email)
-            .fillData('password', user.password)
-            .clickActionButton('signUp');
+        await get(RegisterPage, Route.register);
+        await get(RegisterPage).fillData('username', user.username);
+        await get(RegisterPage).fillData('email', user.email);
+        await get(RegisterPage).fillData('password', user.password);
+        await get(RegisterPage).clickActionButton('signUp');
 
-        const registerPage = get(RegisterPage);
-        await expect(registerPage.errorMessages).toHaveCount(1);
-        await expect(registerPage.errorMessages).toContainText('Email already exists.. try logging in');
-        await expect(registerPage.page).toHaveURL(/#\/register$/);
-        await expect(registerPage.header.loginLink).toBeVisible();
-        await expect(registerPage.header.signUpLink).toBeVisible();
+        await expect(get(RegisterPage).errorMessages).toHaveCount(1);
+        await expect(get(RegisterPage).errorMessages).toContainText('Email already exists.. try logging in');
+        await expect(get(RegisterPage).page).toHaveURL(/#\/register$/);
+        await expect(get(RegisterPage).header.loginLink).toBeVisible();
+        await expect(get(RegisterPage).header.signUpLink).toBeVisible();
     });
 
     test('sign-in page shows the heading, the sign-up link, the fields and the button', async ({get}) => {
         const user = generateUser();
 
-        await get(LoginPage, Route.login)
-            .verifyElementExist('needAnAccount', true)
-            .verifyElementExist('email', true)
-            .verifyElementExist('password', true)
-            .verifyElementExist('login', true)
-            .verifyFieldAttribute('email', 'type', 'email')
-            .fillData('password', user.password)
-            .verifyFieldAttribute('password', 'type', 'password');
+        await get(LoginPage, Route.login);
+
+        await get(LoginPage).verifyElementExist('needAnAccount', true);
+        await get(LoginPage).verifyElementExist('email', true);
+        await get(LoginPage).verifyElementExist('password', true);
+        await get(LoginPage).verifyElementExist('login', true);
+        await get(LoginPage).verifyFieldAttribute('email', 'type', 'email');
+        await get(LoginPage).fillData('password', user.password);
+        await get(LoginPage).verifyFieldAttribute('password', 'type', 'password');
     });
 
     test('"Need an account?" opens the sign-up page', async ({get}) => {
-        await get(LoginPage, Route.login).clickActionButton('needAnAccount');
+        await get(LoginPage, Route.login);
 
-        const registerPage = get(RegisterPage);
-        await registerPage.waitUntilPageLoaded();
-        await expect(registerPage.page).toHaveURL(/#\/register$/);
+        await get(LoginPage).clickActionButton('needAnAccount');
+
+        await get(RegisterPage).waitUntilPageLoaded();
+        await expect(get(RegisterPage).page).toHaveURL(/#\/register$/);
     });
 
-    test('user can log in', {tag: AUTH_QUOTA}, async ({get}) => {
+    test('user can log in', async ({get}) => {
         const testUser = await getTestUser();
 
-        await get(LoginPage, Route.login)
-            .fillData('email', testUser.email)
-            .fillData('password', testUser.password)
-            .clickActionButton('login');
+        await get(LoginPage, Route.login);
+        await get(LoginPage).fillData('email', testUser.email);
+        await get(LoginPage).fillData('password', testUser.password);
+        await get(LoginPage).clickActionButton('login');
 
-        const homePage = get(HomePage);
-        await homePage.waitUntilPageLoaded();
+        await get(HomePage).waitUntilPageLoaded();
         await expect(get(LoginPage).errorMessages).toBeHidden();
-        await expect(homePage.header.homeLink).toBeVisible();
-        await expect(homePage.header.newArticleLink).toBeVisible();
-        await expect(homePage.header.userAvatar(testUser.username)).toBeVisible();
-        await expect(homePage.header.loginLink).toBeHidden();
-        await homePage.button.click(homePage.header.userMenu);
-        await expect(homePage.header.menuItem('Profile')).toBeVisible();
-        await expect(homePage.header.menuItem('Settings')).toBeVisible();
-        await expect(homePage.header.menuItem('Logout')).toBeVisible();
+        await expect(get(HomePage).header.homeLink).toBeVisible();
+        await expect(get(HomePage).header.newArticleLink).toBeVisible();
+        await expect(get(HomePage).header.userAvatar(testUser.username)).toBeVisible();
+        await expect(get(HomePage).header.loginLink).toBeHidden();
+        await get(HomePage).button.click(get(HomePage).header.userMenu);
+        await expect(get(HomePage).header.menuItem('Profile')).toBeVisible();
+        await expect(get(HomePage).header.menuItem('Settings')).toBeVisible();
+        await expect(get(HomePage).header.menuItem('Logout')).toBeVisible();
     });
 
     test('sign-in form shows the unknown email error', async ({get}) => {
@@ -118,16 +119,15 @@ test.describe('Authentication UI', () => {
         });
         const user = generateUser();
 
-        await get(LoginPage, Route.login)
-            .fillData('email', user.email)
-            .fillData('password', user.password)
-            .clickActionButton('login');
+        await get(LoginPage, Route.login);
+        await get(LoginPage).fillData('email', user.email);
+        await get(LoginPage).fillData('password', user.password);
+        await get(LoginPage).clickActionButton('login');
 
-        const loginPage = get(LoginPage);
-        await expect(loginPage.errorMessages).toHaveCount(1);
-        await expect(loginPage.errorMessages).toContainText('Email not found sign in first');
-        await expect(loginPage.page).toHaveURL(/#\/login$/);
-        await expect(loginPage.header.loginLink).toBeVisible();
+        await expect(get(LoginPage).errorMessages).toHaveCount(1);
+        await expect(get(LoginPage).errorMessages).toContainText('Email not found sign in first');
+        await expect(get(LoginPage).page).toHaveURL(/#\/login$/);
+        await expect(get(LoginPage).header.loginLink).toBeVisible();
     });
 
     test('sign-in form shows the wrong password error', async ({get}) => {
@@ -137,15 +137,14 @@ test.describe('Authentication UI', () => {
         });
         const testUser = await getTestUser();
 
-        await get(LoginPage, Route.login)
-            .fillData('email', testUser.email)
-            .fillData('password', `wrong-${generateUser().password}`)
-            .clickActionButton('login');
+        await get(LoginPage, Route.login);
+        await get(LoginPage).fillData('email', testUser.email);
+        await get(LoginPage).fillData('password', `wrong-${generateUser().password}`);
+        await get(LoginPage).clickActionButton('login');
 
-        const loginPage = get(LoginPage);
-        await expect(loginPage.errorMessages).toHaveCount(1);
-        await expect(loginPage.errorMessages).toContainText('Wrong email/password combination');
-        await expect(loginPage.page).toHaveURL(/#\/login$/);
+        await expect(get(LoginPage).errorMessages).toHaveCount(1);
+        await expect(get(LoginPage).errorMessages).toContainText('Wrong email/password combination');
+        await expect(get(LoginPage).page).toHaveURL(/#\/login$/);
         expect(await get(LocalStorage).getItem('loggedUser')).toBeNull();
     });
 
@@ -157,22 +156,22 @@ test.describe('Authentication UI', () => {
             json: {errors: {body: ['Wrong email/password combination']}},
         });
 
-        await get(LoginPage, Route.login)
-            .fillData('email', testUser.email)
-            .fillData('password', unknown.password)
-            .clickActionButton('login');
+        await get(LoginPage, Route.login);
+        await get(LoginPage).fillData('email', testUser.email);
+        await get(LoginPage).fillData('password', unknown.password);
+        await get(LoginPage).clickActionButton('login');
 
-        const loginPage = get(LoginPage);
-        await expect(loginPage.errorMessages).toHaveCount(1);
-        await expect(loginPage.errorMessages).toContainText('Wrong email/password combination');
+        await expect(get(LoginPage).errorMessages).toHaveCount(1);
+        await expect(get(LoginPage).errorMessages).toContainText('Wrong email/password combination');
 
         await get(Interceptor).mock('**/api/users/login', {
             status: 404,
             json: {errors: {body: ['Email not found sign in first']}},
         });
-        await loginPage.fillData('email', unknown.email).clickActionButton('login');
+        await get(LoginPage).fillData('email', unknown.email);
+        await get(LoginPage).clickActionButton('login');
 
-        await expect(loginPage.errorMessages).toHaveCount(1);
-        await expect(loginPage.errorMessages).toContainText('Email not found sign in first');
+        await expect(get(LoginPage).errorMessages).toHaveCount(1);
+        await expect(get(LoginPage).errorMessages).toContainText('Email not found sign in first');
     });
 });

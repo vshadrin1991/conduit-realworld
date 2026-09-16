@@ -6,7 +6,7 @@
 |---|---|---|
 | `playwright-tests-implementation` | Task file (`tasks/<KEY>/<KEY>.md`) or a description, plus the options `--requirements`, `--test-cases`, `--artifacts` ([Implementation inputs](#implementation-inputs)) | Inputs → page descriptions → plan (stops if open questions block it) → implement → typecheck/lint until clean → one verification run → Allure report served → review → report |
 | `playwright-tests-review` | Files or folders (empty = changed files) | Typecheck and lint → conventions review + test design review (in parallel, read-only) → Allure report of the last run served → report with verdict |
-| `playwright-tests-execution` | Playwright arguments (empty = quick suite without `@auth-quota`) | Preflight → run → triage → heal broken locators (only when needed) → Allure report served → report |
+| `playwright-tests-execution` | Playwright arguments (empty = the full suite) | Preflight → run → triage → heal broken locators (only when needed) → Allure report served → report |
 | `playwright-requirements-testing` | `--r <requirements file>` ([Requirements testing](#requirements-testing)) | Inputs + environment check → requirements review → evidence from the app in Chrome (Playwright MCP) → gate → result and test cases; blocked only by a blocked review |
 
 ## Layout

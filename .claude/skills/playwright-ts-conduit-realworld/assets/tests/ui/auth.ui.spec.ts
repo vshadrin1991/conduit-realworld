@@ -1,5 +1,5 @@
 import { getTestUser } from '@/api/client/session/auth/User';
-import { AUTH_QUOTA, expect, test } from '@/base/BaseTest';
+import { expect, test } from '@/base/BaseTest';
 import { Interceptor } from '@/utilities/interceptor/Interceptor';
 import { LocalStorage } from '@/pageObject/components/LocalStorage';
 import { HomePage } from '@/pageObject/pages/HomePage';
@@ -15,31 +15,30 @@ test.describe('Authentication UI', () => {
     });
     const user = generateUser();
 
-    await get(LoginPage, Route.login)
-      .fillData('email', user.email)
-      .fillData('password', user.password)
-      .clickActionButton('login')
-      .verifyErrorField('email', true)
-      .verifyErrorFieldText('email', 'Email not found sign in first');
+    await get(LoginPage, Route.login);
+    await get(LoginPage).fillData('email', user.email);
+    await get(LoginPage).fillData('password', user.password);
+    await get(LoginPage).clickActionButton('login');
 
+    await get(LoginPage).verifyErrorField('email', true);
+    await get(LoginPage).verifyErrorFieldText('email', 'Email not found sign in first');
     await expect(get(LoginPage).header.loginLink).toBeVisible();
   });
 
-  test('user logs out from the header menu', { tag: AUTH_QUOTA }, async ({ get }) => {
+  test('user logs out from the header menu', async ({ get }) => {
     const testUser = await getTestUser();
 
-    await get(LoginPage, Route.login)
-      .fillData('email', testUser.email)
-      .fillData('password', testUser.password)
-      .clickActionButton('login');
+    await get(LoginPage, Route.login);
+    await get(LoginPage).fillData('email', testUser.email);
+    await get(LoginPage).fillData('password', testUser.password);
+    await get(LoginPage).clickActionButton('login');
 
-    const homePage = get(HomePage);
-    await homePage.waitUntilPageLoaded();
-    await expect(homePage.header.userAvatar(testUser.username)).toBeVisible();
-    await homePage.button.click(homePage.header.userMenu);
-    await homePage.button.click(homePage.header.menuItem('Logout'));
+    await get(HomePage).waitUntilPageLoaded();
+    await expect(get(HomePage).header.userAvatar(testUser.username)).toBeVisible();
+    await get(HomePage).button.click(get(HomePage).header.userMenu);
+    await get(HomePage).button.click(get(HomePage).header.menuItem('Logout'));
 
-    await expect(homePage.header.loginLink).toBeVisible();
+    await expect(get(HomePage).header.loginLink).toBeVisible();
     expect(await get(LocalStorage).getItem('loggedUser')).toBeNull();
   });
 });

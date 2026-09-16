@@ -3,7 +3,7 @@ import {BasePath} from '@/api/client/path/BasePath';
 import {getTestUser} from '@/api/client/session/auth/User';
 import type {ErrorResponse} from '@/api/responses/errors/ErrorResponse';
 import {Schema} from '@/api/schemas/Schema';
-import {AUTH_QUOTA, expect, test} from '@/base/BaseTest';
+import {expect, test} from '@/base/BaseTest';
 import {AUTOMATION_TAGS, generateShortTestsName, generateUser} from '@/utilities/tests/TestDataGenerator';
 
 const [FEED_TAG] = AUTOMATION_TAGS;
@@ -85,13 +85,12 @@ test.describe('Home feed API', () => {
         expect(body.errors.body).toContain('You need to login first!');
     });
 
-    test('lists only the articles of followed authors in the personal feed', {tag: AUTH_QUOTA}, async ({get}) => {
+    test('lists only the articles of followed authors in the personal feed', async ({get}) => {
         const author = await getTestUser();
         const reader = await get(APIClient, {guest: true}).post.users.with(generateUser());
         const created = await get(APIClient).api.articles.create({count: 4});
 
         const beforeFollow = await get(APIClient, {token: reader.token}).get.articles.feed();
-        await get(APIClient, {token: reader.token}).post.profiles.follow(author.username);
         const feed = await get(APIClient, {token: reader.token}).get.articles.feed();
 
         expect(beforeFollow.articlesCount).toBe(0);

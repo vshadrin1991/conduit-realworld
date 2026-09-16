@@ -34,7 +34,7 @@
 
 | ID | Title | Layer | Priority | Tags | Status |
 |---|---|---|---|---|---|
-| <TC-1> | <title> | <API/UI/hybrid/mocked UI> | <P1> | <`@auth-quota`> | <Confirmed / Draft — confirm> |
+| <TC-1> | <title> | <API/UI/hybrid/mocked UI> | <P1> | <notes> | <Confirmed / Draft — confirm> |
 
 ### <TC-1> — <title>
 
@@ -73,10 +73,10 @@ Page description: `pages/<name>.md` · Root: `<locator>`
 | <POST> | `/api/<path>` | <token/guest> | <201> | <401, 422> | <payload notes> |
 
 ### Test data and users
-- <Shared test user / user created in the test (AUTH_QUOTA) / generated data>
+- <Shared test user / user created in the test / generated data>
 
 ### Environment and constraints
-- Shared demo server: ~100 requests / 15 min per IP, ~5 auth requests / hour — arrange and verify via API, tag auth tests `AUTH_QUOTA`
+- Shared demo server: ~100 requests / 15 min per IP, ~5 auth requests / hour — arrange and verify via API, keep sign-in and registration cases few
 - <Browsers, viewport, feature flags>
 
 ## Implementation plan
@@ -101,7 +101,6 @@ Page description: `pages/<name>.md` · Root: `<locator>`
 - [ ] New tests pass when run alone (and with `--repeat-each=2` if the rate-limit budget allows)
 - [ ] Each test fails for the right reason when its expectation is broken
 - [ ] Created data is registered for cleanup
-- [ ] Quota-consuming tests are tagged `AUTH_QUOTA`
 - [ ] API calls start with `get(APIClient)`; element components are called from pages
 - [ ] Skills, templates and README are updated if a convention changed
 

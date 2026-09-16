@@ -17,7 +17,7 @@ A decision that would otherwise need a comment (why a response is mocked, why `.
 
 ## Documentation comments
 
-Every function, method, getter and constructor with parameters — public, protected and private — in base classes (`BaseTest`, `BasePage`, `FunctionalPage`, `BaseComponent`), `src/utilities` (logger, reporter, test data), page objects, helpers, flows and components gets a JSDoc block:
+Every function, method, getter and constructor with parameters — public, protected and private — in base classes (`BaseTest`, `BasePage`, `BaseComponent`), `src/utilities` (logger, reporter, test data), page objects, helpers, flows and components gets a JSDoc block:
 
 - one sentence on what it does (add a second clause only when the behaviour is not obvious, e.g. when it throws);
 - `@param name - meaning` for every parameter, in order; a destructured options object is one `@param` that lists its keys and defaults;
