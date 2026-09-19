@@ -2,6 +2,7 @@ import { APIClient } from '@/api/client/APIClient';
 import { expect, test } from '@/base/BaseTest';
 import { HomePage } from '@/pageObject/pages/HomePage';
 import { Route } from '@/pageObject/pagePath/Routes';
+import { generateTestsName } from '@/utilities/tests/TestDataGenerator';
 
 const PAGE_SIZE = 3;
 
@@ -63,12 +64,29 @@ test.describe('Home feed UI', () => {
     expect(Number(lastPage)).toBe(Math.ceil(articlesCount / PAGE_SIZE));
   });
 
+  test('guest favoriting a preview shows the login alert and changes nothing', async ({ get }) => {
+    const [article] = await get(APIClient).api.articles.create();
+
+    await get(HomePage, Route.home);
+    const preview = await get(HomePage).findArticleInFeed(article.title);
+    await expect(preview).toBeVisible();
+
+    const dialog = get(HomePage).confirmation.answerNext('accept');
+    await get(HomePage).button.click(get(HomePage).articleFavoriteButton(article.title));
+
+    expect(await dialog).toBe('You need to login first');
+    await expect(get(HomePage).articleFavoriteCount(article.title)).toHaveText(`( ${article.favoritesCount} )`);
+    await expect(get(HomePage).page).toHaveURL(/#\/$/);
+  });
+
   test('a popular tag opens a feed tab listing only its articles', async ({ get }) => {
+    const tag = generateTestsName('tag');
+    await get(APIClient).api.articles.create({ tagList: [tag] });
     await get(HomePage, Route.home);
 
-    await expect(get(HomePage).popularTags.first()).toBeVisible();
-    const [tag] = await get(HomePage).text.getTexts(get(HomePage).popularTags.first());
-    await get(HomePage).button.click(get(HomePage).popularTags.first());
+    const tagButton = get(HomePage).popularTags.filter({ hasText: tag });
+    await expect(tagButton).toBeVisible();
+    await get(HomePage).button.click(tagButton);
 
     await expect(get(HomePage).feedTabs).toHaveCount(2);
     await expect(get(HomePage).selectedFeedTab).toHaveText(tag);

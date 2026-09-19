@@ -17,14 +17,14 @@ Full example files live in [../assets](../assets/README.md) (they compile agains
 Example: `assets/tests/api/articles.api.spec.ts`.
 
 - Arrange with `get(APIClient).api.<domain>.create()`, act with an endpoint helper, assert the returned model with `toMatchObject`.
-- Negative case: `get(APIClient, { guest: true }).response({ name, path, pathData, method, body, statusCode })`, then assert `(await response.json()) as ErrorResponse`.
+- Negative case: `get(APIClient, { guest: true }).response({ name, path, pathData, method, body, statusCode })`, then `await expect(response).toBeApiError('message', 401)` — it checks the status, the `Schema.ERROR` shape and the `errors.body` text.
 - A new slug/id created outside a flow: `get(APIClient).api.articles.track(slug)`.
 
 ## UI spec — `tests/ui/<feature>.ui.spec.ts`
 
 Examples: `assets/tests/ui/articles.ui.spec.ts` (hybrid), `assets/tests/ui/auth.ui.spec.ts` (mocked response, header menu, localStorage).
 
-- Signed-in browser: sign in through the form in `test.beforeEach` — worked example: `assets/tests/ui/articles.ui.spec.ts`. Guest scenarios skip it.
+- Signed-in browser: `await get(Session).login()` in `test.beforeEach` or the test — worked example: `assets/tests/ui/articles.ui.spec.ts`. It writes `loggedUser` to localStorage and reloads, so no auth call is spent; `get(Session).login(await getOtherUser())` signs in as the secondary account. Guest scenarios skip it.
 - Steps: one awaited page call per line — `await get(Page, Route.x);` then `await get(Page).fillData(...);` — and after an action that navigates, `await get(NextPage).waitUntilPageLoaded()`.
 - Locators outside the named maps: call element components through the page — `get(HomePage).button.click(locator)`, `get(SettingsPage).input.enter(locator, text)`, `get(ArticlePage).text.getTexts(locator)`.
 - Mock only what the backend cannot produce on demand: `await get(Interceptor).mock(url, { status, json })` before the action; state the reason in the task or pull request (no code comment).

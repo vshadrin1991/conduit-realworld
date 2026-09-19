@@ -6,7 +6,7 @@ import { RestClient } from '../../RestClient';
 export class ArticlesPutAPI extends RestClient {
   /**
    * PUT /articles/:slug — updates an article.
-   * A new title regenerates the slug, and an omitted `tagList` clears the tags.
+   * A new title regenerates the slug; the server ignores `tagList` on update (REQ-03.I4).
    */
   async with(slug: string, changes: Partial<NewArticle>): Promise<Article> {
     const request = { name: `update article :: ${slug}`, path: BasePath.ARTICLE, pathData: [slug] };

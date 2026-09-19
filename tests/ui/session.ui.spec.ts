@@ -1,6 +1,7 @@
 import { getTestUser } from '@/api/client/session/auth/User';
 import { expect, test } from '@/base/BaseTest';
 import { LocalStorage } from '@/pageObject/components/LocalStorage';
+import { Session } from '@/pageObject/components/Session';
 import { HomePage } from '@/pageObject/pages/HomePage';
 import { LoginPage } from '@/pageObject/pages/LoginPage';
 import { Route } from '@/pageObject/pagePath/Routes';
@@ -25,13 +26,8 @@ test.describe('Session UI', () => {
 
   test('signed-in header shows New Article and the user menu', async ({ get }) => {
     const testUser = await getTestUser();
+    await get(Session).login();
 
-    await get(LoginPage, Route.login);
-    await get(LoginPage).fillData('email', testUser.email);
-    await get(LoginPage).fillData('password', testUser.password);
-    await get(LoginPage).clickActionButton('login');
-
-    await get(HomePage).waitUntilPageLoaded();
     await expect(get(HomePage).header.homeLink).toBeVisible();
     await expect(get(HomePage).header.newArticleLink).toBeVisible();
     await expect(get(HomePage).header.userAvatar(testUser.username)).toBeVisible();
@@ -57,21 +53,18 @@ test.describe('Session UI', () => {
 
   test('reload keeps the user signed in', async ({ get }) => {
     const testUser = await getTestUser();
-    await get(LoginPage, Route.login);
-    await get(LoginPage).fillData('email', testUser.email);
-    await get(LoginPage).fillData('password', testUser.password);
-    await get(LoginPage).clickActionButton('login');
-    await get(HomePage).waitUntilPageLoaded();
+    await get(Session).login();
     await expect(get(HomePage).header.userAvatar(testUser.username)).toBeVisible();
 
-    await get(HomePage).page.reload();
+    await get(HomePage).navigation.reload();
 
     await get(HomePage).waitUntilPageLoaded();
     await expect(get(HomePage).header.newArticleLink).toBeVisible();
     await expect(get(HomePage).header.userAvatar(testUser.username)).toBeVisible();
     expect(await get(LocalStorage).getItem('loggedUser')).not.toBeNull();
 
-    await get(HomePage).page.goto(`/#${Route.home}`);
+    await get(HomePage).navigation.to(Route.profile(testUser.username));
+    await get(HomePage).navigation.to(Route.home);
 
     await get(HomePage).waitUntilPageLoaded();
     await expect(get(HomePage).header.userAvatar(testUser.username)).toBeVisible();
@@ -79,11 +72,7 @@ test.describe('Session UI', () => {
 
   test('logout clears the session and restores the guest header', async ({ get }) => {
     const testUser = await getTestUser();
-    await get(LoginPage, Route.login);
-    await get(LoginPage).fillData('email', testUser.email);
-    await get(LoginPage).fillData('password', testUser.password);
-    await get(LoginPage).clickActionButton('login');
-    await get(HomePage).waitUntilPageLoaded();
+    await get(Session).login();
     await expect(get(HomePage).header.userAvatar(testUser.username)).toBeVisible();
 
     await get(HomePage).button.click(get(HomePage).header.userMenu);
@@ -99,17 +88,12 @@ test.describe('Session UI', () => {
   });
 
   test('after logout a reload keeps the user signed out', async ({ get }) => {
-    const testUser = await getTestUser();
-    await get(LoginPage, Route.login);
-    await get(LoginPage).fillData('email', testUser.email);
-    await get(LoginPage).fillData('password', testUser.password);
-    await get(LoginPage).clickActionButton('login');
-    await get(HomePage).waitUntilPageLoaded();
+    await get(Session).login();
     await get(HomePage).button.click(get(HomePage).header.userMenu);
     await get(HomePage).button.click(get(HomePage).header.menuItem('Logout'));
     await expect(get(HomePage).header.loginLink).toBeVisible();
 
-    await get(HomePage).page.reload();
+    await get(HomePage).navigation.reload();
 
     await get(HomePage).waitUntilPageLoaded();
     await expect(get(HomePage).header.loginLink).toBeVisible();
@@ -128,12 +112,7 @@ test.describe('Session UI', () => {
   });
 
   test('user who logged out is redirected from protected pages', async ({ get }) => {
-    const testUser = await getTestUser();
-    await get(LoginPage, Route.login);
-    await get(LoginPage).fillData('email', testUser.email);
-    await get(LoginPage).fillData('password', testUser.password);
-    await get(LoginPage).clickActionButton('login');
-    await get(HomePage).waitUntilPageLoaded();
+    await get(Session).login();
     await get(HomePage).button.click(get(HomePage).header.userMenu);
     await get(HomePage).button.click(get(HomePage).header.menuItem('Logout'));
     await expect(get(HomePage).header.loginLink).toBeVisible();

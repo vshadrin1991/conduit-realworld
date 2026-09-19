@@ -7,4 +7,5 @@ export const Route = {
   editArticle: (slug: string) => `/editor/${slug}`,
   article: (slug: string) => `/article/${slug}`,
   profile: (username: string) => `/profile/${username}`,
+  profileFavorites: (username: string) => `/profile/${username}/favorites`,
 } as const;

@@ -12,4 +12,13 @@ export class Navigation extends BaseComponent {
     this.log.info(`Navigate to ${target}`);
     await this.page.goto(target);
   }
+
+  /**
+   * Reloads the current page.
+   * @return promise resolved when the page has reloaded
+   */
+  async reload(): Promise<void> {
+    this.log.info('Reload the page');
+    await this.page.reload();
+  }
 }

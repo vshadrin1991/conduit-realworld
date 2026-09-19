@@ -20,13 +20,13 @@ The framework mirrors the team's Java framework (`BaseTest.get`, `BasePage`, `pa
 src/
   base/                   BaseTest (get + automatic logs/dataCleaner), BasePage
   pageObject/pages/       page objects — locators only
-  pageObject/components/  page components (BaseComponent): element components on every page (Input, Button, Checkbox, RadioButton, Text, Confirmation), Navigation, Header, LocalStorage
+  pageObject/components/  page components (BaseComponent): element components on every page (Input, Button, Checkbox, RadioButton, Text, Confirmation), Navigation, Header, LocalStorage, Session
   pageObject/pagePath/    Routes.ts — hash routes: Route.article(slug) etc.
   api/client/             RestClient (core `response(request)`), APIClient (get/post/put/delete helpers + api flows)
   api/client/helpers/     RestApi{Get,Post,Put,Delete}Helper + <domain>/<Domain><Verb>API endpoint classes
   api/client/api/         ConduitAPI (the `api` group) + <domain>/<Domain>API multi-call flows (ArticlesAPI.create/track/deleteCreated)
   api/client/path/        BasePath enum with {dataN} placeholders
-  api/client/session/     RestClientFactory (headers), auth/User.ts (getTestUser: lazy, cached token → login → register)
+  api/client/session/     RestClientFactory (headers), auth/User.ts (getTestUser/getOtherUser: lazy, cached token → login → register)
   api/request/, api/responses/  request and response models by domain
   api/schemas/            JSON schemas of the responses by domain + Schema storage (expect(...).toMatchSchema)
   utilities/logger/       logger (console + per-test `logs` attachment)
@@ -36,7 +36,7 @@ src/
   config/                 loader (.env + .env.<TEST_ENV>), env.config, auth.config, framework.config (browser, headless, timeouts, ...), report.config
 tests/
   api/*.api.spec.ts       "api" project — fully parallel
-  ui/*.ui.spec.ts         "ui" project — files in parallel, tests of a file one by one, new browser per test, guest by default — sign in through LoginPage steps
+  ui/*.ui.spec.ts         "ui" project — files in parallel, tests of a file one by one, new browser per test, guest by default — sign in with get(Session).login()
 ```
 
 ## Choosing the test layer
@@ -66,6 +66,7 @@ get(ArticlePage); // page object bound to the current page (cached per test)
 await get(ArticlePage, Route.article(slug)); // opens the page at the route; later calls use get(ArticlePage)
 get(Interceptor); // network mocks (utility, not a component)
 get(LocalStorage); // page component without an element to act on
+await get(Session).login(); // signed-in browser via localStorage — no auth call
 ```
 
 **Every API call in a test starts with `get(APIClient)`** — endpoint helpers (`.get/.post/.put/.delete`), flows (`.api`) and raw calls (`.response`). Do not store the client in a local variable and do not import `ConduitAPI` in specs.
@@ -105,7 +106,7 @@ Every page call is a separate `await` and is one named step: `navigate`, `waitUn
 - `get(PageClass, route)` returns a promise, so it is awaited on its own line: `await get(ArticlePage, Route.article(slug));`. Everything after it goes through `get(ArticlePage)` — the same cached instance, no local variable.
 - `navigate` already waits for the page, so `waitUntilPageLoaded` after `get(PageClass, route)` is redundant; use it after an action that navigates: `await get(HomePage).button.click(...)` then `await get(ArticlePage).waitUntilPageLoaded()`.
 
-Test functions receive only `{ get }` — no other fixtures (`page`, `request`, ... are not used in specs). The shared user comes from `await getTestUser()` (`@/api/client/session/auth/User`), a signed-in browser from the login form steps (see **Browser** below), browser storage from `get(LocalStorage)`, network mocks from `get(Interceptor).mock(url, response)` (its API/console capture is attached to failed tests automatically). Logging and data cleanup run automatically as auto fixtures inside `BaseTest` (`dataCleaner` is declared after `logs`, so its teardown is logged). `get` depends on `page`, so API specs also get a never-navigated browser page (startup time, no server requests).
+Test functions receive only `{ get }` — no other fixtures (`page`, `request`, ... are not used in specs). The shared user comes from `await getTestUser()` (a second account from `await getOtherUser()`, both `@/api/client/session/auth/User`), a signed-in browser from `await get(Session).login()` (see **Browser** below), browser storage from `get(LocalStorage)`, network mocks from `get(Interceptor).mock(url, response)` (its API/console capture is attached to failed tests automatically). Logging and data cleanup run automatically as auto fixtures inside `BaseTest` (`dataCleaner` is declared after `logs`, so its teardown is logged). `get` depends on `page`, so API specs also get a never-navigated browser page (startup time, no server requests).
 
 Structure each test as Arrange / Act / Assert separated by blank lines, one behaviour per test, with a title that states the behaviour (`'author deletes an article'`).
 
@@ -119,9 +120,9 @@ Structure each test as Arrange / Act / Assert separated by blank lines, one beha
 
 - **Rate limits** — ~100 requests / 15 min per IP and ~5 auth requests / hour: arrange and verify through the API, run the smallest scope, keep sign-in and registration tests few. Details: [execution-and-config](references/execution-and-config.md).
 - **Test data** — generate it with `TestDataGenerator`, create prerequisites with API flows, track anything created another way. Details: [test-data-and-auth](references/test-data-and-auth.md).
-- **Browser** — every UI test runs in its own new browser and starts as a guest. A test that needs a user signs in through the login form — `getTestUser()` credentials, then one awaited `LoginPage` step per line, ending with `await get(HomePage).waitUntilPageLoaded()` (worked example: `assets/tests/ui/articles.ui.spec.ts`) — in `beforeEach` or the test, never in `beforeAll`. Each sign-in spends the ~5 requests / hour auth quota, so keep such tests few. Details: [execution-and-config](references/execution-and-config.md), [test-data-and-auth](references/test-data-and-auth.md).
+- **Browser** — every UI test runs in its own new browser and starts as a guest. A test that needs a user calls `await get(Session).login()` — it writes the app's `loggedUser` item to localStorage and reloads, so it spends no auth quota (`login(await getOtherUser())` signs in as the secondary account). Use it in `beforeEach` or the test, never in `beforeAll`; the login form steps stay only in the session spec that tests the form. Details: [execution-and-config](references/execution-and-config.md), [test-data-and-auth](references/test-data-and-auth.md).
 - **Page objects** — locators only; priority role → placeholder/label/text → semantic CSS; no XPath. Details: [page-objects](references/page-objects.md).
-- **Components** — `BaseComponent` (`src/pageObject/components/`) is for page components only (element components, `Header`, `Confirmation`, `Navigation`, `LocalStorage`); `Interceptor` is a utility and does not extend it. Element components and `confirmation` are called from the page; `get()` only for `Interceptor` and `LocalStorage`. Details: [components](references/components.md).
+- **Components** — `BaseComponent` (`src/pageObject/components/`) is for page components only (element components, `Header`, `Confirmation`, `Navigation`, `LocalStorage`, `Session`); `Interceptor` is a utility and does not extend it. Element components and `confirmation` are called from the page; `get()` only for `Interceptor`, `LocalStorage` and `Session`. Details: [components](references/components.md).
 - **API** — every call starts with `get(APIClient)`; paths in `BasePath`, models by domain; validate the response shape with `expect(model).toMatchSchema(Schema.X)`. Details: [api-client](references/api-client.md).
 - **Configuration** — never read `process.env` outside `src/config`. Details: [execution-and-config](references/execution-and-config.md).
 - **Comments** — no `//` or one-line `/** */` comments in code; a multi-line JSDoc block (one sentence, `@param` for every parameter, `@return` unless `void`) on every function and method in base classes, utilities, page objects, helpers, flows and components; no class-level comments on page objects and utility classes. Details: [code-conventions](references/code-conventions.md).

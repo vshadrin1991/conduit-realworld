@@ -13,6 +13,7 @@ export const authConfig = {
   user: email && password ? { email, password } : undefined,
   dir,
   userFile: path.join(dir, 'user.json'),
+  otherUserFile: path.join(dir, 'other-user.json'),
   lockDir: path.join(dir, '.lock'),
   lockStaleMs: readNumber('AUTH_LOCK_STALE_MS', 60_000),
   tokenScheme: 'Token',

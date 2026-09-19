@@ -50,12 +50,7 @@ import { expect, test } from '@/base/BaseTest';
 
 test('author deletes an article', async ({ get }) => {
   const [article] = await get(APIClient).api.articles.create(); // arrange via API
-  const testUser = await getTestUser(); // shared user
-  await get(LoginPage, Route.login); // sign in through the UI
-  await get(LoginPage).fillData('email', testUser.email);
-  await get(LoginPage).fillData('password', testUser.password);
-  await get(LoginPage).clickActionButton('login');
-  await get(HomePage).waitUntilPageLoaded();
+  await get(Session).login(); // signed-in browser without spending the auth quota
 
   await get(ArticlePage, Route.article(article.slug)); // navigate + wait
   const dialog = get(ArticlePage).confirmation.answerNext('accept');
@@ -71,12 +66,12 @@ test('author deletes an article', async ({ get }) => {
 });
 ```
 
-- Every spec imports `test` from `@/base/BaseTest`; test functions receive only `{ get }` (test user: `await getTestUser()`, localStorage: `get(LocalStorage)`, network mocks: `get(Interceptor)`).
+- Every spec imports `test` from `@/base/BaseTest`; test functions receive only `{ get }` (test user: `await getTestUser()` / `await getOtherUser()`, browser sign-in: `get(Session).login()`, localStorage: `get(LocalStorage)`, network mocks: `get(Interceptor)`).
 - `get(APIClient)` is authenticated as the test user (`{ guest: true }` for no token): `client.post.articles.with(article)`, `client.get.comments.list(slug)`. Negative cases: `client.response({ path, method, body, statusCode: 401 })`. Multi-call flows: `get(APIClient).api.articles.create({ count: 2 })`. Every API call in a test starts with `get(APIClient)`.
 - `get(PageClass)` returns the page object (same cached instance for the whole test); `get(PageClass, route)` navigates first and returns a promise, so it is awaited on its own line: `await get(LoginPage, Route.login)`. Everything after that goes through `get(PageClass)` instead of a local variable. Every page call is its own `await` and shows up as a report step: `await get(LoginPage).fillData('email', email)`. Pages hold locators only.
 - Components are always reached through the page as `get(PageClass).<component>.<action>()`: `await get(HomePage).button.click(get(HomePage).header.userMenu)` (`input`, `button`, `checkbox`, `radioButton`, `text`, `confirmation`, `navigation`, `header`), native dialogs included: `get(ArticlePage).confirmation.answerNext('accept')`. `get(Interceptor)` (utility) and `get(LocalStorage)` (page component) come from `get` directly.
 - Test data comes from `TestDataGenerator` (`generateArticle()`, `generateUser()`, `generateTestsName('Article')`); every name contains `AUTOMATION_KEY`. Articles created by API flows are deleted after each test; register others with `get(APIClient).api.articles.track(slug)`.
-- Nothing is set up globally: tests decide whether they need a user. Authenticated clients resolve the shared user lazily; UI tests start as guests and sign in through the login form (`LoginPage` steps) when they need a signed-in browser.
+- Nothing is set up globally: tests decide whether they need a user. Authenticated clients resolve the shared user lazily; UI tests start as guests and get a signed-in browser with `await get(Session).login()`, which writes the app's `loggedUser` item to localStorage and reloads — the login form is only for tests of the form itself.
 
 Full conventions: [.claude/skills/playwright-ts-conduit-realworld/SKILL.md](.claude/skills/playwright-ts-conduit-realworld/SKILL.md).
 
@@ -114,7 +109,7 @@ Settings are typed configs in `src/config/`, overridable with environment variab
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | `env.config.ts`       | `TEST_ENV`, `BASE_URL`, `CI`, `AUTOMATION_KEY`                                                                                                                                                       | `demo`, demo site URL, —, `pwauto`                                       |
 | `auth.config.ts`      | `TEST_USER_EMAIL` / `TEST_USER_PASSWORD`, `AUTH_DIR`, `AUTH_LOCK_STALE_MS`                                                                                                                           | registered user, `.auth`, `60000`                                        |
-| `framework.config.ts` | `BROWSER`, `HEADLESS`, `SLOW_MO`, `VIEWPORT_WIDTH` / `VIEWPORT_HEIGHT`, `LOCALE`, `TIMEZONE`                                                                                                         | `chromium`, `true`, `0`, `1280×720`, `en-US`, `UTC`                      |
+| `framework.config.ts` | `BROWSER`, `HEADLESS`, `SLOW_MO`, `VIEWPORT_WIDTH` / `VIEWPORT_HEIGHT`, `LOCALE`, `TIMEZONE`                                                                                                         | `chromium`, `false`, `0`, `1280×720`, `en-US`, `UTC`                     |
 |                       | `WORKERS`, `RETRIES`, `FULLY_PARALLEL` (api), `UI_FULLY_PARALLEL` (ui: `false` = tests of a file one by one, files in parallel), `UI_NEW_BROWSER_PER_TEST` (ui: `true` = new browser for every test) | Playwright default / `2` on CI, `0` / `1` on CI, `true`, `false`, `true` |
 |                       | `TEST_TIMEOUT`, `EXPECT_TIMEOUT`, `ACTION_TIMEOUT`, `NAVIGATION_TIMEOUT`                                                                                                                             | `30000`, `10000`, `10000`, `30000`                                       |
 |                       | `TRACE`, `VIDEO`, `SCREENSHOT`, `LOG_LEVEL`                                                                                                                                                          | `retain-on-failure`, `retain-on-failure`, `only-on-failure`, `info`      |

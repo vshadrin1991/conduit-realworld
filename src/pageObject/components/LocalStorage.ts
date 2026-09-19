@@ -15,4 +15,15 @@ export class LocalStorage extends BaseComponent {
       return raw as T;
     }
   }
+
+  /**
+   * Writes a localStorage item of the current page; objects are stored as JSON.
+   * @param key - item key, e.g. `loggedUser`
+   * @param value - value to store
+   * @return promise resolved when the item is written
+   */
+  async setItem(key: string, value: unknown): Promise<void> {
+    const raw = typeof value === 'string' ? value : JSON.stringify(value);
+    await this.page.evaluate(([k, v]) => localStorage.setItem(k, v), [key, raw]);
+  }
 }

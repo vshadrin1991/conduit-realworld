@@ -1,24 +1,16 @@
 import { APIClient } from '@/api/client/APIClient';
 import { BasePath } from '@/api/client/path/BasePath';
-import { getTestUser } from '@/api/client/session/auth/User';
 import { expect, test } from '@/base/BaseTest';
+import { Session } from '@/pageObject/components/Session';
 import { ArticlePage } from '@/pageObject/pages/ArticlePage';
 import { EditorPage } from '@/pageObject/pages/EditorPage';
 import { HomePage } from '@/pageObject/pages/HomePage';
-import { LoginPage } from '@/pageObject/pages/LoginPage';
 import { Route } from '@/pageObject/pagePath/Routes';
 import { generateArticle, generateComment } from '@/utilities/tests/TestDataGenerator';
 
 test.describe('Articles UI', () => {
   test.beforeEach(async ({ get }) => {
-    const testUser = await getTestUser();
-
-    await get(LoginPage, Route.login);
-    await get(LoginPage).fillData('email', testUser.email);
-    await get(LoginPage).fillData('password', testUser.password);
-    await get(LoginPage).clickActionButton('login');
-
-    await get(HomePage).waitUntilPageLoaded();
+    await get(Session).login();
   });
 
   test('user publishes an article from the editor', async ({ get }) => {
@@ -57,6 +49,30 @@ test.describe('Articles UI', () => {
     await get(ArticlePage).waitUntilPageLoaded();
     await expect(get(ArticlePage).title).toHaveText(article.title);
     await expect(get(ArticlePage).body).toContainText(article.body);
+  });
+
+  test('author sees the edit and delete actions in the banner and below the body', async ({ get }) => {
+    const [article] = await get(APIClient).api.articles.create();
+
+    await get(ArticlePage, Route.article(article.slug));
+
+    await expect(get(ArticlePage).deleteArticleButtons).toHaveCount(2);
+    await expect(get(ArticlePage).editArticleLinks).toHaveCount(2);
+    await expect(get(ArticlePage).followButtons).toHaveCount(0);
+    await expect(get(ArticlePage).favoriteButtons).toHaveCount(0);
+  });
+
+  test('dismissing the delete confirmation keeps the article', async ({ get }) => {
+    const [article] = await get(APIClient).api.articles.create();
+
+    await get(ArticlePage, Route.article(article.slug));
+    const dialog = get(ArticlePage).confirmation.answerNext('dismiss');
+    await get(ArticlePage).clickActionButton('deleteArticle');
+
+    expect(await dialog).toBe('Want to delete the article?');
+    await expect(get(ArticlePage).title).toHaveText(article.title);
+    const existing = await get(APIClient).get.articles.bySlug(article.slug);
+    expect(existing.slug).toBe(article.slug);
   });
 
   test('author deletes an article', async ({ get }) => {

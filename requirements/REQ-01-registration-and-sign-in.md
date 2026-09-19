@@ -52,6 +52,12 @@ As a visitor, I want to sign up with a username, email and password and then sig
 | REQ-01.16 | **Logout** in the user menu removes `loggedUser` from `localStorage` and restores the guest header with **Login**.                                                 | Functional  | tests             |
 | REQ-01.17 | A guest who opens a page that needs an account (`#/editor`, `#/settings`) is redirected to the home page `#/`.                                                     | Permissions | observed          |
 
+## Known defects in the current implementation
+
+| ID        | Defect                                                                                                                                                                       | Evidence         |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| REQ-01.D1 | A successful sign-up responds **201** with `{ user }` missing `bio` and `image` (only `email`, `username`, `token`). REQ-01.7 expects them, as `null` when unset.             | tests, observed  |
+
 ## Open questions
 
 | ID        | Question                                                                                                                                                                                  | Why                                                          |

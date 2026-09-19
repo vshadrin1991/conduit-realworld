@@ -69,6 +69,15 @@ export class HomePage extends BasePage<never, ButtonName> {
   }
 
   /**
+   * Returns the favorite button of the article preview card (the only button on the card).
+   * @param title - article title
+   * @return locator of the favorite button
+   */
+  articleFavoriteButton(title: string): Locator {
+    return this.articlePreview(title).getByRole('button');
+  }
+
+  /**
    * Returns the link that opens the article from its preview card.
    * @param title - article title
    * @return locator of the title link

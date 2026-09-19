@@ -59,6 +59,13 @@ As an author, I want to publish, update and delete my articles, so that I contro
 | REQ-03.18 | A deleted article is no longer available: `GET /api/articles/:slug` responds **404** `Article not found⎵`.                                                      | Functional  | tests, code |
 | REQ-03.19 | A user who is not the author responds **403** `You are not the author of this article`.                                                                         | Permissions | code        |
 
+## Known defects in the current implementation
+
+| ID        | Defect                                                                                                                                                                            | Evidence        |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| REQ-03.D1 | `POST /api/articles` without the `article` wrapper responds **500** (`Cannot destructure property 'title'`) instead of a validation response.                                       | tests, observed |
+| REQ-03.D2 | `PUT /api/articles/:slug` to a title whose slug is taken responds **200** and leaves two articles sharing the slug, which breaks later lookups by that slug.                        | tests, observed |
+
 ## Open questions
 
 | ID        | Question                                                                                                                                                        | Why                                        |

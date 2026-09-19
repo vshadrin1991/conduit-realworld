@@ -1,3 +1,4 @@
+import type { Article, ArticleResponse } from '@/api/responses/articles/Article';
 import { envConfig } from '@/config/env.config';
 import { isAutomationData } from '@/utilities/tests/TestDataGenerator';
 import { BasePath } from '../../path/BasePath';
@@ -16,5 +17,16 @@ export class ArticlesDeleteAPI extends RestClient {
     }
     const request = { name: `delete article :: ${slug}`, path: BasePath.ARTICLE, pathData: [slug] };
     await this.response({ ...request, method: 'DELETE', statusCode });
+  }
+
+  /**
+   * DELETE /articles/:slug/favorite — removes the favorite of the client user and returns the updated article.
+   * Not restricted to automation data: unfavoriting deletes no content.
+   * @param slug - slug of the article to unfavorite
+   * @return article with `favorited: false` and the updated `favoritesCount`
+   */
+  async unfavorite(slug: string): Promise<Article> {
+    const request = { name: `unfavorite article :: ${slug}`, path: BasePath.ARTICLE_FAVORITE, pathData: [slug] };
+    return (await this.json<ArticleResponse>({ ...request, method: 'DELETE' })).article;
   }
 }

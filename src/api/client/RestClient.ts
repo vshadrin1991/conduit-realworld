@@ -40,9 +40,12 @@ export class RestClient {
     return inStep(title, async () => {
       const token = typeof this.token === 'function' ? await this.token() : this.token;
       const startedAt = Date.now();
+      const params = req.params
+        ? Object.fromEntries(Object.entries(req.params).filter(([, value]) => value !== undefined))
+        : undefined;
       const response = await this.request.fetch(url, {
         method,
-        params: req.params,
+        params,
         data: req.body,
         headers: { ...RestClientFactory.headers(token), ...req.headers },
       });

@@ -58,6 +58,14 @@ As a reader, I want to browse the newest articles, narrow them down by tag and m
 | REQ-02.17 | For requests without a token, every article has `favorited: false` and `author.following: false`.                                                                                                                                                                                                 | API  | code     |
 | REQ-02.18 | `GET /api/tags` is public and returns `{ tags: string[] }` with every stored tag.                                                                                                                                                                                                                 | API  | observed |
 
+## Known defects in the current implementation
+
+| ID        | Defect                                                                                                                                                                                         | Evidence        |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| REQ-02.D1 | Invalid `limit`/`offset` values (`limit=-1`, `limit=abc`, `offset=-1`) respond **500** with a raw SQL error instead of a validation response.                                                    | tests, observed |
+| REQ-02.D2 | `GET /api/articles?favorited=<unknown username>` responds **500** `Cannot read properties of null (reading 'getFavorites')` — the lookup result is not checked.                                  | tests, code     |
+| REQ-02.D3 | `POST /api/articles` does not await `setAuthor`, so a create can persist an article with `userId NULL`; every `GET /api/articles` then responds **500** `toAppend.hasFollower is not a function` until the row is removed in the database — `DELETE /api/articles/:slug` fails on it too (`article.author.id` throws). | tests, code, DB |
+
 ## Open questions
 
 | ID        | Question                                                                                                                                                           | Why                                                                        |

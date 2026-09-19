@@ -14,7 +14,7 @@ export interface TestUser extends NewUser {
   token: string;
 }
 
-let testUser: Promise<TestUser> | undefined;
+const users = new Map<string, Promise<TestUser>>();
 
 /**
  * The shared test user (credentials + token). Nothing is prepared globally: the user is resolved on first use
@@ -23,30 +23,48 @@ let testUser: Promise<TestUser> | undefined;
  * workers wait for each other, so a fresh checkout registers the user only once.
  */
 export function getTestUser(): Promise<TestUser> {
-  testUser ??= withAuthLock(async () => {
-    const context = await request.newContext({ baseURL: envConfig.baseUrl });
-    try {
-      const user = await resolveTestUser(context);
-      fs.writeFileSync(authConfig.userFile, JSON.stringify(user, null, 2));
-      return user;
-    } finally {
-      await context.dispose();
-    }
-  }).catch((error: unknown) => {
-    testUser = undefined;
-    throw error;
-  });
-  return testUser;
+  return getSharedUser(authConfig.userFile);
 }
 
-function readCachedUser(): TestUser | undefined {
-  if (!fs.existsSync(authConfig.userFile)) return undefined;
-  return JSON.parse(fs.readFileSync(authConfig.userFile, 'utf-8')) as TestUser;
+/**
+ * The secondary account for cross-user permission checks (comment/article edits by another user, following).
+ * Cached in `.auth/other-user.json` next to the main user, so it is registered once per checkout, not per run.
+ * `TEST_USER_*` credentials apply only to the main user.
+ */
+export function getOtherUser(): Promise<TestUser> {
+  return getSharedUser(authConfig.otherUserFile);
 }
 
-async function resolveTestUser(context: APIRequestContext): Promise<TestUser> {
-  const cached = readCachedUser();
-  const cacheMatchesEnv = !authConfig.user || authConfig.user.email === cached?.email;
+function getSharedUser(userFile: string): Promise<TestUser> {
+  let user = users.get(userFile);
+  if (!user) {
+    user = withAuthLock(async () => {
+      const context = await request.newContext({ baseURL: envConfig.baseUrl });
+      try {
+        const resolved = await resolveTestUser(context, userFile);
+        fs.writeFileSync(userFile, JSON.stringify(resolved, null, 2));
+        return resolved;
+      } finally {
+        await context.dispose();
+      }
+    }).catch((error: unknown) => {
+      users.delete(userFile);
+      throw error;
+    });
+    users.set(userFile, user);
+  }
+  return user;
+}
+
+function readCachedUser(userFile: string): TestUser | undefined {
+  if (!fs.existsSync(userFile)) return undefined;
+  return JSON.parse(fs.readFileSync(userFile, 'utf-8')) as TestUser;
+}
+
+async function resolveTestUser(context: APIRequestContext, userFile: string): Promise<TestUser> {
+  const envUser = userFile === authConfig.userFile ? authConfig.user : undefined;
+  const cached = readCachedUser(userFile);
+  const cacheMatchesEnv = !envUser || envUser.email === cached?.email;
 
   if (cached && cacheMatchesEnv) {
     const response = await new APIClient(context, cached.token).response({
@@ -67,11 +85,21 @@ async function resolveTestUser(context: APIRequestContext): Promise<TestUser> {
   }
 
   const guest = new APIClient(context);
-  const credentials = authConfig.user ?? cached;
+  const credentials = envUser ?? cached;
   if (credentials) {
     log.info(`Logging in as ${credentials.email}`);
-    const user = await guest.post.users.login(credentials);
-    return { email: credentials.email, password: credentials.password, username: user.username, token: user.token };
+    try {
+      const user = await guest.post.users.login(credentials);
+      return {
+        email: credentials.email,
+        password: credentials.password,
+        username: user.username,
+        token: user.token,
+      };
+    } catch (error) {
+      if (envUser) throw error;
+      log.warn(`Login as ${credentials.email} failed, registering a fresh user instead`, error);
+    }
   }
 
   const newUser = generateUser();

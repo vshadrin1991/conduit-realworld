@@ -8,6 +8,7 @@ export enum BasePath {
   ARTICLE_FAVORITE = '/articles/{data1}/favorite',
   COMMENTS = '/articles/{data1}/comments',
   COMMENT = '/articles/{data1}/comments/{data2}',
+  PROFILE = '/profiles/{data1}',
   PROFILE_FOLLOW = '/profiles/{data1}/follow',
   TAGS = '/tags',
 }

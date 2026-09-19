@@ -1,24 +1,16 @@
 import { APIClient } from '@/api/client/APIClient';
 import { BasePath } from '@/api/client/path/BasePath';
-import { getTestUser } from '@/api/client/session/auth/User';
 import { expect, test } from '@/base/BaseTest';
+import { Session } from '@/pageObject/components/Session';
 import { ArticlePage } from '@/pageObject/pages/ArticlePage';
 import { EditorPage } from '@/pageObject/pages/EditorPage';
 import { HomePage } from '@/pageObject/pages/HomePage';
-import { LoginPage } from '@/pageObject/pages/LoginPage';
 import { Route } from '@/pageObject/pagePath/Routes';
 import { generateArticle, generateComment } from '@/utilities/tests/TestDataGenerator';
 
 test.describe('Articles UI', () => {
   test.beforeEach(async ({ get }) => {
-    const testUser = await getTestUser();
-
-    await get(LoginPage, Route.login);
-    await get(LoginPage).fillData('email', testUser.email);
-    await get(LoginPage).fillData('password', testUser.password);
-    await get(LoginPage).clickActionButton('login');
-
-    await get(HomePage).waitUntilPageLoaded();
+    await get(Session).login();
   });
 
   test('user publishes an article from the editor', async ({ get }) => {

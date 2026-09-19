@@ -49,6 +49,13 @@ As a reader, I want to read an article and discuss it in comments, so that I can
 | REQ-04.13 | The comment's author can delete it. The API responds **200** `{ "message": { "body": ["Comment deleted successfully"] } }`, and the comment no longer appears in the list. | Functional  | code, tests |
 | REQ-04.14 | Another user responds **403** `You are not the author of this comment`. An unknown comment id responds **404** `Comment not found⎵`.                                       | Permissions | code        |
 
+## Known defects in the current implementation
+
+| ID        | Defect                                                                                                                                                               | Evidence        |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| REQ-04.D1 | `DELETE /api/articles/:slug/comments/:id` does not check that the comment belongs to the article in the URL — a comment is deletable through another article's slug.   | tests, observed |
+| REQ-04.D2 | `POST /api/articles/:slug/comments` without the `comment` wrapper responds **500** (`Cannot destructure property 'body'`) instead of a validation response.            | tests, observed |
+
 ## Open questions
 
 | ID        | Question                                                                                                                                 | Why                                   |
