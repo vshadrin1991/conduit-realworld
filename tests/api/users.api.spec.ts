@@ -5,66 +5,75 @@ import type { ErrorResponse } from '@/api/responses/errors/ErrorResponse';
 import type { UserResponse } from '@/api/responses/users/User';
 import { Schema } from '@/api/schemas/Schema';
 import { expect, test } from '@/base/BaseTest';
+import { Tag } from '@/utilities/tests/Tag';
 import { generateEmail, generatePhrase, generateUser } from '@/utilities/tests/TestDataGenerator';
 
 test.describe('Users API', () => {
   test.describe('sign-up', () => {
-    test.fail('registers a new user and returns the user with a token (REQ-01.D1)', async ({ get }) => {
-      const newUser = generateUser();
+    test.fail(
+      'registers a new user and returns the user with a token (REQ-01.D1)',
+      { tag: [Tag.AUTH_QUOTA, Tag.KNOWN_DEFECT] },
+      async ({ get }) => {
+        const newUser = generateUser();
 
-      const user = await get(APIClient, { guest: true }).post.users.with(newUser);
+        const user = await get(APIClient, { guest: true }).post.users.with(newUser);
 
-      expect(user).toMatchSchema(Schema.USER);
-      expect(user).toMatchObject({ username: newUser.username, email: newUser.email });
-      expect(user.token).toBeTruthy();
-      expect(user).toHaveProperty('bio');
-      expect(user).toHaveProperty('image');
-    });
+        expect(user).toMatchSchema(Schema.USER);
+        expect(user).toMatchObject({ username: newUser.username, email: newUser.email });
+        expect(user.token).toBeTruthy();
+        expect(user).toHaveProperty('bio');
+        expect(user).toHaveProperty('image');
+      },
+    );
 
-    test('checks the required sign-up fields in order and creates no account', async ({ get }) => {
-      const newUser = generateUser();
-      const rows = [
-        { name: 'no fields', user: {}, message: 'A username is required' },
-        {
-          name: 'no username',
-          user: { email: newUser.email, password: newUser.password },
-          message: 'A username is required',
-        },
-        {
-          name: 'no email',
-          user: { username: newUser.username, password: newUser.password },
-          message: 'An email is required',
-        },
-        {
-          name: 'no password',
-          user: { username: newUser.username, email: newUser.email },
-          message: 'A password is required',
-        },
-      ];
+    test(
+      'checks the required sign-up fields in order and creates no account',
+      { tag: Tag.AUTH_QUOTA },
+      async ({ get }) => {
+        const newUser = generateUser();
+        const rows = [
+          { name: 'no fields', user: {}, message: 'A username is required' },
+          {
+            name: 'no username',
+            user: { email: newUser.email, password: newUser.password },
+            message: 'A username is required',
+          },
+          {
+            name: 'no email',
+            user: { username: newUser.username, password: newUser.password },
+            message: 'An email is required',
+          },
+          {
+            name: 'no password',
+            user: { username: newUser.username, email: newUser.email },
+            message: 'A password is required',
+          },
+        ];
 
-      for (const row of rows) {
-        const response = await get(APIClient, { guest: true }).response({
-          name: `register with ${row.name}`,
-          path: BasePath.USERS,
+        for (const row of rows) {
+          const response = await get(APIClient, { guest: true }).response({
+            name: `register with ${row.name}`,
+            path: BasePath.USERS,
+            method: 'POST',
+            body: { user: row.user },
+            statusCode: 422,
+          });
+
+          await expect.soft(response, `register with ${row.name}`).toBeApiError(row.message, 422);
+        }
+
+        const login = await get(APIClient, { guest: true }).response({
+          name: 'login after the rejected sign-ups',
+          path: BasePath.USERS_LOGIN,
           method: 'POST',
-          body: { user: row.user },
-          statusCode: 422,
+          body: { user: { email: newUser.email, password: newUser.password } },
+          statusCode: 404,
         });
+        await expect(login).toBeApiError('Email not found sign in first', 404);
+      },
+    );
 
-        await expect(response, `register with ${row.name}`).toBeApiError(row.message, 422);
-      }
-
-      const login = await get(APIClient, { guest: true }).response({
-        name: 'login after the rejected sign-ups',
-        path: BasePath.USERS_LOGIN,
-        method: 'POST',
-        body: { user: { email: newUser.email, password: newUser.password } },
-        statusCode: 404,
-      });
-      await expect(login).toBeApiError('Email not found sign in first', 404);
-    });
-
-    test('rejects sign-up with an email that already exists', async ({ get }) => {
+    test('rejects sign-up with an email that already exists', { tag: Tag.AUTH_QUOTA }, async ({ get }) => {
       const existing = await getTestUser();
       const duplicate = generateUser({ email: existing.email });
 
@@ -87,21 +96,25 @@ test.describe('Users API', () => {
       await expect(login).toBeApiError('Wrong email/password combination', 422);
     });
 
-    test.fail('rejects a sign-up request without the user wrapper (REQ-01.I2)', async ({ get }) => {
-      const response = await get(APIClient, { guest: true }).response({
-        name: 'register without the user key',
-        path: BasePath.USERS,
-        method: 'POST',
-        body: {},
-        statusCode: 0,
-      });
+    test.fail(
+      'rejects a sign-up request without the user wrapper (REQ-01.I2)',
+      { tag: [Tag.AUTH_QUOTA, Tag.KNOWN_DEFECT] },
+      async ({ get }) => {
+        const response = await get(APIClient, { guest: true }).response({
+          name: 'register without the user key',
+          path: BasePath.USERS,
+          method: 'POST',
+          body: {},
+          statusCode: 0,
+        });
 
-      expect(response.status()).toBe(422);
-      const body = (await response.json()) as ErrorResponse;
-      expect(body).toMatchSchema(Schema.ERROR);
-    });
+        expect(response.status()).toBe(422);
+        const body = (await response.json()) as ErrorResponse;
+        expect(body).toMatchSchema(Schema.ERROR);
+      },
+    );
 
-    test('accepts sign-up with an existing username', async ({ get }) => {
+    test('accepts sign-up with an existing username', { tag: Tag.AUTH_QUOTA }, async ({ get }) => {
       const accountA = generateUser();
       await get(APIClient, { guest: true }).post.users.with(accountA);
       const accountB = generateUser({ username: accountA.username });
@@ -115,7 +128,7 @@ test.describe('Users API', () => {
   });
 
   test.describe('sign-in', () => {
-    test('returns a token for valid credentials', async ({ get }) => {
+    test('returns a token for valid credentials', { tag: Tag.AUTH_QUOTA }, async ({ get }) => {
       const testUser = await getTestUser();
 
       const user = await get(APIClient, { guest: true }).post.users.login(testUser);
@@ -125,7 +138,7 @@ test.describe('Users API', () => {
       expect(user.token).toBeTruthy();
     });
 
-    test('rejects login for an unknown email', async ({ get }) => {
+    test('rejects login for an unknown email', { tag: Tag.AUTH_QUOTA }, async ({ get }) => {
       const response = await get(APIClient, { guest: true }).response({
         name: 'login with unknown email',
         path: BasePath.USERS_LOGIN,
@@ -137,7 +150,7 @@ test.describe('Users API', () => {
       await expect(response).toBeApiError('Email not found sign in first', 404);
     });
 
-    test('rejects login with a wrong password', async ({ get }) => {
+    test('rejects login with a wrong password', { tag: Tag.AUTH_QUOTA }, async ({ get }) => {
       const testUser = await getTestUser();
 
       const response = await get(APIClient, { guest: true }).response({
@@ -153,28 +166,32 @@ test.describe('Users API', () => {
       expect(body.user).toBeUndefined();
     });
 
-    test.fail('rejects malformed sign-in bodies with a validation error (REQ-01.I2)', async ({ get }) => {
-      const rows = [
-        { name: 'no user wrapper', body: {} },
-        { name: 'no credentials', body: { user: {} } },
-      ];
+    test.fail(
+      'rejects malformed sign-in bodies with a validation error (REQ-01.I2)',
+      { tag: [Tag.AUTH_QUOTA, Tag.KNOWN_DEFECT] },
+      async ({ get }) => {
+        const rows = [
+          { name: 'no user wrapper', body: {} },
+          { name: 'no credentials', body: { user: {} } },
+        ];
 
-      for (const row of rows) {
-        const response = await get(APIClient, { guest: true }).response({
-          name: `sign-in with ${row.name}`,
-          path: BasePath.USERS_LOGIN,
-          method: 'POST',
-          body: row.body,
-          statusCode: 0,
-        });
+        for (const row of rows) {
+          const response = await get(APIClient, { guest: true }).response({
+            name: `sign-in with ${row.name}`,
+            path: BasePath.USERS_LOGIN,
+            method: 'POST',
+            body: row.body,
+            statusCode: 0,
+          });
 
-        expect(response.status(), row.name).toBe(422);
-        const body = (await response.json()) as ErrorResponse;
-        expect(body).toMatchSchema(Schema.ERROR);
-      }
-    });
+          expect(response.status(), row.name).toBe(422);
+          const body = (await response.json()) as ErrorResponse;
+          expect(body).toMatchSchema(Schema.ERROR);
+        }
+      },
+    );
 
-    test('new account can log in and read itself', async ({ get }) => {
+    test('new account can log in and read itself', { tag: Tag.AUTH_QUOTA }, async ({ get }) => {
       const newUser = generateUser();
       await get(APIClient, { guest: true }).post.users.with(newUser);
 
@@ -189,7 +206,7 @@ test.describe('Users API', () => {
   });
 
   test.describe('session', () => {
-    test('returns the user that owns the token', async ({ get }) => {
+    test('returns the user that owns the token', { tag: Tag.AUTH_QUOTA }, async ({ get }) => {
       const accountA = await getTestUser();
       const accountB = generateUser();
       const registeredB = await get(APIClient, { guest: true }).post.users.with(accountB);
@@ -211,32 +228,36 @@ test.describe('Users API', () => {
       await expect(response).toBeApiError('You need to login first!', 401);
     });
 
-    test.fail('rejects a malformed token instead of answering a server error (REQ-01.I5)', async ({ get }) => {
-      const rows = [
-        { name: 'GET', method: 'GET' as const, body: undefined },
-        { name: 'PUT', method: 'PUT' as const, body: { user: { bio: generatePhrase() } } },
-      ];
+    test.fail(
+      'rejects a malformed token instead of answering a server error (REQ-01.I5)',
+      { tag: Tag.KNOWN_DEFECT },
+      async ({ get }) => {
+        const rows = [
+          { name: 'GET', method: 'GET' as const, body: undefined },
+          { name: 'PUT', method: 'PUT' as const, body: { user: { bio: generatePhrase() } } },
+        ];
 
-      for (const row of rows) {
-        const response = await get(APIClient, { guest: true }).response({
-          name: `${row.name} current user with a malformed token`,
-          path: BasePath.USER,
-          method: row.method,
-          body: row.body,
-          headers: { Authorization: 'Token malformed.token.value' },
-          statusCode: 0,
-        });
+        for (const row of rows) {
+          const response = await get(APIClient, { guest: true }).response({
+            name: `${row.name} current user with a malformed token`,
+            path: BasePath.USER,
+            method: row.method,
+            body: row.body,
+            headers: { Authorization: 'Token malformed.token.value' },
+            statusCode: 0,
+          });
 
-        expect(response.status(), row.name).toBe(401);
-        const body = (await response.json()) as ErrorResponse;
-        expect(body).toMatchSchema(Schema.ERROR);
-      }
-    });
+          expect(response.status(), row.name).toBe(401);
+          const body = (await response.json()) as ErrorResponse;
+          expect(body).toMatchSchema(Schema.ERROR);
+        }
+      },
+    );
 
-    test('accepts any scheme word in the Authorization header', async ({ get }) => {
-      const testUser = await getTestUser();
+    for (const scheme of ['Bearer', 'Foo']) {
+      test(`accepts the "${scheme}" scheme word in the Authorization header`, async ({ get }) => {
+        const testUser = await getTestUser();
 
-      for (const scheme of ['Bearer', 'Foo']) {
         const response = await get(APIClient, { guest: true }).response({
           name: `current user with the "${scheme}" scheme`,
           path: BasePath.USER,
@@ -244,10 +265,10 @@ test.describe('Users API', () => {
         });
 
         const { user } = (await response.json()) as UserResponse;
-        expect(user, scheme).toMatchSchema(Schema.USER);
-        expect(user, scheme).toMatchObject({ email: testUser.email, username: testUser.username });
-      }
-    });
+        expect(user).toMatchSchema(Schema.USER);
+        expect(user).toMatchObject({ email: testUser.email, username: testUser.username });
+      });
+    }
   });
 
   test.describe('settings', () => {
@@ -279,18 +300,22 @@ test.describe('Users API', () => {
       await expect(response).toBeApiError('You need to login first!', 401);
     });
 
-    test.fail('keeps the current password when only bio is sent (REQ-05.D1)', async ({ get }) => {
-      const other = await getOtherUser();
+    test.fail(
+      'keeps the current password when only bio is sent (REQ-05.D1)',
+      { tag: Tag.KNOWN_DEFECT },
+      async ({ get }) => {
+        const other = await getOtherUser();
 
-      const response = await get(APIClient, { token: other.token }).response({
-        name: 'update only bio',
-        path: BasePath.USER,
-        method: 'PUT',
-        body: { user: { bio: generatePhrase() } },
-        statusCode: 0,
-      });
+        const response = await get(APIClient, { token: other.token }).response({
+          name: 'update only bio',
+          path: BasePath.USER,
+          method: 'PUT',
+          body: { user: { bio: generatePhrase() } },
+          statusCode: 0,
+        });
 
-      expect(response.status()).toBe(200);
-    });
+        expect(response.status()).toBe(200);
+      },
+    );
   });
 });

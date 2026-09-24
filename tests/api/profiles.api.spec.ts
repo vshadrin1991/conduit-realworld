@@ -3,6 +3,7 @@ import { BasePath } from '@/api/client/path/BasePath';
 import { getTestUser } from '@/api/client/session/auth/User';
 import { Schema } from '@/api/schemas/Schema';
 import { expect, test } from '@/base/BaseTest';
+import { Tag } from '@/utilities/tests/Tag';
 import { generateShortTestsName, generateUser } from '@/utilities/tests/TestDataGenerator';
 
 test.describe('Profiles API', () => {
@@ -27,32 +28,36 @@ test.describe('Profiles API', () => {
     await expect(response).toBeApiError('User profile not found', 404);
   });
 
-  test('follows and unfollows a user updating following and followersCount', async ({ get }) => {
-    const target = generateUser();
-    await get(APIClient, { guest: true }).post.users.with(target);
-    const client = get(APIClient);
+  test(
+    'follows and unfollows a user updating following and followersCount',
+    { tag: Tag.AUTH_QUOTA },
+    async ({ get }) => {
+      const target = generateUser();
+      await get(APIClient, { guest: true }).post.users.with(target);
+      const client = get(APIClient);
 
-    const followed = await client.post.profiles.follow(target.username);
-    expect(followed).toMatchSchema(Schema.PROFILE);
-    expect(followed).toMatchObject({
-      username: target.username,
-      following: true,
-      followersCount: 1,
-    });
+      const followed = await client.post.profiles.follow(target.username);
+      expect(followed).toMatchSchema(Schema.PROFILE);
+      expect(followed).toMatchObject({
+        username: target.username,
+        following: true,
+        followersCount: 1,
+      });
 
-    const followedAgain = await client.post.profiles.follow(target.username);
-    expect(followedAgain).toMatchObject({ following: true, followersCount: 1 });
+      const followedAgain = await client.post.profiles.follow(target.username);
+      expect(followedAgain).toMatchObject({ following: true, followersCount: 1 });
 
-    const unfollowed = await client.delete.profiles.unfollow(target.username);
-    expect(unfollowed).toMatchObject({
-      username: target.username,
-      following: false,
-      followersCount: 0,
-    });
+      const unfollowed = await client.delete.profiles.unfollow(target.username);
+      expect(unfollowed).toMatchObject({
+        username: target.username,
+        following: false,
+        followersCount: 0,
+      });
 
-    const unfollowedAgain = await client.delete.profiles.unfollow(target.username);
-    expect(unfollowedAgain).toMatchObject({ following: false, followersCount: 0 });
-  });
+      const unfollowedAgain = await client.delete.profiles.unfollow(target.username);
+      expect(unfollowedAgain).toMatchObject({ following: false, followersCount: 0 });
+    },
+  );
 
   test('rejects following without a token and unknown users', async ({ get }) => {
     const testUser = await getTestUser();

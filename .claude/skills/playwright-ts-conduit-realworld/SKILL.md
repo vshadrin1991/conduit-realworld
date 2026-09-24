@@ -63,7 +63,7 @@ get(APIClient).post.articles.with(a); // REST client authenticated as the shared
 get(APIClient, { guest: true }); // REST client without a token
 get(APIClient).api.articles.create({ count: 2 }); // multi-call API flows (created data is deleted after the test)
 get(ArticlePage); // page object bound to the current page (cached per test)
-await get(ArticlePage, Route.article(slug)); // opens the page at the route; later calls use get(ArticlePage)
+get(ArticlePage, Route.article(slug)); // queues opening the route as the first step of a chain — await the chain
 get(Interceptor); // network mocks (utility, not a component)
 get(LocalStorage); // page component without an element to act on
 await get(Session).login(); // signed-in browser via localStorage — no auth call
@@ -93,18 +93,16 @@ Tests describe the flow step by step — pages have no multi-step business metho
 ```ts
 const [article] = await get(APIClient).api.articles.create();
 
-await get(ArticlePage, Route.article(article.slug));
-await get(ArticlePage).fillData('comment', text);
-await get(ArticlePage).clickActionButton('postComment');
+await get(ArticlePage, Route.article(article.slug)).fillData('comment', text).clickActionButton('postComment');
 
 await expect(get(ArticlePage).comment(text)).toBeVisible();
 ```
 
-Every page call is a separate `await` and is one named step: `navigate`, `waitUntilPageLoaded`, `fillData`, `clickActionButton` and the `verify*` methods run on their own and are shown as a report step (`ArticlePage.fillData(comment)`) reported at the spec line that called them.
+Page steps chain and the chain is awaited once. Each step (`navigate`, `waitUntilPageLoaded`, `fillData`, `clickActionButton`, the `verify*` methods) is still one report step (`ArticlePage.fillData(comment)`) at the spec line that called it. Rules: [test-design](references/test-design.md#page-chains).
 
-- Always `await` every page call — lint's `no-floating-promises` catches a missing one.
-- `get(PageClass, route)` returns a promise, so it is awaited on its own line: `await get(ArticlePage, Route.article(slug));`. Everything after it goes through `get(ArticlePage)` — the same cached instance, no local variable.
-- `navigate` already waits for the page, so `waitUntilPageLoaded` after `get(PageClass, route)` is redundant; use it after an action that navigates: `await get(HomePage).button.click(...)` then `await get(ArticlePage).waitUntilPageLoaded()`.
+- Always `await` the chain. Lint's `no-floating-promises` catches a missing one, and `npm run lint:chains` catches same-page statements that should be one chain.
+- `get(PageClass, route)` opens a chain: `await get(ArticlePage, Route.article(slug)).fillData('comment', text);`. Reads after the chain go through `get(ArticlePage)` again: the same cached instance, no local variable.
+- `navigate` already waits for the page. After a page action that navigates, use `.next(ArticlePage).waitUntilPageLoaded()` in the same chain. After an element-component click (`get(HomePage).button.click(...)`), start a new statement: `await get(ArticlePage).waitUntilPageLoaded()`.
 
 Test functions receive only `{ get }` — no other fixtures (`page`, `request`, ... are not used in specs). The shared user comes from `await getTestUser()` (a second account from `await getOtherUser()`, both `@/api/client/session/auth/User`), a signed-in browser from `await get(Session).login()` (see **Browser** below), browser storage from `get(LocalStorage)`, network mocks from `get(Interceptor).mock(url, response)` (its API/console capture is attached to failed tests automatically). Logging and data cleanup run automatically as auto fixtures inside `BaseTest` (`dataCleaner` is declared after `logs`, so its teardown is logged). `get` depends on `page`, so API specs also get a never-navigated browser page (startup time, no server requests).
 
@@ -113,12 +111,12 @@ Structure each test as Arrange / Act / Assert separated by blank lines, one beha
 ## Waiting and assertions
 
 - Use web-first assertions (`await expect(locator).toBeVisible()`, `toHaveURL`, `toHaveText`); never `page.waitForTimeout` or sleeps.
-- Wait for the next page with `await get(NextPage).waitUntilPageLoaded()` after an action that navigates.
+- Wait for the next page with `.next(NextPage).waitUntilPageLoaded()` in the same chain when a page action navigates; after an element-component call use `await get(NextPage).waitUntilPageLoaded()`.
 - Assert the outcome the user cares about, not implementation details.
 
 ## Rules for every change
 
-- **Rate limits** — ~100 requests / 15 min per IP and ~5 auth requests / hour: arrange and verify through the API, run the smallest scope, keep sign-in and registration tests few. Details: [execution-and-config](references/execution-and-config.md).
+- **Rate limits** — ~100 requests / 15 min per IP and ~5 auth requests / hour: arrange and verify through the API, run the smallest scope, keep sign-in and registration tests few and tag tests that spend the auth quota with `Tag.AUTH_QUOTA` ([test-design](references/test-design.md#tags)). Details: [execution-and-config](references/execution-and-config.md).
 - **Test data** — generate it with `TestDataGenerator`, create prerequisites with API flows, track anything created another way. Details: [test-data-and-auth](references/test-data-and-auth.md).
 - **Browser** — every UI test runs in its own new browser and starts as a guest. A test that needs a user calls `await get(Session).login()` — it writes the app's `loggedUser` item to localStorage and reloads, so it spends no auth quota (`login(await getOtherUser())` signs in as the secondary account). Use it in `beforeEach` or the test, never in `beforeAll`; the login form steps stay only in the session spec that tests the form. Details: [execution-and-config](references/execution-and-config.md), [test-data-and-auth](references/test-data-and-auth.md).
 - **Page objects** — locators only; priority role → placeholder/label/text → semantic CSS; no XPath. Details: [page-objects](references/page-objects.md).
@@ -142,11 +140,12 @@ Open the reference that matches the work before writing code:
 | [app-behaviour.md](references/app-behaviour.md)                        | Tests touching feeds, the editor, article deletion, slugs or users                                             |
 | [code-conventions.md](references/code-conventions.md)                  | Adding public methods, or before writing any comment (comments are not allowed in code)                        |
 | [templates.md](references/templates.md)                                | Where each kind of code goes and what to register                                                              |
+| [test-design.md](references/test-design.md)                            | Writing or reviewing a spec: page chains, data rows, tags, pre-state, ARIA snapshots, test-writing rules       |
 | [assets/README.md](assets/README.md)                                   | Full example files to copy                                                                                     |
 
 ## Definition of done for a new or changed test
 
-1. `npm run typecheck` and `npm run lint` pass (lint's `no-floating-promises` catches page calls without `await`).
+1. `npm run typecheck`, `npm run lint` and `npm run lint:chains` pass (lint's `no-floating-promises` catches page calls without `await`).
 2. The test passes when run alone, and again with `--repeat-each=2` if budget allows — this catches data coupling.
 3. It fails for the right reason: temporarily break the expectation and check the message is clear.
 4. Created data is registered for cleanup (API flows or `api.articles.track`).

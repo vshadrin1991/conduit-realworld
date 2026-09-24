@@ -58,7 +58,7 @@ Show the cases compactly: ID, title, expected result, and for API the expected s
 
 ### Step 4 — Implement
 
-Follow the [playwright-ts-conduit-realworld](../skills/playwright-ts-conduit-realworld/SKILL.md) skill, and open the matching file in its `assets/` before writing each kind of file.
+Follow the [playwright-ts-conduit-realworld](../skills/playwright-ts-conduit-realworld/SKILL.md) skill, read its [test-design.md](../skills/playwright-ts-conduit-realworld/references/test-design.md) for how a spec is shaped, and open the matching file in its `assets/` before writing each kind of file.
 
 Order, so that each layer exists before the one that uses it:
 

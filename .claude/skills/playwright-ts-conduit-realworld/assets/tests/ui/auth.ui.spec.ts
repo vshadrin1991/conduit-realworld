@@ -15,25 +15,24 @@ test.describe('Authentication UI', () => {
     });
     const user = generateUser();
 
-    await get(LoginPage, Route.login);
-    await get(LoginPage).fillData('email', user.email);
-    await get(LoginPage).fillData('password', user.password);
-    await get(LoginPage).clickActionButton('login');
-
-    await get(LoginPage).verifyErrorField('email', true);
-    await get(LoginPage).verifyErrorFieldText('email', 'Email not found sign in first');
+    await get(LoginPage, Route.login)
+      .fillData('email', user.email)
+      .fillData('password', user.password)
+      .clickActionButton('login')
+      .verifyErrorField('email', true)
+      .verifyErrorFieldText('email', 'Email not found sign in first');
     await expect(get(LoginPage).header.loginLink).toBeVisible();
   });
 
   test('user logs out from the header menu', async ({ get }) => {
     const testUser = await getTestUser();
 
-    await get(LoginPage, Route.login);
-    await get(LoginPage).fillData('email', testUser.email);
-    await get(LoginPage).fillData('password', testUser.password);
-    await get(LoginPage).clickActionButton('login');
-
-    await get(HomePage).waitUntilPageLoaded();
+    await get(LoginPage, Route.login)
+      .fillData('email', testUser.email)
+      .fillData('password', testUser.password)
+      .clickActionButton('login')
+      .next(HomePage)
+      .waitUntilPageLoaded();
     await expect(get(HomePage).header.userAvatar(testUser.username)).toBeVisible();
     await get(HomePage).button.click(get(HomePage).header.userMenu);
     await get(HomePage).button.click(get(HomePage).header.menuItem('Logout'));

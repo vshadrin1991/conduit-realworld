@@ -1,14 +1,16 @@
 import { APIClient } from '@/api/client/APIClient';
 import { BasePath } from '@/api/client/path/BasePath';
 import { getOtherUser, getTestUser } from '@/api/client/session/auth/User';
+import type { NewArticle } from '@/api/request/articles/NewArticle';
 import type { ArticleResponse } from '@/api/responses/articles/Article';
 import type { ErrorResponse } from '@/api/responses/errors/ErrorResponse';
 import { Schema } from '@/api/schemas/Schema';
 import { expect, test } from '@/base/BaseTest';
+import { Tag } from '@/utilities/tests/Tag';
 import { generateArticle, generateShortTestsName, generateTestsName } from '@/utilities/tests/TestDataGenerator';
 
 test.describe('Articles API', () => {
-  test('creates an article', async ({ get }) => {
+  test('creates an article', { tag: Tag.SMOKE }, async ({ get }) => {
     const testUser = await getTestUser();
     const data = generateArticle();
 
@@ -27,7 +29,7 @@ test.describe('Articles API', () => {
     expect(article.tagList.toSorted()).toEqual(data.tagList!.toSorted());
   });
 
-  test('returns an article by slug to a guest', async ({ get }) => {
+  test('returns an article by slug to a guest', { tag: Tag.SMOKE }, async ({ get }) => {
     const [created] = await get(APIClient).api.articles.create();
 
     const article = await get(APIClient, { guest: true }).get.articles.bySlug(created.slug);
@@ -86,32 +88,35 @@ test.describe('Articles API', () => {
     await expect(response).toBeApiError('You need to login first!', 401);
   });
 
-  test('checks the required article fields in order', async ({ get }) => {
-    const data = generateArticle();
-    const rows = [
-      { name: 'no fields', article: {}, message: 'A title is required' },
-      { name: 'no title', article: { description: data.description, body: data.body }, message: 'A title is required' },
-      {
-        name: 'empty title',
-        article: { title: '', description: data.description, body: data.body },
-        message: 'A title is required',
-      },
-      { name: 'no description', article: { title: data.title, body: data.body }, message: 'A description is required' },
-      { name: 'no body', article: { title: data.title, description: data.description }, message: 'An article body is required' },
-    ];
+  const requiredFieldRows: { name: string; article: (data: NewArticle) => Partial<NewArticle>; message: string }[] = [
+    { name: 'no fields', article: () => ({}), message: 'A title is required' },
+    { name: 'no title', article: ({ description, body }) => ({ description, body }), message: 'A title is required' },
+    {
+      name: 'an empty title',
+      article: ({ description, body }) => ({ title: '', description, body }),
+      message: 'A title is required',
+    },
+    { name: 'no description', article: ({ title, body }) => ({ title, body }), message: 'A description is required' },
+    {
+      name: 'no body',
+      article: ({ title, description }) => ({ title, description }),
+      message: 'An article body is required',
+    },
+  ];
 
-    for (const row of rows) {
+  for (const row of requiredFieldRows) {
+    test(`rejects an article with ${row.name}`, async ({ get }) => {
       const response = await get(APIClient).response({
         name: `create article with ${row.name}`,
         path: BasePath.ARTICLES,
         method: 'POST',
-        body: { article: row.article },
+        body: { article: row.article(generateArticle()) },
         statusCode: 422,
       });
 
-      await expect(response, `create with ${row.name}`).toBeApiError(row.message, 422);
-    }
-  });
+      await expect(response).toBeApiError(row.message, 422);
+    });
+  }
 
   test('rejects a title whose slug already exists', async ({ get }) => {
     const [created] = await get(APIClient).api.articles.create();
@@ -141,7 +146,10 @@ test.describe('Articles API', () => {
     const updated = await get(APIClient).put.articles.with(created.slug, { title: newTitle });
     get(APIClient).api.articles.track(updated.slug);
 
-    const expectedSlug = newTitle.trim().toLowerCase().replace(/[^a-z0-9]/g, '-');
+    const expectedSlug = newTitle
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '-');
     expect(updated.slug).toBe(expectedSlug);
     expect(updated).toMatchObject({ title: newTitle, body: 'Updated body' });
     await get(APIClient).response({
@@ -164,7 +172,7 @@ test.describe('Articles API', () => {
         statusCode: 401,
       });
 
-      await expect(response, method).toBeApiError('You need to login first!', 401);
+      await expect.soft(response, method).toBeApiError('You need to login first!', 401);
     }
   });
 
@@ -186,32 +194,31 @@ test.describe('Articles API', () => {
         statusCode: 403,
       });
 
-      await expect(response, row.method).toBeApiError('You are not the author of this article', 403);
+      await expect.soft(response, row.method).toBeApiError('You are not the author of this article', 403);
     }
   });
 
-  test('responds 404 for an unknown slug on read, update and delete', async ({ get }) => {
-    const slug = generateShortTestsName('unknown');
-    const rows = [
-      { method: 'GET', slug, body: undefined },
-      { method: 'PUT', slug, body: { article: { title: 'x' } } },
-      { method: 'DELETE', slug, body: undefined },
-      { method: 'GET', slug: '%$#@!', body: undefined },
-    ] as const;
+  const unknownSlugRows = [
+    { name: 'read', method: 'GET', slug: () => generateShortTestsName('unknown'), body: undefined },
+    { name: 'update', method: 'PUT', slug: () => generateShortTestsName('unknown'), body: { article: { title: 'x' } } },
+    { name: 'delete', method: 'DELETE', slug: () => generateShortTestsName('unknown'), body: undefined },
+    { name: 'read with a malformed slug', method: 'GET', slug: () => '%$#@!', body: undefined },
+  ] as const;
 
-    for (const row of rows) {
+  for (const row of unknownSlugRows) {
+    test(`responds 404 for an unknown slug on ${row.name}`, async ({ get }) => {
       const response = await get(APIClient).response({
         name: `${row.method} unknown article`,
         path: BasePath.ARTICLE,
-        pathData: [row.slug],
+        pathData: [row.slug()],
         method: row.method,
         body: row.body,
         statusCode: 404,
       });
 
-      await expect(response, row.method).toBeApiError('Article not found', 404);
-    }
-  });
+      await expect(response).toBeApiError('Article not found', 404);
+    });
+  }
 
   test('accepts an update that repeats the current values and ignores an empty title', async ({ get }) => {
     const [created] = await get(APIClient).api.articles.create();
@@ -228,28 +235,32 @@ test.describe('Articles API', () => {
     expect([...untagged.tagList].sort()).toEqual([...created.tagList].sort());
   });
 
-  test.fail('rejects renaming to a title whose slug is taken (REQ-03.D2)', async ({ get }) => {
-    const [first] = await get(APIClient).api.articles.create();
-    const [second] = await get(APIClient).api.articles.create();
+  test.fail(
+    'rejects renaming to a title whose slug is taken (REQ-03.D2)',
+    { tag: Tag.KNOWN_DEFECT },
+    async ({ get }) => {
+      const [first] = await get(APIClient).api.articles.create();
+      const [second] = await get(APIClient).api.articles.create();
 
-    const response = await get(APIClient).response({
-      name: 'rename article to a taken title',
-      path: BasePath.ARTICLE,
-      pathData: [second.slug],
-      method: 'PUT',
-      body: { article: { title: first.title } },
-      statusCode: 0,
-    });
-    if (response.ok()) {
-      const { article } = (await response.json()) as ArticleResponse;
-      get(APIClient).api.articles.track(article.slug);
-      await get(APIClient).delete.articles.by(article.slug, [200, 404]);
-    }
+      const response = await get(APIClient).response({
+        name: 'rename article to a taken title',
+        path: BasePath.ARTICLE,
+        pathData: [second.slug],
+        method: 'PUT',
+        body: { article: { title: first.title } },
+        statusCode: 0,
+      });
+      if (response.ok()) {
+        const { article } = (await response.json()) as ArticleResponse;
+        get(APIClient).api.articles.track(article.slug);
+        await get(APIClient).delete.articles.by(article.slug, [200, 404]);
+      }
 
-    expect(response.status()).toBe(422);
-    const body = (await response.json()) as ErrorResponse;
-    expect(body).toMatchSchema(Schema.ERROR);
-  });
+      expect(response.status()).toBe(422);
+      const body = (await response.json()) as ErrorResponse;
+      expect(body).toMatchSchema(Schema.ERROR);
+    },
+  );
 
   test('frees the slug once the article is deleted', async ({ get }) => {
     const [created] = await get(APIClient).api.articles.create();
@@ -268,21 +279,25 @@ test.describe('Articles API', () => {
     expect(recreated.slug).toBe(created.slug);
   });
 
-  test.fail('responds with a validation error when the create request has no article wrapper (REQ-03.D1)', async ({ get }) => {
-    const response = await get(APIClient).response({
-      name: 'create article without the article key',
-      path: BasePath.ARTICLES,
-      method: 'POST',
-      body: {},
-      statusCode: 0,
-    });
+  test.fail(
+    'responds with a validation error when the create request has no article wrapper (REQ-03.D1)',
+    { tag: Tag.KNOWN_DEFECT },
+    async ({ get }) => {
+      const response = await get(APIClient).response({
+        name: 'create article without the article key',
+        path: BasePath.ARTICLES,
+        method: 'POST',
+        body: {},
+        statusCode: 0,
+      });
 
-    expect(response.status()).toBe(422);
-    const body = (await response.json()) as ErrorResponse;
-    expect(body).toMatchSchema(Schema.ERROR);
-  });
+      expect(response.status()).toBe(422);
+      const body = (await response.json()) as ErrorResponse;
+      expect(body).toMatchSchema(Schema.ERROR);
+    },
+  );
 
-  test.fail('creates an article without a tag list (REQ-03.I1)', async ({ get }) => {
+  test.fail('creates an article without a tag list (REQ-03.I1)', { tag: Tag.KNOWN_DEFECT }, async ({ get }) => {
     const { tagList: _tagList, ...article } = generateArticle();
 
     const created = await get(APIClient).post.articles.with(article);

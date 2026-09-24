@@ -25,7 +25,7 @@ Example: `assets/tests/api/articles.api.spec.ts`.
 Examples: `assets/tests/ui/articles.ui.spec.ts` (hybrid), `assets/tests/ui/auth.ui.spec.ts` (mocked response, header menu, localStorage).
 
 - Signed-in browser: `await get(Session).login()` in `test.beforeEach` or the test — worked example: `assets/tests/ui/articles.ui.spec.ts`. It writes `loggedUser` to localStorage and reloads, so no auth call is spent; `get(Session).login(await getOtherUser())` signs in as the secondary account. Guest scenarios skip it.
-- Steps: one awaited page call per line — `await get(Page, Route.x);` then `await get(Page).fillData(...);` — and after an action that navigates, `await get(NextPage).waitUntilPageLoaded()`.
+- Steps: one chain per page, awaited once: `await get(EditorPage, Route.newArticle).fillData('title', t).clickActionButton('submit').next(ArticlePage).waitUntilPageLoaded();`. Rules: [test-design](test-design.md#page-chains).
 - Locators outside the named maps: call element components through the page — `get(HomePage).button.click(locator)`, `get(SettingsPage).input.enter(locator, text)`, `get(ArticlePage).text.getTexts(locator)`.
 - Mock only what the backend cannot produce on demand: `await get(Interceptor).mock(url, { status, json })` before the action; state the reason in the task or pull request (no code comment).
 - Tests of a file run one by one, each in its own new browser: log in and arrange in `beforeEach` (never `beforeAll`), with no dependency between tests.
@@ -98,6 +98,8 @@ this.comments = new CommentsAPI(client);
 Use: `get(APIClient).api.comments.create(slug, 3)`.
 
 A flow that creates a new kind of data follows `ArticlesAPI`: store created ids in `TestDataStorage` (`track`), delete them in a `deleteCreated()` that accepts 404 and logs instead of failing, and call it from the `dataCleaner` auto fixture in `src/base/BaseTest.ts`.
+
+A flow that corrects shared state before a test is named `ensure<State>`, changes the state only when it differs, and returns the resulting model (example: `src/api/client/api/profiles/ProfilesAPI.ts`).
 
 ## Test data generator — `src/utilities/tests/TestDataGenerator.ts`
 

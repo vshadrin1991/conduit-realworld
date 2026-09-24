@@ -25,6 +25,10 @@ export class SettingsPage extends BasePage<FieldName, ButtonName> {
 
   readonly errorMessages: Locator = this.page.locator('.error-messages');
 
+  readonly form: Locator = this.page.locator('form', {
+    has: this.page.getByRole('button', { name: 'Update Settings' }),
+  });
+
   /**
    * Returns the server error line with the message.
    * @param message - text of the server error

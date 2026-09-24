@@ -6,6 +6,7 @@ import { ArticlePage } from '@/pageObject/pages/ArticlePage';
 import { EditorPage } from '@/pageObject/pages/EditorPage';
 import { HomePage } from '@/pageObject/pages/HomePage';
 import { Route } from '@/pageObject/pagePath/Routes';
+import { Tag } from '@/utilities/tests/Tag';
 import { generateArticle, generateComment } from '@/utilities/tests/TestDataGenerator';
 
 test.describe('Articles UI', () => {
@@ -13,19 +14,20 @@ test.describe('Articles UI', () => {
     await get(Session).login();
   });
 
-  test('user publishes an article from the editor', async ({ get }) => {
+  test('user publishes an article from the editor', { tag: Tag.SMOKE }, async ({ get }) => {
     const data = generateArticle();
     const tags = data.tagList!.join(',');
 
-    await get(EditorPage, Route.newArticle);
-    await get(EditorPage).fillData('title', data.title);
-    await get(EditorPage).fillData('description', data.description);
-    await get(EditorPage).fillData('body', data.body);
-    await get(EditorPage).fillData('tags', tags);
-    await get(EditorPage).verifyFieldData('tags', tags);
-    await get(EditorPage).clickActionButton('submit');
+    await get(EditorPage, Route.newArticle)
+      .fillData('title', data.title)
+      .fillData('description', data.description)
+      .fillData('body', data.body)
+      .fillData('tags', tags)
+      .verifyFieldData('tags', tags)
+      .clickActionButton('submit')
+      .next(ArticlePage)
+      .waitUntilPageLoaded();
 
-    await get(ArticlePage).waitUntilPageLoaded();
     get(APIClient).api.articles.track(get(ArticlePage).slug);
     await expect(get(ArticlePage).title).toHaveText(data.title);
     await expect(get(ArticlePage).body).toContainText(data.body);
@@ -38,8 +40,7 @@ test.describe('Articles UI', () => {
   test('article created via API is shown in the global feed', async ({ get }) => {
     const [article] = await get(APIClient).api.articles.create();
 
-    await get(HomePage, Route.home);
-    await get(HomePage).clickActionButton('globalFeed');
+    await get(HomePage, Route.home).clickActionButton('globalFeed');
 
     await expect(get(HomePage).articlePreviews.first()).toBeVisible();
     const preview = await get(HomePage).findArticleInFeed(article.title);
@@ -92,13 +93,11 @@ test.describe('Articles UI', () => {
     });
   });
 
-  test('user adds a comment to an article', async ({ get }) => {
+  test('user adds a comment to an article', { tag: Tag.SMOKE }, async ({ get }) => {
     const [article] = await get(APIClient).api.articles.create();
     const { body: text } = generateComment();
 
-    await get(ArticlePage, Route.article(article.slug));
-    await get(ArticlePage).fillData('comment', text);
-    await get(ArticlePage).clickActionButton('postComment');
+    await get(ArticlePage, Route.article(article.slug)).fillData('comment', text).clickActionButton('postComment');
 
     await expect(get(ArticlePage).comment(text)).toBeVisible();
     const comments = await get(APIClient).get.comments.list(article.slug);

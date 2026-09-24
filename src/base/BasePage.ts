@@ -8,15 +8,19 @@ import { Navigation } from '@/pageObject/components/Navigation';
 import { RadioButton } from '@/pageObject/components/RadioButton';
 import { Text } from '@/pageObject/components/Text';
 import { createLogger } from '@/utilities/logger/Logger';
-import { inStep } from '@/utilities/reporter/Step';
+import { callerLocation, inStep } from '@/utilities/reporter/Step';
+
+const queues = new WeakMap<Page, Promise<void>>();
 
 /**
  * Base for every page object. Obtain pages in tests through `get(PageClass)` / `get(PageClass, route)`.
  * - `root` must be an element that exists only when the page is rendered; it is used to wait for the page.
  * - Pages only declare locators: named elements in `fields`, `buttons`, `checkboxes`, `radioButtons`, `errors`
  *   and read-only content as public locators. No multi-step business methods.
- * - Every page action is async and must be awaited on its own; each runs as a report step named after the page and
- *   the call (`ArticlePage.fillData(comment)`) and reported at the spec line that called it.
+ * - Page actions return the page, so steps chain and the chain is awaited once:
+ *   `await get(EditorPage, Route.newArticle).fillData('title', title).clickActionButton('submit')`;
+ *   `.next(ArticlePage)` continues on the page a click lands on. Each action runs as a report step named after the
+ *   page and the call (`ArticlePage.fillData(comment)`) and reported at the spec line that called it.
  * - Element components (`input`, `button`, `checkbox`, `radioButton`, `text`) and `navigation` are exposed on the
  *   page; tests call them from the page for locators outside the named maps:
  *   `await homePage.button.click(homePage.header.userMenu)`, `await articlePage.text.getTexts(articlePage.tags)`.
@@ -62,21 +66,53 @@ export abstract class BasePage<
   }
 
   /**
-   * Runs `action` as a named report step.
+   * Queues `action` as a named report step after the actions already queued on the browser page.
    * @param title - step title without the class name, e.g. `fillData(title)`
    * @param action - page action to run
-   * @return promise resolved when the action has finished
+   * @return current page instance
    */
-  protected async step(title: string, action: () => Promise<void>): Promise<void> {
-    return inStep(`${this.constructor.name}.${title}`, action);
+  protected step(title: string, action: () => Promise<void>): this {
+    const location = callerLocation();
+    const queued = queues.get(this.page) ?? Promise.resolve();
+    queues.set(
+      this.page,
+      queued.then(() => inStep(`${this.constructor.name}.${title}`, action, location)),
+    );
+    return this;
+  }
+
+  /**
+   * Runs the actions queued on the browser page, so a chain is awaited once:
+   * `await get(EditorPage, Route.newArticle).fillData('title', title).clickActionButton('submit')`.
+   * @param onFulfilled - called when every queued action has passed
+   * @param onRejected - called with the error of the first failed action; the actions after it are skipped
+   * @return promise of the callback result
+   */
+  then<TResult1 = void, TResult2 = never>(
+    onFulfilled?: ((value: void) => TResult1 | PromiseLike<TResult1>) | null,
+    onRejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
+  ): Promise<TResult1 | TResult2> {
+    const queued = queues.get(this.page) ?? Promise.resolve();
+    queues.delete(this.page);
+    return queued.then(onFulfilled, onRejected);
+  }
+
+  /**
+   * Continues the chain on another page object of the same browser page, e.g. after a click that navigates:
+   * `.clickActionButton('submit').next(ArticlePage).waitUntilPageLoaded()`.
+   * @param pageClass - page object class to continue with
+   * @return page object whose actions run after the ones already queued
+   */
+  next<T extends BasePage<string, string, string, string>>(pageClass: new (page: Page) => T): T {
+    return new pageClass(this.page);
   }
 
   /**
    * Opens a hash route unless already there, then waits for the page to render.
    * @param route - hash route to navigate to, e.g. `Route.article(slug)`
-   * @return promise resolved when the action has finished
+   * @return current page instance
    */
-  async navigate(route: string): Promise<void> {
+  navigate(route: string): this {
     return this.step(`navigate(${route})`, async () => {
       await this.navigation.to(route);
       await expect(this.root).toBeVisible();
@@ -85,9 +121,9 @@ export abstract class BasePage<
 
   /**
    * Waits until the page is rendered (its `root` is visible); use after an action that navigates to this page.
-   * @return promise resolved when the action has finished
+   * @return current page instance
    */
-  async waitUntilPageLoaded(): Promise<void> {
+  waitUntilPageLoaded(): this {
     return this.step('waitUntilPageLoaded()', async () => {
       await expect(this.root).toBeVisible();
     });
@@ -97,9 +133,9 @@ export abstract class BasePage<
    * Types data into a named field, replacing its current value (password values are masked in logs).
    * @param field - name of the field declared in `fields`
    * @param data - value to enter
-   * @return promise resolved when the action has finished
+   * @return current page instance
    */
-  async fillData(field: FieldName, data: string | number): Promise<void> {
+  fillData(field: FieldName, data: string | number): this {
     return this.step(`fillData(${field})`, async () => {
       this.log.info(`Fill "${field}"${/password/i.test(field) ? '' : ` with "${data}"`}`);
       await this.input.enter(this.resolve(this.fields, field, 'field'), data);
@@ -109,9 +145,9 @@ export abstract class BasePage<
   /**
    * Clicks a named action element.
    * @param button - name of the element declared in `buttons`
-   * @return promise resolved when the action has finished
+   * @return current page instance
    */
-  async clickActionButton(button: ButtonName): Promise<void> {
+  clickActionButton(button: ButtonName): this {
     return this.step(`clickActionButton(${button})`, async () => {
       this.log.info(`Click "${button}"`);
       await this.button.click(this.resolve(this.buttons, button, 'button'));
@@ -121,9 +157,9 @@ export abstract class BasePage<
   /**
    * Checks named checkboxes; already checked ones are left as they are.
    * @param checkboxes - names of the checkboxes declared in `checkboxes`
-   * @return promise resolved when the action has finished
+   * @return current page instance
    */
-  async checkCheckbox(...checkboxes: CheckboxName[]): Promise<void> {
+  checkCheckbox(...checkboxes: CheckboxName[]): this {
     return this.step(`checkCheckbox(${checkboxes.join(', ')})`, async () => {
       for (const checkbox of checkboxes) {
         this.log.info(`Check "${checkbox}"`);
@@ -135,9 +171,9 @@ export abstract class BasePage<
   /**
    * Unchecks named checkboxes; already unchecked ones are left as they are.
    * @param checkboxes - names of the checkboxes declared in `checkboxes`
-   * @return promise resolved when the action has finished
+   * @return current page instance
    */
-  async uncheckCheckbox(...checkboxes: CheckboxName[]): Promise<void> {
+  uncheckCheckbox(...checkboxes: CheckboxName[]): this {
     return this.step(`uncheckCheckbox(${checkboxes.join(', ')})`, async () => {
       for (const checkbox of checkboxes) {
         this.log.info(`Uncheck "${checkbox}"`);
@@ -150,9 +186,9 @@ export abstract class BasePage<
    * Asserts the checked state of a named checkbox.
    * @param checkbox - name of the checkbox declared in `checkboxes`
    * @param checked - expected state: `true` checked, `false` unchecked
-   * @return promise resolved when the action has finished
+   * @return current page instance
    */
-  async verifyCheckboxStatus(checkbox: CheckboxName, checked: boolean): Promise<void> {
+  verifyCheckboxStatus(checkbox: CheckboxName, checked: boolean): this {
     return this.step(`verifyCheckboxStatus(${checkbox}, ${checked})`, async () => {
       await this.checkbox.verifyStatus(this.resolve(this.checkboxes, checkbox, 'checkbox'), checked);
     });
@@ -161,9 +197,9 @@ export abstract class BasePage<
   /**
    * Selects a named radio button; an already selected one is left as it is.
    * @param radioButton - name of the radio button declared in `radioButtons`
-   * @return promise resolved when the action has finished
+   * @return current page instance
    */
-  async clickRadioButton(radioButton: RadioButtonName): Promise<void> {
+  clickRadioButton(radioButton: RadioButtonName): this {
     return this.step(`clickRadioButton(${radioButton})`, async () => {
       this.log.info(`Select "${radioButton}"`);
       await this.radioButton.click(this.resolve(this.radioButtons, radioButton, 'radio button'));
@@ -174,9 +210,9 @@ export abstract class BasePage<
    * Asserts the selected state of a named radio button.
    * @param radioButton - name of the radio button declared in `radioButtons`
    * @param checked - expected state: `true` selected, `false` not selected
-   * @return promise resolved when the action has finished
+   * @return current page instance
    */
-  async verifyRadioButtonStatus(radioButton: RadioButtonName, checked: boolean): Promise<void> {
+  verifyRadioButtonStatus(radioButton: RadioButtonName, checked: boolean): this {
     return this.step(`verifyRadioButtonStatus(${radioButton}, ${checked})`, async () => {
       await this.radioButton.verifyStatus(this.resolve(this.radioButtons, radioButton, 'radio button'), checked);
     });
@@ -186,9 +222,9 @@ export abstract class BasePage<
    * Asserts the current value of a named field.
    * @param field - name of the field declared in `fields`
    * @param value - expected value
-   * @return promise resolved when the action has finished
+   * @return current page instance
    */
-  async verifyFieldData(field: FieldName, value: string | number): Promise<void> {
+  verifyFieldData(field: FieldName, value: string | number): this {
     return this.step(`verifyFieldData(${field})`, async () => {
       await this.input.verifyValue(this.resolve(this.fields, field, 'field'), value);
     });
@@ -199,9 +235,9 @@ export abstract class BasePage<
    * @param field - name of the field declared in `fields`
    * @param attribute - attribute name, e.g. `type`
    * @param value - expected attribute value
-   * @return promise resolved when the action has finished
+   * @return current page instance
    */
-  async verifyFieldAttribute(field: FieldName, attribute: string, value: string | RegExp): Promise<void> {
+  verifyFieldAttribute(field: FieldName, attribute: string, value: string | RegExp): this {
     return this.step(`verifyFieldAttribute(${field}, ${attribute})`, async () => {
       const input = await this.input.getInput(this.resolve(this.fields, field, 'field'));
       await expect(input).toHaveAttribute(attribute, value);
@@ -212,9 +248,9 @@ export abstract class BasePage<
    * Asserts that the validation error of a named field is shown or hidden.
    * @param field - name of the field declared in `errors`
    * @param exist - `true` the error must be visible, `false` hidden or absent
-   * @return promise resolved when the action has finished
+   * @return current page instance
    */
-  async verifyErrorField(field: FieldName, exist: boolean): Promise<void> {
+  verifyErrorField(field: FieldName, exist: boolean): this {
     return this.step(`verifyErrorField(${field}, ${exist})`, async () => {
       const error = this.resolve(this.errors, field, 'error');
       if (exist) await expect(error).toBeVisible();
@@ -226,9 +262,9 @@ export abstract class BasePage<
    * Asserts the validation error text of a named field.
    * @param field - name of the field declared in `errors`
    * @param errorMessage - expected error text
-   * @return promise resolved when the action has finished
+   * @return current page instance
    */
-  async verifyErrorFieldText(field: FieldName, errorMessage: string): Promise<void> {
+  verifyErrorFieldText(field: FieldName, errorMessage: string): this {
     return this.step(`verifyErrorFieldText(${field})`, async () => {
       await expect(this.resolve(this.errors, field, 'error')).toHaveText(errorMessage);
     });
@@ -238,12 +274,9 @@ export abstract class BasePage<
    * Asserts that a named element of any group is visible or hidden.
    * @param element - name of a field, button, checkbox or radio button
    * @param exist - `true` the element must be visible, `false` hidden or absent
-   * @return promise resolved when the action has finished
+   * @return current page instance
    */
-  async verifyElementExist(
-    element: FieldName | ButtonName | CheckboxName | RadioButtonName,
-    exist: boolean,
-  ): Promise<void> {
+  verifyElementExist(element: FieldName | ButtonName | CheckboxName | RadioButtonName, exist: boolean): this {
     return this.step(`verifyElementExist(${element}, ${exist})`, async () => {
       const all = { ...this.fields, ...this.buttons, ...this.checkboxes, ...this.radioButtons } as Partial<
         Record<FieldName | ButtonName | CheckboxName | RadioButtonName, Locator>
@@ -255,11 +288,23 @@ export abstract class BasePage<
   }
 
   /**
+   * Compares the accessibility tree of an element with the recorded `snapshots/<name>.aria.yml`.
+   * @param name - snapshot file name without the extension, e.g. `settings-form`
+   * @param element - element to capture, the page root by default
+   * @return current page instance
+   */
+  verifyAriaSnapshot(name: string, element: Locator = this.root): this {
+    return this.step(`verifyAriaSnapshot(${name})`, async () => {
+      await expect(element).toMatchAriaSnapshot({ name: `${name}.aria.yml` });
+    });
+  }
+
+  /**
    * Asserts that every given element is visible, e.g. header links that are not in the page's named maps.
    * @param elements - locators of the elements
-   * @return promise resolved when the action has finished
+   * @return current page instance
    */
-  async verifyElementIsVisible(...elements: Locator[]): Promise<void> {
+  verifyElementIsVisible(...elements: Locator[]): this {
     return this.step(`verifyElementIsVisible(${elements.join(', ')})`, async () => {
       for (const element of elements) await expect(element).toBeVisible();
     });

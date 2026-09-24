@@ -4,6 +4,7 @@ import { getOtherUser, getTestUser } from '@/api/client/session/auth/User';
 import type { ErrorResponse } from '@/api/responses/errors/ErrorResponse';
 import { Schema } from '@/api/schemas/Schema';
 import { expect, test } from '@/base/BaseTest';
+import { Tag } from '@/utilities/tests/Tag';
 import {
   AUTOMATION_TAGS,
   generateShortTestsName,
@@ -15,7 +16,7 @@ const [FEED_TAG] = AUTOMATION_TAGS;
 const PAGE_SIZE = 3;
 
 test.describe('Home feed API', () => {
-  test('returns the documented article list to a guest', async ({ get }) => {
+  test('returns the documented article list to a guest', { tag: Tag.SMOKE }, async ({ get }) => {
     const response = await get(APIClient, { guest: true }).get.articles.list({ limit: PAGE_SIZE });
 
     expect(response).toMatchSchema(Schema.ARTICLES);
@@ -61,21 +62,24 @@ test.describe('Home feed API', () => {
     expect(articles.every((article) => article.tagList.includes(FEED_TAG))).toBe(true);
   });
 
-  test('answers an empty list for filters that match nothing', async ({ get }) => {
-    const client = get(APIClient, { guest: true });
-    const rows = [
-      { tag: generateShortTestsName('tag') },
-      { author: generateShortTestsName('user') },
-      { author: generateShortTestsName('user'), tag: FEED_TAG },
-    ];
+  const emptyFilterRows = [
+    { name: 'an unknown tag', params: () => ({ tag: generateShortTestsName('tag') }) },
+    { name: 'an unknown author', params: () => ({ author: generateShortTestsName('user') }) },
+    {
+      name: 'an unknown author with a known tag',
+      params: () => ({ author: generateShortTestsName('user'), tag: FEED_TAG }),
+    },
+  ];
 
-    for (const params of rows) {
-      const list = await client.get.articles.list(params);
-      expect(list, JSON.stringify(params)).toMatchSchema(Schema.ARTICLES);
+  for (const row of emptyFilterRows) {
+    test(`answers an empty list for ${row.name}`, async ({ get }) => {
+      const list = await get(APIClient, { guest: true }).get.articles.list(row.params());
+
+      expect(list).toMatchSchema(Schema.ARTICLES);
       expect(list.articles).toHaveLength(0);
       expect(list.articlesCount).toBe(0);
-    }
-  });
+    });
+  }
 
   test('combines the author and tag filters', async ({ get }) => {
     const tag = generateTestsName('tag');
@@ -107,7 +111,7 @@ test.describe('Home feed API', () => {
     expect(others.articles.map((entry) => entry.slug)).not.toContain(article.slug);
   });
 
-  test.fail('rejects invalid pagination parameters (REQ-02.D1)', async ({ get }) => {
+  test.fail('rejects invalid pagination parameters (REQ-02.D1)', { tag: Tag.KNOWN_DEFECT }, async ({ get }) => {
     const client = get(APIClient, { guest: true });
 
     const rows: Record<string, string | number>[] = [{ limit: -1 }, { limit: 'abc' }, { offset: -1 }];
@@ -152,7 +156,7 @@ test.describe('Home feed API', () => {
     await expect(response).toBeApiError('You need to login first!', 401);
   });
 
-  test('lists only the articles of followed authors in the personal feed', async ({ get }) => {
+  test('lists only the articles of followed authors in the personal feed', { tag: Tag.AUTH_QUOTA }, async ({ get }) => {
     const author = await getTestUser();
     const reader = await get(APIClient, { guest: true }).post.users.with(generateUser());
     const created = await get(APIClient).api.articles.create({ count: 4 });
@@ -171,14 +175,18 @@ test.describe('Home feed API', () => {
     expect(createdAt).toEqual([...createdAt].sort((first, second) => second - first));
   });
 
-  test.fail('answers an unknown favorited username without a server error (REQ-02.D2)', async ({ get }) => {
-    const response = await get(APIClient, { guest: true }).response({
-      name: 'list articles favorited by an unknown user',
-      path: BasePath.ARTICLES,
-      params: { favorited: generateShortTestsName('user') },
-      statusCode: 0,
-    });
+  test.fail(
+    'answers an unknown favorited username without a server error (REQ-02.D2)',
+    { tag: Tag.KNOWN_DEFECT },
+    async ({ get }) => {
+      const response = await get(APIClient, { guest: true }).response({
+        name: 'list articles favorited by an unknown user',
+        path: BasePath.ARTICLES,
+        params: { favorited: generateShortTestsName('user') },
+        statusCode: 0,
+      });
 
-    expect(response.status()).toBeLessThan(500);
-  });
+      expect(response.status()).toBeLessThan(500);
+    },
+  );
 });

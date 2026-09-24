@@ -17,14 +17,15 @@ test.describe('Articles UI', () => {
     const data = generateArticle();
     const tags = data.tagList!.join(',');
 
-    await get(EditorPage, Route.newArticle);
-    await get(EditorPage).fillData('title', data.title);
-    await get(EditorPage).fillData('description', data.description);
-    await get(EditorPage).fillData('body', data.body);
-    await get(EditorPage).fillData('tags', tags);
-    await get(EditorPage).clickActionButton('submit');
+    await get(EditorPage, Route.newArticle)
+      .fillData('title', data.title)
+      .fillData('description', data.description)
+      .fillData('body', data.body)
+      .fillData('tags', tags)
+      .clickActionButton('submit')
+      .next(ArticlePage)
+      .waitUntilPageLoaded();
 
-    await get(ArticlePage).waitUntilPageLoaded();
     get(APIClient).api.articles.track(get(ArticlePage).slug);
     await expect(get(ArticlePage).title).toHaveText(data.title);
     expect((await get(ArticlePage).text.getTexts(get(ArticlePage).tags)).toSorted()).toEqual(data.tagList!.toSorted());
@@ -35,8 +36,7 @@ test.describe('Articles UI', () => {
   test('article created via API opens from the global feed', async ({ get }) => {
     const [article] = await get(APIClient).api.articles.create();
 
-    await get(HomePage, Route.home);
-    await get(HomePage).clickActionButton('globalFeed');
+    await get(HomePage, Route.home).clickActionButton('globalFeed');
 
     await get(HomePage).findArticleInFeed(article.title);
     await get(HomePage).button.click(get(HomePage).articleLink(article.title));
@@ -66,9 +66,7 @@ test.describe('Articles UI', () => {
     const [article] = await get(APIClient).api.articles.create();
     const { body: text } = generateComment();
 
-    await get(ArticlePage, Route.article(article.slug));
-    await get(ArticlePage).fillData('comment', text);
-    await get(ArticlePage).clickActionButton('postComment');
+    await get(ArticlePage, Route.article(article.slug)).fillData('comment', text).clickActionButton('postComment');
 
     await expect(get(ArticlePage).comment(text)).toBeVisible();
     const comments = await get(APIClient).get.comments.list(article.slug);

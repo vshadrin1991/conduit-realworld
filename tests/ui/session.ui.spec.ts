@@ -5,6 +5,7 @@ import { Session } from '@/pageObject/components/Session';
 import { HomePage } from '@/pageObject/pages/HomePage';
 import { LoginPage } from '@/pageObject/pages/LoginPage';
 import { Route } from '@/pageObject/pagePath/Routes';
+import { Tag } from '@/utilities/tests/Tag';
 
 test.describe('Session UI', () => {
   test('guest header shows the logo and the guest links', async ({ get }) => {
@@ -24,7 +25,7 @@ test.describe('Session UI', () => {
     await expect(get(HomePage).page).toHaveURL(/#\/$/);
   });
 
-  test('signed-in header shows New Article and the user menu', async ({ get }) => {
+  test('signed-in header shows New Article and the user menu', { tag: Tag.SMOKE }, async ({ get }) => {
     const testUser = await getTestUser();
     await get(Session).login();
 
@@ -37,16 +38,17 @@ test.describe('Session UI', () => {
     await expect(get(HomePage).header.menuItem('Logout')).toBeVisible();
   });
 
-  test('sign-in stores the user in localStorage as loggedUser', async ({ get }) => {
+  test('sign-in stores the user in localStorage as loggedUser', { tag: Tag.AUTH_QUOTA }, async ({ get }) => {
     const testUser = await getTestUser();
     await get(LoginPage, Route.login);
     expect(await get(LocalStorage).getItem('loggedUser')).toBeNull();
 
-    await get(LoginPage).fillData('email', testUser.email);
-    await get(LoginPage).fillData('password', testUser.password);
-    await get(LoginPage).clickActionButton('login');
-
-    await get(HomePage).waitUntilPageLoaded();
+    await get(LoginPage)
+      .fillData('email', testUser.email)
+      .fillData('password', testUser.password)
+      .clickActionButton('login')
+      .next(HomePage)
+      .waitUntilPageLoaded();
     const stored = await get(LocalStorage).getItem<{ loggedUser: { email: string; username: string } }>('loggedUser');
     expect(stored?.loggedUser).toMatchObject({ email: testUser.email, username: testUser.username });
   });

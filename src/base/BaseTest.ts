@@ -34,20 +34,14 @@ export type ComponentClass<T extends BaseComponent> = new (page: Page) => T;
 
 export interface Get {
   /**
-   * Page object bound to the current page (cached per test), opened at `route`: navigation (skipped if already
-   * there) and waiting for the page run before the page is handed over, so the result must be awaited:
-   * `const editorPage = await get(EditorPage, Route.newArticle)`
+   * Page object bound to the current page (cached per test). With `route` the navigation is queued as the first step
+   * of the chain and skipped when the page is already open:
+   * `await get(EditorPage, Route.newArticle).fillData('title', title).clickActionButton('submit')`.
    * @param pageClass - page object class, e.g. `ArticlePage`
    * @param route - hash route to open, e.g. `Route.article(slug)`
-   * @return promise of the page object, resolved once the page is open
+   * @return page object; awaiting it, or the chain built on it, runs the queued actions
    */
-  <T extends BasePage>(pageClass: PageClass<T>, route: string): Promise<T>;
-  /**
-   * Page object bound to the current page (cached per test), without navigating: `get(ArticlePage)`.
-   * @param pageClass - page object class, e.g. `ArticlePage`
-   * @return page object instance
-   */
-  <T extends BasePage>(pageClass: PageClass<T>): T;
+  <T extends BasePage>(pageClass: PageClass<T>, route?: string): T;
   /**
    * Network mocks and the API/console capture started for the test: `await get(Interceptor).mock(url, response)`.
    * @param interceptorClass - `Interceptor`
@@ -304,7 +298,7 @@ export const test = base.extend<BaseFixtures & BaseOptions, WorkerFixtures>({
         if (!ui.has(uiClass)) ui.set(uiClass, new uiClass(page));
         const instance = ui.get(uiClass)!;
         if (typeof arg === 'string' && instance instanceof BasePage) {
-          return instance.navigate(arg).then(() => instance);
+          return instance.navigate(arg);
         }
         return instance;
       }

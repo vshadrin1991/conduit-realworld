@@ -1,0 +1,12 @@
+- group:
+  - group:
+    - textbox "URL of profile picture"
+  - group:
+    - textbox "Your Name"
+  - group:
+    - textbox "Short bio about you"
+  - group:
+    - textbox "Email"
+  - group:
+    - textbox "Password"
+  - button "Update Settings"

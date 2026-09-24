@@ -52,9 +52,9 @@ test('author deletes an article', async ({ get }) => {
   const [article] = await get(APIClient).api.articles.create(); // arrange via API
   await get(Session).login(); // signed-in browser without spending the auth quota
 
-  await get(ArticlePage, Route.article(article.slug)); // navigate + wait
-  const dialog = get(ArticlePage).confirmation.answerNext('accept');
-  await get(ArticlePage).clickActionButton('deleteArticle'); // one step per await
+  await get(ArticlePage, Route.article(article.slug)); // a chain that only queues the navigation
+  const dialog = get(ArticlePage).confirmation.answerNext('accept'); // ends the chain; a new one starts
+  await get(ArticlePage).clickActionButton('deleteArticle');
 
   expect(await dialog).toBe('Want to delete the article?');
   await get(APIClient, { guest: true }).response({
@@ -68,7 +68,7 @@ test('author deletes an article', async ({ get }) => {
 
 - Every spec imports `test` from `@/base/BaseTest`; test functions receive only `{ get }` (test user: `await getTestUser()` / `await getOtherUser()`, browser sign-in: `get(Session).login()`, localStorage: `get(LocalStorage)`, network mocks: `get(Interceptor)`).
 - `get(APIClient)` is authenticated as the test user (`{ guest: true }` for no token): `client.post.articles.with(article)`, `client.get.comments.list(slug)`. Negative cases: `client.response({ path, method, body, statusCode: 401 })`. Multi-call flows: `get(APIClient).api.articles.create({ count: 2 })`. Every API call in a test starts with `get(APIClient)`.
-- `get(PageClass)` returns the page object (same cached instance for the whole test); `get(PageClass, route)` navigates first and returns a promise, so it is awaited on its own line: `await get(LoginPage, Route.login)`. Everything after that goes through `get(PageClass)` instead of a local variable. Every page call is its own `await` and shows up as a report step: `await get(LoginPage).fillData('email', email)`. Pages hold locators only.
+- `get(PageClass)` returns the page object (the same cached instance for the whole test). `get(PageClass, route)` queues the navigation as the first step. Page steps chain and the chain is awaited once: `await get(LoginPage, Route.login).fillData('email', email).clickActionButton('login').next(HomePage).waitUntilPageLoaded()`. Each step shows up as a report step at its spec line. Reads and `expect` come after the chain, through `get(PageClass)` again. Pages hold locators only.
 - Components are always reached through the page as `get(PageClass).<component>.<action>()`: `await get(HomePage).button.click(get(HomePage).header.userMenu)` (`input`, `button`, `checkbox`, `radioButton`, `text`, `confirmation`, `navigation`, `header`), native dialogs included: `get(ArticlePage).confirmation.answerNext('accept')`. `get(Interceptor)` (utility) and `get(LocalStorage)` (page component) come from `get` directly.
 - Test data comes from `TestDataGenerator` (`generateArticle()`, `generateUser()`, `generateTestsName('Article')`); every name contains `AUTOMATION_KEY`. Articles created by API flows are deleted after each test; register others with `get(APIClient).api.articles.track(slug)`.
 - Nothing is set up globally: tests decide whether they need a user. Authenticated clients resolve the shared user lazily; UI tests start as guests and get a signed-in browser with `await get(Session).login()`, which writes the app's `loggedUser` item to localStorage and reloads — the login form is only for tests of the form itself.
@@ -81,6 +81,8 @@ Full conventions: [.claude/skills/playwright-ts-conduit-realworld/SKILL.md](.cla
 | --------------------------------------------------------------------- | ---------------------------------------------- |
 | `npm test`                                                            | all projects                                   |
 | `npm run test:api` / `npm run test:ui`                                | a single project                               |
+| `npm run test:smoke`                                                  | `@smoke` key flows, no auth quota              |
+| `npm run test:no-quota`                                               | everything except `@auth-quota` tests          |
 | `npm run test:headed` / `npm run test:debug` / `npm run test:ui-mode` | debugging                                      |
 | `npm run typecheck`                                                   | TypeScript check                               |
 | `npm run lint`                                                        | ESLint (also flags page calls without `await`) |

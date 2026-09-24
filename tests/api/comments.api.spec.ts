@@ -4,6 +4,7 @@ import { getOtherUser, getTestUser } from '@/api/client/session/auth/User';
 import type { ErrorResponse } from '@/api/responses/errors/ErrorResponse';
 import { Schema } from '@/api/schemas/Schema';
 import { expect, test } from '@/base/BaseTest';
+import { Tag } from '@/utilities/tests/Tag';
 import { generateComment, generateShortTestsName } from '@/utilities/tests/TestDataGenerator';
 
 test.describe('Comments API', () => {
@@ -149,37 +150,45 @@ test.describe('Comments API', () => {
     await expect(unknownArticle).toBeApiError('Comment not found', 404);
   });
 
-  test.fail('rejects deleting a comment through another article (REQ-04.D1)', async ({ get }) => {
-    const { slug, comments } = await get(APIClient).api.comments.createOnNewArticle();
-    const [otherArticle] = await get(APIClient).api.articles.create();
-    const [comment] = comments;
+  test.fail(
+    'rejects deleting a comment through another article (REQ-04.D1)',
+    { tag: Tag.KNOWN_DEFECT },
+    async ({ get }) => {
+      const { slug, comments } = await get(APIClient).api.comments.createOnNewArticle();
+      const [otherArticle] = await get(APIClient).api.articles.create();
+      const [comment] = comments;
 
-    const response = await get(APIClient).response({
-      name: 'delete the comment through another article',
-      path: BasePath.COMMENT,
-      pathData: [otherArticle.slug, comment.id],
-      method: 'DELETE',
-      statusCode: 0,
-    });
+      const response = await get(APIClient).response({
+        name: 'delete the comment through another article',
+        path: BasePath.COMMENT,
+        pathData: [otherArticle.slug, comment.id],
+        method: 'DELETE',
+        statusCode: 0,
+      });
 
-    expect(response.status()).toBe(404);
-    expect(await get(APIClient).get.comments.list(slug)).toHaveLength(1);
-  });
+      expect(response.status()).toBe(404);
+      expect(await get(APIClient).get.comments.list(slug)).toHaveLength(1);
+    },
+  );
 
-  test.fail('responds with a validation error when the request has no comment wrapper (REQ-04.D2)', async ({ get }) => {
-    const [article] = await get(APIClient).api.articles.create();
+  test.fail(
+    'responds with a validation error when the request has no comment wrapper (REQ-04.D2)',
+    { tag: Tag.KNOWN_DEFECT },
+    async ({ get }) => {
+      const [article] = await get(APIClient).api.articles.create();
 
-    const response = await get(APIClient).response({
-      name: 'comment without the comment key',
-      path: BasePath.COMMENTS,
-      pathData: [article.slug],
-      method: 'POST',
-      body: {},
-      statusCode: 0,
-    });
+      const response = await get(APIClient).response({
+        name: 'comment without the comment key',
+        path: BasePath.COMMENTS,
+        pathData: [article.slug],
+        method: 'POST',
+        body: {},
+        statusCode: 0,
+      });
 
-    expect(response.status()).toBe(422);
-    const body = (await response.json()) as ErrorResponse;
-    expect(body).toMatchSchema(Schema.ERROR);
-  });
+      expect(response.status()).toBe(422);
+      const body = (await response.json()) as ErrorResponse;
+      expect(body).toMatchSchema(Schema.ERROR);
+    },
+  );
 });

@@ -1,6 +1,7 @@
 import type { APIClient } from '../APIClient';
 import { ArticlesAPI } from './articles/ArticlesAPI';
 import { CommentsAPI } from './comments/CommentsAPI';
+import { ProfilesAPI } from './profiles/ProfilesAPI';
 
 /**
  * High-level API: multi-call flows by domain on top of the endpoint helpers. Not obtained on its own —
@@ -9,6 +10,7 @@ import { CommentsAPI } from './comments/CommentsAPI';
 export class ConduitAPI {
   readonly articles: ArticlesAPI;
   readonly comments: CommentsAPI;
+  readonly profiles: ProfilesAPI;
 
   /**
    * @param client - REST client whose endpoint helpers (and token) the flows use
@@ -16,5 +18,6 @@ export class ConduitAPI {
   constructor(client: APIClient) {
     this.articles = new ArticlesAPI(client);
     this.comments = new CommentsAPI(client);
+    this.profiles = new ProfilesAPI(client);
   }
 }
