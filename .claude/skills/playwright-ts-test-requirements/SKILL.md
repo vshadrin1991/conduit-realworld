@@ -17,7 +17,7 @@ Never invent behaviour. Whatever the source does not state becomes a review find
 ## Output
 
 ```
-tasks/<KEY>/requirements/
+docs/tasks/<KEY>/requirements/
   source/                  files as received (copied, never edited)
   extracted/               text versions written by the extraction script
   requirements.md          atomic requirements REQ-1… with source references
@@ -30,7 +30,7 @@ tasks/<KEY>/requirements/
 ## Workflow
 
 1. **Collect sources** — ask once for every file, link or pasted text, plus: version/date, feature area, what is in and out of scope. Copy files into `source/`.
-2. **Extract text** — `node .claude/skills/playwright-ts-test-requirements/scripts/extract-requirements.mjs "tasks/<KEY>/requirements/source"`. It writes `extracted/<file>.md` and lists the files to read directly (PDF, images). Formats and fallbacks: [input-formats](references/input-formats.md).
+2. **Extract text** — `node .claude/skills/playwright-ts-test-requirements/scripts/extract-requirements.mjs "docs/tasks/<KEY>/requirements/source"`. It writes `extracted/<file>.md` and lists the files to read directly (PDF, images). Formats and fallbacks: [input-formats](references/input-formats.md).
 3. **Normalize** — split the text into atomic, testable statements `REQ-n` in `requirements.md`: one behaviour each, with source reference (file › heading, page or row), type (functional, validation/message, UI, API, permissions, security, performance, accessibility, compatibility) and priority when the source gives one. Requirements that are only implied (by designs, the current app, common practice) go to a separate list as `REQ-In`, marked _implicit — confirm_.
 4. **Review** — go through [review-checklist](references/review-checklist.md) for every requirement and for the set as a whole. Record findings `RV-n` in `requirements-review.md` with the quoted text, category, severity and a question or suggestion.
 5. **Ask** — send the user the blocker and major questions as one numbered list and wait. Record answers in the review (Resolution), update the affected requirements, and close or keep each finding.

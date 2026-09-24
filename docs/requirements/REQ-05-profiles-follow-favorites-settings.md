@@ -7,7 +7,7 @@
 | Priority | Medium                                                                                                                                                                                                                                                                                                                        |
 | Routes   | `#/profile/<username>`, `#/profile/<username>/favorites`, `#/settings`                                                                                                                                                                                                                                                        |
 | API      | `GET /api/profiles/:username`, `POST` / `DELETE /api/profiles/:username/follow`, `POST` / `DELETE /api/articles/:slug/favorite`, `PUT /api/user`                                                                                                                                                                              |
-| Sources  | Live app (guest walkthrough), `backend/controllers/profiles.js`, `backend/controllers/favorites.js`, `backend/controllers/user.js`, `backend/controllers/articles.js`, `backend/middleware/authentication.js`, `src/pageObject/components/Header.ts`, the example `SettingsPage` of the conventions skill, `app-behaviour.md` |
+| Sources  | Live app (guest walkthrough), `backend/controllers/profiles.js`, `backend/controllers/favorites.js`, `backend/controllers/user.js`, `backend/controllers/articles.js`, `backend/middleware/authentication.js`, `../../src/pageObject/components/Header.ts`, the example `SettingsPage` of the conventions skill, `app-behaviour.md` |
 
 ## User story
 

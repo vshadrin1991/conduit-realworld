@@ -50,7 +50,7 @@ Restate the type and what is being covered in two lines before moving on.
 3. Take locators and element names from those descriptions. A locator remembered from the live site is a guess — treat it as one.
 4. Resolve every open decision the descriptions list before writing the page object.
 
-Either type: if the work already has a task file (`tasks/<KEY>/<KEY>.md`), read it first — its cases and requirements are the source of truth, and its open questions are resolved with the user, not assumed. The [playwright-ts-test-aqa-task](../skills/playwright-ts-test-aqa-task/SKILL.md) skill creates such a file when the input is still scattered.
+Either type: if the work already has a task file (`docs/tasks/<KEY>/<KEY>.md`), read it first — its cases and requirements are the source of truth, and its open questions are resolved with the user, not assumed. The [playwright-ts-test-aqa-task](../skills/playwright-ts-test-aqa-task/SKILL.md) skill creates such a file when the input is still scattered.
 
 ### Step 3 — Agree the case list
 

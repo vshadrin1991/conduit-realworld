@@ -90,7 +90,7 @@ The dollar figure in the Archon console is an **estimate** at Anthropic's publis
 ## Running the workflows
 
 ```bash
-archon workflow run playwright-tests-implementation -- --r requirements/REQ-01-registration-and-sign-in.md
+archon workflow run playwright-tests-implementation -- --r docs/requirements/REQ-01-registration-and-sign-in.md
 ```
 
 ```bash

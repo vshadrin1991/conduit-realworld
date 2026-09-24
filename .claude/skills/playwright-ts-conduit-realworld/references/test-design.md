@@ -31,11 +31,11 @@ await expect(get(ArticlePage).title).toHaveText(data.title);
 
 Tags come from `@/utilities/tests/Tag` and go in the test details: `test('title', { tag: Tag.SMOKE }, async ({ get }) => …)`, or `{ tag: [Tag.AUTH_QUOTA, Tag.KNOWN_DEFECT] }` for several.
 
-| Tag                | Put it on                                                                                                        | Run                                                 |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| `Tag.SMOKE`        | The few tests that prove the main flows work (create, read, comment, signed-in header); never a quota test       | `npm run test:smoke`                                |
-| `Tag.AUTH_QUOTA`   | Every test that sends `POST /api/users` or `/api/users/login`, directly or by submitting the Login/Register form | excluded by `npm run test:no-quota`                 |
-| `Tag.KNOWN_DEFECT` | Every `test.fail(...)`; the title keeps the `(REQ-xx.Dn)` defect id                                              | `npx playwright test --grep-invert @known-defect`   |
+| Tag                | Put it on                                                                                                        | Run                                               |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `Tag.SMOKE`        | The few tests that prove the main flows work (create, read, comment, signed-in header); never a quota test       | `npm run test:smoke`                              |
+| `Tag.AUTH_QUOTA`   | Every test that sends `POST /api/users` or `/api/users/login`, directly or by submitting the Login/Register form | excluded by `npm run test:no-quota`               |
+| `Tag.KNOWN_DEFECT` | Every `test.fail(...)`; the title keeps the `(REQ-xx.Dn)` defect id                                              | `npx playwright test --grep-invert @known-defect` |
 
 Retry a flaky area with `test.describe.configure({ retries: 1 })` in that describe, never globally.
 
@@ -73,7 +73,7 @@ To prove a page, form or dialog opened with the right content, compare its acces
 await get(SettingsPage).waitUntilPageLoaded().verifyAriaSnapshot('settings-form', get(SettingsPage).form);
 ```
 
-- Files live in `tests/snapshots/<name>.aria.yml`, one per screen part, named after it (`settings-form`).
+- Files live in `src/snapshots/<name>.aria.yml`, one per screen part, named after it (`settings-form`).
 - Record or refresh with `npm run snapshots:update -- <spec> -g "<test title>"`, then review the git diff. Remove the values that depend on the user or on generated data (`- textbox "Your Name"` matches any value) and check those values with `verifyFieldData`.
 - Snapshot only stable parts (forms, headers, dialogs), never feeds or lists of other users' data on the shared demo site.
 

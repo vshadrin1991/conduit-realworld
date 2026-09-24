@@ -7,7 +7,7 @@
 | Priority | High                                                                                                                                                          |
 | Routes   | `#/`                                                                                                                                                          |
 | API      | `GET /api/articles`, `GET /api/articles/feed`, `GET /api/tags`                                                                                                |
-| Sources  | Live app (guest walkthrough), `backend/controllers/articles.js`, `backend/routes/tags.js`, `src/pageObject/pages/HomePage.ts`, `tests/ui/articles.ui.spec.ts` |
+| Sources  | Live app (guest walkthrough), `backend/controllers/articles.js`, `backend/routes/tags.js`, `../../src/pageObject/pages/HomePage.ts`, `../../tests/ui/articles.ui.spec.ts` |
 
 ## User story
 

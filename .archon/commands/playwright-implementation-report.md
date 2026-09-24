@@ -1,6 +1,6 @@
 ---
 description: Summarize a Playwright test implementation run into one report
-argument-hint: <tasks/KEY/KEY.md | description of what was automated>
+argument-hint: <docs/tasks/KEY/KEY.md | description of what was automated>
 ---
 
 # Implementation report

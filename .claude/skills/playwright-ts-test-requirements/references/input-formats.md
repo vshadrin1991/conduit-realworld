@@ -5,7 +5,7 @@ Part of the [playwright-ts-test-requirements](../SKILL.md) skill.
 Run the extraction script on the `source/` folder (or a single file); it converts what it can and lists the rest:
 
 ```bash
-node .claude/skills/playwright-ts-test-requirements/scripts/extract-requirements.mjs "tasks/<KEY>/requirements/source" [--out <folder>]
+node .claude/skills/playwright-ts-test-requirements/scripts/extract-requirements.mjs "docs/tasks/<KEY>/requirements/source" [--out <folder>]
 ```
 
 | Format                                                          | How it is read                                                                                                                         |

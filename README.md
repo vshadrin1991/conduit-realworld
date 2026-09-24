@@ -33,12 +33,17 @@ src/
   utilities/logger/       logger
   utilities/interceptor/  Interceptor — network mocks + API and console error capture for every test
   utilities/reporter/     ArtifactsReporter — reports/artifacts.json for failed tests; Step — inStep (report step located at the spec line)
-  utilities/tests/        TestDataGenerator (faker-based test data), TestDataStorage (per-test storage)
+  utilities/tests/        TestDataGenerator (faker-based test data), TestDataStorage (per-test storage), Tag (suite tags)
   config/                 env, auth, framework (browser, headless, timeouts, ...) and report configs
+  snapshots/              recorded ARIA snapshots (<name>.aria.yml) asserted by verifyAriaSnapshot
 tests/
   api/                    "api" project
   ui/                     "ui" project — Chromium, guest by default
+docs/
+  requirements/           product requirements (REQ-*.md) reconstructed from the app
+  tasks/                  AQA task folders (<KEY>/: task, saved pages, cases, requirements)
 .claude/skills/           project skills for writing tests and triaging results
+.archon/                  repeatable Archon workflows, commands and scripts (see .archon/README.md)
 ```
 
 ## Writing tests

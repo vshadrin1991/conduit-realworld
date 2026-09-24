@@ -14,7 +14,7 @@ The skill interviews; it never invents cases, expected results, messages or loca
 ## Output
 
 ```
-tasks/<KEY>/
+docs/tasks/<KEY>/
   <KEY>.md                          the task, filled from assets/task-template.md
   api/<name>.json|.yaml             OpenAPI/Swagger spec, HAR or request examples — API and hybrid tasks
   pages/<name>.html + <name>_files/ pages saved in full format, one file per state — UI and hybrid tasks
@@ -58,7 +58,7 @@ Run only the branch the layer from block 1 needs: **API → 3A**, **UI or mocked
 
 Ask, in this order:
 
-1. **OpenAPI / Swagger** — a file (`openapi.json`, `swagger.yaml`) or a URL to one. Copy files into `tasks/<KEY>/api/`; for a URL, ask for an export so the task stays self-contained.
+1. **OpenAPI / Swagger** — a file (`openapi.json`, `swagger.yaml`) or a URL to one. Copy files into `../../../docs/tasks/<KEY>/api/`; for a URL, ask for an export so the task stays self-contained.
 2. **No spec?** Then a HAR export, `curl` examples, or real request/response pairs for the endpoints in scope — whatever the user actually has.
 3. **Which operations are in scope** — path + method (or `operationId`) per case, so the task does not describe the whole API.
 4. Per operation, confirm what the spec does not state clearly: auth (token or guest), request body, success status, error statuses **and the shape of the error payload**.
@@ -76,14 +76,14 @@ For every page the UI cases touch, ask the user to save it and give these instru
 1. Open the page in Chrome in the exact state the test needs: guest or logged in, empty or filled form, validation error shown, dialog open. **One saved file per state.**
 2. Wait until the content has rendered (the app is a SPA).
 3. Press **Ctrl+S** (**Cmd+S** on macOS) and choose **Webpage, Complete** — this saves `<name>.html` plus the `<name>_files/` folder.
-4. Put both into `tasks/<KEY>/pages/` (or give the path) and say the route (`#/editor`) and the state.
+4. Put both into `../../../docs/tasks/<KEY>/pages/` (or give the path) and say the route (`#/editor`) and the state.
 
 Warn that saved pages can contain personal data: use test accounts and remove anything sensitive.
 
 Then parse the saved pages into page descriptions with the shared script of the `playwright-ts-conduit-realworld` skill:
 
 ```bash
-npm run page:md -- "tasks/<KEY>/pages"
+npm run page:md -- "docs/tasks/<KEY>/pages"
 ```
 
 It needs no server and spends no rate-limit budget, and writes `<name>.md` next to each HTML file: source URL and route, root candidates, elements grouped like page-object maps with suggested names, locators and match counts, forms, repeated items, the existing page object, open decisions and a page-object draft.
@@ -99,7 +99,7 @@ Ask for:
 - **Data and environment:** users and roles, test data, environments, feature flags, browsers or viewport.
 - **Boundaries:** out of scope, links to docs.
 
-Copy provided files into `tasks/<KEY>/requirements/`.
+Copy provided files into `../../../docs/tasks/<KEY>/requirements/`.
 
 ### Block 5 — Review before writing
 

@@ -7,7 +7,7 @@
 | Priority | High                                                                                                                                                                                                                                                            |
 | Routes   | `#/editor` (new article), `#/editor/<slug>` (edit), `#/article/<slug>`                                                                                                                                                                                          |
 | API      | `POST /api/articles`, `PUT /api/articles/:slug`, `DELETE /api/articles/:slug`                                                                                                                                                                                   |
-| Sources  | Live app (guest walkthrough), `backend/controllers/articles.js`, `backend/helper/helpers.js`, `src/pageObject/pages/EditorPage.ts`, `src/pageObject/pages/ArticlePage.ts`, `tests/api/articles.api.spec.ts`, `tests/ui/articles.ui.spec.ts`, `app-behaviour.md` |
+| Sources  | Live app (guest walkthrough), `backend/controllers/articles.js`, `backend/helper/helpers.js`, `../../src/pageObject/pages/EditorPage.ts`, `../../src/pageObject/pages/ArticlePage.ts`, `../../tests/api/articles.api.spec.ts`, `../../tests/ui/articles.ui.spec.ts`, `app-behaviour.md` |
 
 ## User story
 

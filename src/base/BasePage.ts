@@ -288,7 +288,7 @@ export abstract class BasePage<
   }
 
   /**
-   * Compares the accessibility tree of an element with the recorded `snapshots/<name>.aria.yml`.
+   * Compares the accessibility tree of an element with the recorded `src/snapshots/<name>.aria.yml`.
    * @param name - snapshot file name without the extension, e.g. `settings-form`
    * @param element - element to capture, the page root by default
    * @return current page instance

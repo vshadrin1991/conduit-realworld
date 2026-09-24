@@ -13,7 +13,7 @@ argument-hint: <files or folders to review; empty = changed files>
 
 ## Your task
 
-Review the tests in scope — read each spec and the page objects and helpers it uses. This is read-only: do not edit files. If a task file (`tasks/<KEY>/<KEY>.md`) is named in the input, also compare the tests with its cases. When `$ARTIFACTS_DIR/inputs.json` exists (implementation workflow), also compare them with the requirements and test cases it lists.
+Review the tests in scope — read each spec and the page objects and helpers it uses. This is read-only: do not edit files. If a task file (`../../docs/tasks/<KEY>/<KEY>.md`) is named in the input, also compare the tests with its cases. When `$ARTIFACTS_DIR/inputs.json` exists (implementation workflow), also compare them with the requirements and test cases it lists.
 
 Check:
 

@@ -13,7 +13,7 @@ Playwright + TypeScript UI and API tests for [Conduit RealWorld](https://conduit
 - Analyzing a run, failures, flaky tests, reports: `.claude/skills/playwright-ts-test-results/SKILL.md`.
 - Fixing broken locators after a UI change: `.claude/skills/playwright-ts-test-self-healing/SKILL.md`.
 - Reviewing requirements and writing test case documentation from them: `.claude/skills/playwright-ts-test-requirements/SKILL.md`.
-- Preparing an automation task (test cases, pages saved with Ctrl/Cmd+S, requirements → Jira-style task in `tasks/<KEY>/`): `.claude/skills/playwright-ts-test-aqa-task/SKILL.md`.
+- Preparing an automation task (test cases, pages saved with Ctrl/Cmd+S, requirements → Jira-style task in `docs/tasks/<KEY>/`): `.claude/skills/playwright-ts-test-aqa-task/SKILL.md`.
 - Running implementation, review or execution as Archon workflows: `.archon/README.md` (`.archon/workflows/playwright-tests-*.yaml`).
 
 Read the relevant file before starting; this document is only the summary.
@@ -29,7 +29,7 @@ npm run test:no-quota                             # everything except @auth-quot
 npm run results                                   # summarize reports/results.json with failure categories
 npm run results:triage                            # triage export: reports/triage/triage-report.json + .xlsx
                                                   # every run writes reports/artifacts.json (error, screenshot, video, dom.html per failed test)
-npm run page:md -- tasks/<KEY>/pages              # pages saved with Ctrl/Cmd+S → markdown page descriptions
+npm run page:md -- docs/tasks/<KEY>/pages         # pages saved with Ctrl/Cmd+S → markdown page descriptions
 npm run allure:generate && npm run allure:open    # Allure report
 ```
 
@@ -43,6 +43,7 @@ src/api/request|responses/   models by domain
 src/utilities/         logger/logger, interceptor/Interceptor (mocks + API/console error capture), reporter/ArtifactsReporter + reporter/Step (inStep), tests/TestDataGenerator, tests/TestDataStorage
 src/config/            loader + env, auth, framework (browser/headless/timeouts/...), report configs
 tests/                 api/*.api.spec.ts, ui/*.ui.spec.ts
+docs/                  requirements/ (REQ-*.md), tasks/ (AQA task folders: task file, saved pages, cases)
 ```
 
 ## Rules

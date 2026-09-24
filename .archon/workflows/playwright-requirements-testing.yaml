@@ -2,13 +2,13 @@ name: playwright-requirements-testing
 description: >-
   Test the requirements of the Conduit application from one requirements file: review them with the
   playwright-ts-test-requirements skill (gaps, ambiguity, contradictions, testability), collect evidence from the
-  running app in Chrome through the Playwright MCP server, and write tasks/<KEY>/requirements/
+  running app in Chrome through the Playwright MCP server, and write docs/tasks/<KEY>/requirements/
   requirements-testing-result.md and test-cases.md. Differences between a requirement and the application are
   questions for the author, not failures; only a blocked review stops the run
-  (tasks/<KEY>/requirements/requirements-testing-blocked.md). Input: --requirements|--r <file>.
+  (docs/tasks/<KEY>/requirements/requirements-testing-blocked.md). Input: --requirements|--r <file>.
 
 nodes:
-  # Deterministic: prepare the workspace, then --r <file> → inputs.json, a source copy in tasks/<KEY>/requirements/source/, extracted text.
+  # Deterministic: prepare the workspace, then --r <file> → inputs.json, a source copy in docs/tasks/<KEY>/requirements/source/, extracted text.
   - id: inputs
     bash: |
       set -e
@@ -93,8 +93,8 @@ nodes:
     skills: [playwright-ts-test-requirements]
     allowed_tools: [Read, Write, Glob, Grep, Bash]
 
-  # Deterministic: list the files the run produced and copy tasks/ to the run artifacts — it is gitignored, so it
-  # would disappear with the worktree.
+  # Deterministic: list the files the run produced and copy docs/tasks/ to the run artifacts — it is gitignored,
+  # so it would disappear with the worktree.
   - id: outputs
     depends_on: [result_report, blocked_report]
     trigger_rule: one_success
@@ -106,10 +106,10 @@ nodes:
         [ -f "$file" ] && { echo "$file"; found=1; }
       done
       [ "$found" = 1 ] || echo "(no result files were written)"
-      if [ -d tasks ]; then
+      if [ -d docs/tasks ]; then
         rm -rf "$ARTIFACTS_DIR/tasks"
         mkdir -p "$ARTIFACTS_DIR/tasks"
-        cp -R tasks/. "$ARTIFACTS_DIR/tasks/"
-        echo "tasks/ copied to $ARTIFACTS_DIR/tasks"
+        cp -R docs/tasks/. "$ARTIFACTS_DIR/tasks/"
+        echo "docs/tasks/ copied to $ARTIFACTS_DIR/tasks"
       fi
       exit 0

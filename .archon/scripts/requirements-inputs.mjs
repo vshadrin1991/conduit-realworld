@@ -6,7 +6,7 @@
  *   node .archon/scripts/requirements-inputs.mjs <arguments.txt> <artifacts-dir>
  *
  * <arguments.txt> holds the workflow message: `--requirements <file>` or `--r <file>` (`--r=<file>` works too; quote
- * paths with spaces). Copies the file to tasks/<KEY>/requirements/source/ (KEY = file name without extension),
+ * paths with spaces). Copies the file to docs/tasks/<KEY>/requirements/source/ (KEY = file name without extension),
  * extracts text from non-Markdown files, writes <artifacts-dir>/inputs.json and prints a Markdown summary for the
  * AI nodes. Exits with 1 on invalid input.
  */
@@ -79,7 +79,7 @@ function requirementsFile(tokens) {
 try {
   const file = requirementsFile(tokenize(fs.readFileSync(argumentsFile, 'utf-8').trim()));
   const key = path.basename(file).replace(/\.[^.]+$/, '');
-  const outputDir = path.join('tasks', key, 'requirements');
+  const outputDir = path.join('docs', 'tasks', key, 'requirements');
   const source = path.join(outputDir, 'source', path.basename(file));
   fs.mkdirSync(path.dirname(source), { recursive: true });
   if (path.resolve(file) !== path.resolve(source)) fs.copyFileSync(file, source);

@@ -67,7 +67,7 @@ export default defineConfig<BaseOptions>({
     navigationTimeout: frameworkConfig.timeouts.navigation,
   },
   expect: { timeout: frameworkConfig.timeouts.expect },
-  snapshotPathTemplate: '{testDir}/../../snapshots/{arg}{ext}',
+  snapshotPathTemplate: '{testDir}/../../src/snapshots/{arg}{ext}',
 
   projects: [
     {

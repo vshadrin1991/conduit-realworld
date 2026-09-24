@@ -1,6 +1,6 @@
 ---
 description: Run new or changed Playwright tests once and triage their failures
-argument-hint: <tasks/KEY/KEY.md | description of what was automated>
+argument-hint: <docs/tasks/KEY/KEY.md | description of what was automated>
 ---
 
 # Verify Playwright tests

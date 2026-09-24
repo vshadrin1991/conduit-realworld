@@ -1,6 +1,6 @@
 ---
 description: Implement planned Playwright tests following the Conduit framework conventions
-argument-hint: <tasks/KEY/KEY.md | description of what to automate>
+argument-hint: <docs/tasks/KEY/KEY.md | description of what to automate>
 ---
 
 # Implement Playwright tests

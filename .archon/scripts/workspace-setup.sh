@@ -47,12 +47,12 @@ for path in .env .auth .archon/.env; do
   fi
 done
 
-# tasks/ holds workflow inputs (saved pages passed as --artifacts) and results. Its contents are gitignored, so the
-# worktree has only the few files that were committed: fill in the rest without overwriting them (-n).
-if [ -d "$main/tasks" ]; then
-  mkdir -p tasks
-  cp -Rn "$main/tasks/." tasks/ 2>/dev/null || true
-  echo "tasks/ filled in from $main/tasks"
+# docs/tasks/ holds workflow inputs (saved pages passed as --artifacts) and results. Its contents are gitignored,
+# so the worktree has only the few files that were committed: fill in the rest without overwriting them (-n).
+if [ -d "$main/docs/tasks" ]; then
+  mkdir -p docs/tasks
+  cp -Rn "$main/docs/tasks/." docs/tasks/ 2>/dev/null || true
+  echo "docs/tasks/ filled in from $main/docs/tasks"
 fi
 
 echo "Workspace ready."

@@ -1,6 +1,6 @@
 ---
 description: Plan Playwright UI/API tests for the Conduit framework from a task file or a description
-argument-hint: <tasks/KEY/KEY.md | description of what to automate>
+argument-hint: <docs/tasks/KEY/KEY.md | description of what to automate>
 ---
 
 # Plan Playwright tests
@@ -19,7 +19,7 @@ Produce an implementation plan that follows the `playwright-ts-conduit-realworld
    - **Test cases** (`--test-cases`) — the cases to automate. Keep their IDs, titles, steps and expected results; do not add cases beyond them, and list noticed gaps as non-blocking questions.
    - **Requirements** (`--requirements`) — without test cases, derive the cases with the `playwright-ts-test-requirements` skill (positive, negative, boundary); with test cases, use them to check coverage and expected results. Map every case to a requirement ID.
    - **Page descriptions** (`--artifacts`) — element names, locators and open decisions of the saved pages.
-   - **Task** — a task file (`tasks/<KEY>/<KEY>.md`): read it together with its `pages/*.md` page descriptions and `requirements/`; any other text is the description of what to automate or extra instructions for the sources above.
+   - **Task** — a task file (`../../docs/tasks/<KEY>/<KEY>.md`): read it together with its `pages/*.md` page descriptions and `../../docs/requirements/`; any other text is the description of what to automate or extra instructions for the sources above.
 2. Read the code the change will touch: matching page objects and components in `src/pageObject/`, helpers and flows in `src/api/client/`, existing specs in `tests/`.
 3. For every case decide:
    - layer (API, UI, hybrid, mocked UI) by the test pyramid;

@@ -5,7 +5,7 @@
  * Usage (from the project root):
  *   node extract-requirements.mjs <file | folder> [--out <folder>]
  *
- * Default output: an `extracted/` folder next to the input folder (tasks/<KEY>/requirements/extracted).
+ * Default output: an `extracted/` folder next to the input folder (docs/tasks/<KEY>/requirements/extracted).
  * Converted: md, txt, csv, tsv, xlsx, docx/doc/rtf/odt/html/webarchive (textutil on macOS; docx falls back to its XML),
  * json/yaml. Listed for manual reading with the Read tool: pdf and images.
  */

@@ -7,7 +7,7 @@
 | Priority | Medium                                                                                                                                                                                                      |
 | Routes   | `#/article/<slug>`                                                                                                                                                                                          |
 | API      | `GET /api/articles/:slug`, `GET /api/articles/:slug/comments`, `POST /api/articles/:slug/comments`, `DELETE /api/articles/:slug/comments/:id`                                                               |
-| Sources  | Live app (guest walkthrough), `backend/controllers/articles.js`, `backend/controllers/comments.js`, `src/pageObject/pages/ArticlePage.ts`, `tests/api/comments.api.spec.ts`, `tests/ui/articles.ui.spec.ts` |
+| Sources  | Live app (guest walkthrough), `backend/controllers/articles.js`, `backend/controllers/comments.js`, `../../src/pageObject/pages/ArticlePage.ts`, `../../tests/api/comments.api.spec.ts`, `../../tests/ui/articles.ui.spec.ts` |
 
 ## User story
 

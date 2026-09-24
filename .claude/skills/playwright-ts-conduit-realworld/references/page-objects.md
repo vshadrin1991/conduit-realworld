@@ -28,7 +28,7 @@ A locator broke after a UI change? Use the [playwright-ts-test-self-healing](../
 When a page comes as a file saved with Ctrl/Cmd+S (**Webpage, Complete**: `<name>.html` + `<name>_files/`), turn it into a page description before writing or extending a page object:
 
 ```bash
-npm run page:md -- "tasks/<KEY>/pages/<name>.html"   # or a folder: every *.html in it
+npm run page:md -- "docs/tasks/<KEY>/pages/<name>.html"   # or a folder: every *.html in it
 ```
 
 `scripts/parse-page-to-md.mjs` runs offline (page scripts disabled, network blocked — no rate-limit budget) and writes `<name>.md` next to the HTML: source route, root candidates, elements grouped as `fields` / `buttons` / `checkboxes` / `radioButtons` / errors / content with suggested names and locators (match counts checked on the saved DOM), forms with the matching chain, repeated items, the existing page object the locators already live in, open decisions and a page-object draft. Options: `--out <file|folder>`, `--name <PageClass>`, `--stdout`, `--all` (hidden elements), `--no-snapshot`.

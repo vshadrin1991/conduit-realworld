@@ -17,7 +17,7 @@ argument-hint: --r <requirements file>
 
 ## Your task
 
-Follow the `playwright-ts-test-requirements` skill (test design and test cases, steps 6–7) and its templates; suggest layers by the test pyramid of the `playwright-ts-conduit-realworld` skill. The output folder is `outputDir` from `$ARTIFACTS_DIR/inputs.json` (`tasks/<KEY>/requirements/`). Both files are always written, whatever the evidence showed — open questions and differences are reported, they never stop the deliverables.
+Follow the `playwright-ts-test-requirements` skill (test design and test cases, steps 6–7) and its templates; suggest layers by the test pyramid of the `playwright-ts-conduit-realworld` skill. The output folder is `outputDir` from `$ARTIFACTS_DIR/inputs.json` (`../../docs/tasks/<KEY>/requirements/`). Both files are always written, whatever the evidence showed — open questions and differences are reported, they never stop the deliverables.
 
 1. Write `<outputDir>/requirements-testing-result.md`:
    - **Result** — `Ready for test design` when no finding is open, otherwise `Ready with open questions (<n>)`.

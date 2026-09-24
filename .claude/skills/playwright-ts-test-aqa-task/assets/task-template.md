@@ -130,6 +130,6 @@ Keep only the rows the chosen layer needs.
 
 ## Attachments
 
-- `tasks/<KEY>/api/<name>.json` — <OpenAPI spec / HAR / request examples>
-- `tasks/<KEY>/pages/<name>.html` (+ `<name>_files/`) — <state>
-- `tasks/<KEY>/requirements/<file>`
+- `../../../../docs/tasks/<KEY>/api/<name>.json` — <OpenAPI spec / HAR / request examples>
+- `../../../../docs/tasks/<KEY>/pages/<name>.html` (+ `<name>_files/`) — <state>
+- `../../../../docs/tasks/<KEY>/requirements/<file>`
