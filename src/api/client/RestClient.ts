@@ -1,5 +1,6 @@
-import { test, type APIRequestContext, type APIResponse } from '@playwright/test';
+import type { APIRequestContext, APIResponse } from '@playwright/test';
 import { createLogger } from '@/utilities/logger/Logger';
+import { inStep } from '@/utilities/reporter/Step';
 import { buildPath, type BasePath } from './path/BasePath';
 import { RestClientFactory } from './session/RestClientFactory';
 
@@ -35,7 +36,7 @@ export class RestClient {
   async response(req: Request): Promise<APIResponse> {
     const method = req.method ?? 'GET';
     const url = `/api${buildPath(req.path, ...(req.pathData ?? []))}`;
-    const title = `API :: ${method} :: ${req.name ?? url}`;
+    const title = `API :: ${method} :: ${url} :: ${req.name}`;
 
     return inStep(title, async () => {
       const token = typeof this.token === 'function' ? await this.token() : this.token;
@@ -61,15 +62,6 @@ export class RestClient {
   protected async json<T>(req: Request): Promise<T> {
     return (await (await this.response(req)).json()) as T;
   }
-}
-
-async function inStep<T>(title: string, body: () => Promise<T>): Promise<T> {
-  try {
-    test.info();
-  } catch {
-    return body();
-  }
-  return test.step(title, body, { box: true });
 }
 
 async function verifyStatus(response: APIResponse, req: Request, title: string): Promise<void> {

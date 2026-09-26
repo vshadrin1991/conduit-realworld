@@ -32,9 +32,10 @@ export abstract class BasePage<
   CheckboxName extends string = never,
   RadioButtonName extends string = never,
 > {
-  readonly header: Header;
-
+  
   readonly log = createLogger(this.constructor.name);
+  
+  readonly header: Header;
   readonly input: Input;
   readonly button: Button;
   readonly checkbox: Checkbox;

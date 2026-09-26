@@ -4,18 +4,22 @@ import {
   expect as baseExpect,
   type APIRequestContext,
   type Browser,
+  type BrowserContext,
   type Page,
+  type Response,
   type TestInfo,
   type Video,
 } from '@playwright/test';
 import { APIClient } from '@/api/client/APIClient';
+import { ArticlesAPI } from '@/api/client/api/articles/ArticlesAPI';
 import type { RestClient, Token } from '@/api/client/RestClient';
 import { schemaMatchers } from '@/api/schemas/SchemaMatcher';
 import { getTestUser } from '@/api/client/session/auth/User';
 import { envConfig } from '@/config/env.config';
 import { createLogger, drainTestLogs } from '@/utilities/logger/Logger';
 import { Interceptor } from '@/utilities/interceptor/Interceptor';
-import { clearDataStorage } from '@/utilities/tests/TestDataStorage';
+import { clearDataStorage, hasData } from '@/utilities/tests/TestDataStorage';
+import { Tag } from '@/utilities/tests/Tag';
 import { BaseComponent } from '@/pageObject/components/BaseComponent';
 import { BasePage } from './BasePage';
 
@@ -86,6 +90,24 @@ interface WorkerFixtures {
    * their own one.
    */
   sharedBrowser: () => Promise<Browser>;
+  /**
+   * Holds the page of a passed `@keep-page` test until the next test of the same spec file takes it over.
+   */
+  pageKeeper: PageKeeper;
+}
+
+interface PageSession {
+  file: string;
+  browser: Browser;
+  ownsBrowser: boolean;
+  context: BrowserContext;
+  pages: Page[];
+  videoMode: string;
+  videoDir?: string;
+}
+
+interface PageKeeper {
+  session?: PageSession;
 }
 
 interface CachedAsset {
@@ -114,6 +136,34 @@ async function attachDom(page: Page, testInfo: TestInfo): Promise<void> {
 }
 
 /**
+ * Closes the context of a page session, saves its videos to the test that ends the session and closes the browser
+ * launched for the session.
+ * @param session - session to close
+ * @param testInfo - test that ends the session and receives the videos; without it the videos are deleted
+ */
+async function closeSession(session: PageSession, testInfo?: TestInfo): Promise<void> {
+  await session.context.close();
+  if (session.videoDir) {
+    const target =
+      testInfo && (!session.videoMode.startsWith('retain-on') || testInfo.status !== testInfo.expectedStatus)
+        ? testInfo
+        : undefined;
+    const videos = session.pages.map((page) => page.video()).filter((item): item is Video => !!item);
+    for (const [index, item] of videos.entries()) {
+      if (!target) {
+        await item.delete();
+        continue;
+      }
+      const videoPath = target.outputPath(`video${index ? `-${index}` : ''}.webm`);
+      await item.saveAs(videoPath);
+      target.attachments.push({ name: 'video', path: videoPath, contentType: 'video/webm' });
+    }
+    fs.rmSync(session.videoDir, { recursive: true, force: true });
+  }
+  if (session.ownsBrowser) await session.browser.close();
+}
+
+/**
  * Base test for every spec: `import { test, expect } from '@/base/BaseTest'`.
  * Test functions receive only `{ get }`; logging and data cleanup run automatically. Nothing is set up globally —
  * each test decides whether it needs a user (authenticated clients, `getTestUser()`, sign-in through the login form).
@@ -137,49 +187,73 @@ export const test = base.extend<BaseFixtures & BaseOptions, WorkerFixtures>({
   ],
 
   /**
-   * Browser context of the test. With `newBrowserPerTest` a new browser is launched for the test and closed after it;
-   * otherwise the context opens in the worker's shared browser. Only one browser is ever started for a test.
+   * Keeps the page of a passed `@keep-page` test for the next test of the same spec file. On worker shutdown it
+   * closes a page nobody took over and deletes the data its test left for the next test.
+   * @param playwright - Playwright instance; creates the request context for the leftover cleanup
+   * @param use - runs the worker's tests with the keeper
+   */
+  pageKeeper: [
+    async ({ playwright }, use) => {
+      const keeper: PageKeeper = {};
+      await use(keeper);
+      if (keeper.session) await closeSession(keeper.session);
+      if (!hasData(ArticlesAPI.CREATED_ARTICLES)) return;
+      const request = await playwright.request.newContext({ baseURL: envConfig.baseUrl });
+      try {
+        await new APIClient(request, testUserToken).api.articles.deleteCreated();
+      } finally {
+        await request.dispose();
+        clearDataStorage();
+      }
+    },
+    { scope: 'worker' },
+  ],
+
+  /**
+   * Browser context of the test. A test right after a passed `@keep-page` test of the same spec file continues in
+   * that test's context and page. Otherwise a new context opens: in a browser launched for the test with
+   * `newBrowserPerTest`, else in the worker's shared browser. A passed `@keep-page` test leaves its context open for
+   * the next test; any other test closes it, and the video of the whole chain is attached to that test.
    * Playwright applies the context options (baseURL, viewport, locale, timeouts), tracing and failure screenshots
    * to every context it creates; video is recorded here.
    * @param sharedBrowser - launcher of the worker's shared browser (called only without `newBrowserPerTest`)
    * @param playwright - Playwright instance; launches the per-test browser with the configured launch options
    * @param browserName - browser to launch
    * @param video - video mode from the config
-   * @param newBrowserPerTest - whether the test gets its own browser
+   * @param newBrowserPerTest - whether a new chain gets its own browser
+   * @param pageKeeper - holder of the page kept by the previous test
    * @param use - runs the test with the context
-   * @param testInfo - info of the running test (retry, status, output paths)
+   * @param testInfo - info of the running test (file, tags, retry, status, output paths)
    */
-  context: async ({ sharedBrowser, playwright, browserName, video, newBrowserPerTest }, use, testInfo) => {
-    const owner = newBrowserPerTest ? await playwright[browserName].launch() : await sharedBrowser();
-    const videoMode = typeof video === 'string' ? video : video.mode;
-    const recordVideo =
-      videoMode === 'on' ||
-      videoMode === 'retain-on-failure' ||
-      (videoMode === 'retain-on-first-failure' && testInfo.retry === 0) ||
-      ((videoMode === 'on-first-retry' || videoMode === 'retry-with-video') && testInfo.retry === 1);
-    const videoDir = testInfo.outputPath('.video-tmp');
-    const context = await owner.newContext(recordVideo ? { recordVideo: { dir: videoDir } } : {});
-    const pages: Page[] = [];
-    context.on('page', (page) => pages.push(page));
-
-    await use(context);
-
-    await context.close();
-    if (recordVideo) {
-      const keep = !videoMode.startsWith('retain-on') || testInfo.status !== testInfo.expectedStatus;
-      const videos = pages.map((page) => page.video()).filter((item): item is Video => !!item);
-      for (const [index, item] of videos.entries()) {
-        if (!keep) {
-          await item.delete();
-          continue;
-        }
-        const videoPath = testInfo.outputPath(`video${index ? `-${index}` : ''}.webm`);
-        await item.saveAs(videoPath);
-        testInfo.attachments.push({ name: 'video', path: videoPath, contentType: 'video/webm' });
-      }
-      fs.rmSync(videoDir, { recursive: true, force: true });
+  context: async ({ sharedBrowser, playwright, browserName, video, newBrowserPerTest, pageKeeper }, use, testInfo) => {
+    let session = pageKeeper.session;
+    pageKeeper.session = undefined;
+    if (session && session.file !== testInfo.file) {
+      await closeSession(session);
+      session = undefined;
     }
-    if (newBrowserPerTest) await owner.close();
+    if (!session) {
+      const browser = newBrowserPerTest ? await playwright[browserName].launch() : await sharedBrowser();
+      const videoMode = typeof video === 'string' ? video : video.mode;
+      const recordVideo =
+        videoMode === 'on' ||
+        videoMode === 'retain-on-failure' ||
+        (videoMode === 'retain-on-first-failure' && testInfo.retry === 0) ||
+        ((videoMode === 'on-first-retry' || videoMode === 'retry-with-video') && testInfo.retry === 1);
+      const videoDir = recordVideo ? testInfo.outputPath('.video-tmp') : undefined;
+      const context = await browser.newContext(videoDir ? { recordVideo: { dir: videoDir } } : {});
+      const pages: Page[] = [];
+      context.on('page', (page) => pages.push(page));
+      session = { file: testInfo.file, browser, ownsBrowser: newBrowserPerTest, context, pages, videoMode, videoDir };
+    }
+
+    await use(session.context);
+
+    if (testInfo.tags.includes(Tag.KEEP_PAGE) && testInfo.status === testInfo.expectedStatus) {
+      pageKeeper.session = session;
+      return;
+    }
+    await closeSession(session, testInfo);
   },
 
   /**
@@ -200,14 +274,17 @@ export const test = base.extend<BaseFixtures & BaseOptions, WorkerFixtures>({
   ],
 
   /**
-   * Deletes the data registered by API flows after the test and clears TestDataStorage.
+   * Deletes the data registered by API flows after the test and clears TestDataStorage. A passed `@keep-page` test
+   * leaves both for the next test, which continues on its page; the test that ends the chain cleans up everything.
    * Declared after `logs`: auto fixtures are torn down in reverse order, so the cleanup is still logged.
    * @param request - API request context used for the cleanup calls
    * @param use - runs the test
+   * @param testInfo - info of the finished test (tags, status)
    */
   dataCleaner: [
-    async ({ request }, use) => {
+    async ({ request }, use, testInfo) => {
       await use();
+      if (testInfo.tags.includes(Tag.KEEP_PAGE) && testInfo.status === testInfo.expectedStatus) return;
       try {
         await new APIClient(request, testUserToken).api.articles.deleteCreated();
       } finally {
@@ -218,13 +295,15 @@ export const test = base.extend<BaseFixtures & BaseOptions, WorkerFixtures>({
   ],
 
   /**
-   * Extends the built-in page: static asset cache + logging of rate-limited browser requests + DOM snapshot
-   * (`dom.html`) of a failed test.
-   * @param page - built-in Playwright page
-   * @param use - runs the test with the extended page
+   * Page of the test: the page kept by the previous `@keep-page` test, or a new page of a new context. Adds the static
+   * asset cache, logging of rate-limited browser requests and a DOM snapshot (`dom.html`) of a failed test; the
+   * routes, mocks and listeners of the test are removed after it, so a kept page starts the next test clean.
+   * @param context - browser context of the test
+   * @param use - runs the test with the page
    * @param testInfo - info of the running test (status, output path, attachments)
    */
-  page: async ({ page }, use, testInfo) => {
+  page: async ({ context }, use, testInfo) => {
+    const page = context.pages()[0] ?? (await context.newPage());
     const origin = new URL(envConfig.baseUrl).origin;
     await page.context().route(
       (url) => url.origin === origin && !url.pathname.startsWith('/api/'),
@@ -250,14 +329,17 @@ export const test = base.extend<BaseFixtures & BaseOptions, WorkerFixtures>({
         }
       },
     );
-    page.on('response', (response) => {
+    const logRateLimit = (response: Response): void => {
       if (response.status() === 429) {
         browserLog.warn(
           `${response.request().method()} ${response.url()} -> 429 (retry-after ${response.headers()['retry-after']}s)`,
         );
       }
-    });
+    };
+    page.on('response', logRateLimit);
     await use(page);
+    page.off('response', logRateLimit);
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
     await page.context().unrouteAll({ behavior: 'ignoreErrors' });
     await attachDom(page, testInfo);
   },
@@ -273,6 +355,7 @@ export const test = base.extend<BaseFixtures & BaseOptions, WorkerFixtures>({
     const interceptor = new Interceptor(page);
     interceptor.attach();
     await use(interceptor);
+    interceptor.detach();
     if (testInfo.status === testInfo.expectedStatus) return;
     const capture = { network: await interceptor.network(), console: await interceptor.console() };
     await testInfo.attach('interceptor', { body: JSON.stringify(capture, null, 2), contentType: 'application/json' });

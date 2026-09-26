@@ -1,4 +1,4 @@
-import type { ConsoleMessage, Page, Request } from '@playwright/test';
+import type { ConsoleMessage, Page, Request, WebError } from '@playwright/test';
 import { frameworkConfig } from '@/config/framework.config';
 import { createLogger } from '@/utilities/logger/Logger';
 import type { ConsoleEntry, ConsoleLevel } from './entry/ConsoleEntry';
@@ -59,13 +59,27 @@ export class Interceptor {
     this.attached = true;
     const context = this.page.context();
     if (frameworkConfig.interceptor.network !== 'off') {
-      context.on('requestfinished', (request) => this.track(this.captureRequest(request, false)));
-      context.on('requestfailed', (request) => this.track(this.captureRequest(request, true)));
+      context.on('requestfinished', this.onRequestFinished);
+      context.on('requestfailed', this.onRequestFailed);
     }
     if (frameworkConfig.interceptor.console !== 'off') {
-      context.on('console', (message) => this.captureConsole(message));
-      context.on('weberror', (webError) => this.addConsole('error', webError.error().message, null));
+      context.on('console', this.onConsole);
+      context.on('weberror', this.onWebError);
     }
+  }
+
+  /**
+   * Stops capturing, so a page kept for the next test does not collect this test's entries twice.
+   * Already captured entries stay readable.
+   */
+  detach(): void {
+    if (!this.attached) return;
+    this.attached = false;
+    const context = this.page.context();
+    context.off('requestfinished', this.onRequestFinished);
+    context.off('requestfailed', this.onRequestFailed);
+    context.off('console', this.onConsole);
+    context.off('weberror', this.onWebError);
   }
 
   /**
@@ -85,6 +99,31 @@ export class Interceptor {
     await Promise.allSettled([...this.pending]);
     return [...this.consoleEntries];
   }
+
+  /**
+   * Captures a finished browser request.
+   * @param request - request that got a response
+   */
+  private readonly onRequestFinished = (request: Request): void => this.track(this.captureRequest(request, false));
+
+  /**
+   * Captures a browser request that failed before a response arrived.
+   * @param request - failed request
+   */
+  private readonly onRequestFailed = (request: Request): void => this.track(this.captureRequest(request, true));
+
+  /**
+   * Captures a console message of any page of the context.
+   * @param message - console message reported by the browser
+   */
+  private readonly onConsole = (message: ConsoleMessage): void => this.captureConsole(message);
+
+  /**
+   * Captures an uncaught page error as a console error.
+   * @param webError - error thrown in a page of the context
+   */
+  private readonly onWebError = (webError: WebError): void =>
+    this.addConsole('error', webError.error().message, null);
 
   /**
    * Remembers an asynchronous capture so the readers can wait for it.

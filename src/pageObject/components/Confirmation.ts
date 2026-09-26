@@ -1,6 +1,6 @@
-import { BaseComponent } from './BaseComponent';
+import { BaseComponent } from './BaseComponent'
 
-type ConfirmationButton = 'accept' | 'dismiss';
+type ConfirmationButton = 'accept' | 'dismiss'
 
 /**
  * Native browser dialogs (`confirm`, `alert`, `prompt`) — Conduit asks "Want to delete the article?" via `confirm`.
@@ -19,11 +19,13 @@ export class Confirmation extends BaseComponent {
    */
   answerNext(button: ConfirmationButton): Promise<string> {
     return this.page.waitForEvent('dialog').then(async (dialog) => {
-      const message = dialog.message();
-      this.log.info(`${button === 'accept' ? 'Accept' : 'Dismiss'} ${dialog.type()} dialog: "${message}"`);
-      if (button === 'accept') await dialog.accept();
-      else await dialog.dismiss();
-      return message;
-    });
+      const message = dialog.message()
+      this.log.info(
+        `${button === 'accept' ? 'Accept' : 'Dismiss'} ${dialog.type()} dialog: "${message}"`,
+      )
+      if (button === 'accept') await dialog.accept()
+      else await dialog.dismiss()
+      return message
+    })
   }
 }
